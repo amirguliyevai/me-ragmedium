@@ -1,0 +1,1697 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Amir Command</title><meta name="theme-color" content="#0d1117"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" href="/icons/icon-192.png"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0d1117;--card:#161b22;--soft:#1c2129;--text:#e6edf3;--muted:#8b949e;--dim:#5c6570;--line:#30363d;--ink:#f0f6fc;--green:#2ea043;--amber:#d29922;--red:#f85149;--blue:#58a6ff;--radius:10px;--radius-lg:14px;--radius-xl:18px;--font:-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",sans-serif;--mono:ui-monospace,"SF Mono",Menlo,monospace;--shadow:0 1px 3px rgba(0,0,0,.3)}
+html,body{height:100%;overflow:hidden}body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;-webkit-font-smoothing:antialiased}
+a{color:var(--blue)}
+
+/* Top Nav */
+.topNav{display:flex;align-items:center;gap:4px;padding:8px 12px;background:var(--card);border-bottom:1px solid var(--line);overflow-x:auto;-webkit-overflow-scrolling:touch;position:sticky;top:0;z-index:50}
+.topNav button{flex-shrink:0;border:0;background:transparent;color:var(--muted);padding:6px 14px;border-radius:var(--radius-lg);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;transition:background .12s,color .12s}
+.topNav button:hover{background:var(--soft);color:var(--text)}
+.topNav button.active{background:var(--ink);color:var(--bg)}
+
+/* Main Area */
+.main{height:calc(100dvh - 56px - 56px - env(safe-area-inset-bottom));overflow-y:auto;padding:12px 16px 8px}
+.page{display:none}.page.active{display:block;height:100%;overflow-y:auto}
+
+/* Cards */
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius-xl);padding:16px;margin-bottom:12px}
+
+/* Kanban Board */
+.boardWrap{height:100%;display:flex;flex-direction:column;overflow:hidden}
+.boardCols{display:flex;gap:12px;overflow-x:auto;flex:1;padding-bottom:8px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}
+.boardCol{min-width:280px;max-width:320px;flex-shrink:0;background:var(--soft);border:1px solid var(--line);border-radius:var(--radius-xl);display:flex;flex-direction:column;max-height:100%;scroll-snap-align:start}
+.boardColHead{padding:12px 14px 8px;font-size:13px;font-weight:700;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);flex-shrink:0}
+.boardColHead .count{font-size:11px;color:var(--muted);font-weight:400}
+.boardColBody{overflow-y:auto;padding:8px;flex:1;min-height:60px}
+.boardCard{background:var(--card);border:1px solid var(--line);border-radius:var(--radius-lg);padding:10px 12px;margin-bottom:8px;cursor:pointer;transition:border-color .12s,transform .1s}
+.boardCard:hover{border-color:var(--blue);transform:translateY(-1px)}
+.boardCard .bcTitle{font-size:12px;font-weight:600;line-height:1.4}
+.boardCard .bcMeta{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}
+.boardCard .bcTag{font:500 9px var(--mono);padding:2px 6px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+.boardCard .bcTag.high{border-color:var(--red);color:var(--red)}
+.boardCard .bcTag.medium{border-color:var(--amber);color:var(--amber)}
+.boardCard .bcTag.low{border-color:var(--dim);color:var(--dim)}
+.boardCard .bcDone{text-decoration:line-through;opacity:0.5}
+.boardCard .bcDate{font-size:9px;color:var(--dim);margin-top:4px}
+.boardCard{position:relative}
+.boardCard .bcActions{position:absolute;top:6px;right:6px;display:flex;gap:2px;opacity:0;transition:opacity .12s}
+.boardCard:hover .bcActions{opacity:1}
+.boardCard .bcActions button{width:22px;height:22px;border-radius:6px;border:1px solid var(--line);background:var(--card);color:var(--muted);font-size:10px;padding:0;cursor:pointer;display:grid;place-items:center;transition:all .1s}
+.boardCard .bcActions button:hover{background:var(--soft);color:var(--text);border-color:var(--blue);transform:scale(1.1)}
+.boardCard .bcActions .bcDoneBtn:hover{border-color:var(--green);color:var(--green)}
+.boardCard .bcActions .bcChatBtn:hover{border-color:var(--blue);color:var(--blue)}
+.boardCard .bcActions .bcCodeBtn:hover{border-color:var(--amber);color:var(--amber)}
+
+/* Task Description */
+.tpDesc{background:var(--soft);border:1px solid var(--line);border-radius:var(--radius);padding:10px 12px;margin-bottom:12px;font-size:12px;color:var(--muted);line-height:1.5;min-height:50px;white-space:pre-wrap}
+.tpDesc.empty{color:var(--dim);font-style:italic;font-size:11px}
+.tpDescEdit{width:100%;min-height:60px;padding:10px 12px;border-radius:var(--radius);border:1px solid var(--blue);background:var(--bg);color:var(--text);font:inherit;font-size:12px;line-height:1.5;resize:vertical;outline:none;margin-bottom:8px;display:none}
+.tpDescEdit.open{display:block}
+.tpDescHeader{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.tpDescHeader label{font-size:11px;font-weight:600;color:var(--muted)}
+.tpDescHeader button{font-size:10px;padding:2px 8px;border-radius:6px}
+
+.boardEmpty{color:var(--dim);font-size:11px;text-align:center;padding:20px}
+
+/* Task Action Popup */
+.taskOverlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:999;display:none;align-items:center;justify-content:center}
+.taskOverlay.open{display:flex}
+.taskPopup{background:var(--card);border:1px solid var(--line);border-radius:var(--radius-xl);padding:20px;max-width:380px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.5)}
+.taskPopup h3{font-size:14px;margin:0 0 4px;line-height:1.4}
+.taskPopup .tpMeta{font-size:11px;color:var(--muted);margin-bottom:14px}
+.taskPopup .tpActions{display:flex;flex-direction:column;gap:8px}
+.taskPopup .tpBtn{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:var(--radius-lg);background:var(--soft);border:1px solid var(--line);cursor:pointer;transition:all .12s;font-size:13px;font-weight:600;text-align:left;color:var(--text)}
+.taskPopup .tpBtn:hover{border-color:var(--blue);background:var(--card)}
+.taskPopup .tpBtn .tpIcon{font-size:20px;width:28px;text-align:center;flex-shrink:0}
+.taskPopup .tpBtn .tpSub{font-size:11px;color:var(--muted);font-weight:400}
+.taskPopup .tpClose{display:block;margin-top:10px;text-align:center;padding:8px;border:0;background:transparent;color:var(--dim);font-size:12px;cursor:pointer;width:100%;border-radius:var(--radius)}
+.taskPopup .tpClose:hover{background:var(--soft);color:var(--muted)}
+
+.boardFilter{display:flex;gap:8px;padding:0 0 10px;flex-wrap:wrap;flex-shrink:0}
+.boardFilter select,.boardFilter input{padding:6px 12px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--text);font-size:12px}
+
+/* Menu Grid - 2x2 */
+.menuGrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
+.menuTile{background:var(--card);border:1px solid var(--line);border-radius:var(--radius-xl);padding:28px 16px;cursor:pointer;text-align:center;transition:border-color .15s,background .15s}
+.menuTile:hover{border-color:var(--blue);background:var(--soft)}
+.menuTile .icon{font-size:28px;margin-bottom:6px}
+.menuTile .name{font-size:14px;font-weight:700}
+.menuTile .desc{font-size:11px;color:var(--muted);margin-top:4px}
+
+/* Inputs */
+.input{border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:var(--radius);padding:10px 14px;font:inherit;font-size:14px;width:100%;outline:none}
+.input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(88,166,255,.12)}
+
+/* Buttons */
+.btn{border:0;background:var(--ink);color:var(--bg);border-radius:var(--radius);padding:8px 18px;font-weight:600;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{opacity:.85}.btn.alt{background:var(--card);color:var(--text);border:1px solid var(--line)}.btn.ghost{background:transparent;color:var(--muted)}.btn.ghost:hover{background:var(--soft);color:var(--text)}
+
+/* Todo list */
+.todoList{display:grid;gap:8px}
+.todo{display:grid;grid-template-columns:32px 1fr auto;gap:8px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:var(--radius-lg);padding:10px 12px;min-height:48px;transition:border-color .12s}
+.todo:hover{border-color:color-mix(in srgb,var(--blue)30%,var(--line))}
+.todo .rank{font:700 12px var(--mono);color:var(--dim);text-align:center}
+.todo.done .text{text-decoration:line-through;color:var(--dim)}
+.todo .text{font-size:13px;font-weight:600;line-height:1.4;min-width:0}
+.todo .meta{display:flex;gap:4px;flex-wrap:wrap;margin-top:3px}
+
+/* Tags */
+.tag{font:600 10px var(--mono);border:1px solid var(--line);background:var(--soft);color:var(--muted);padding:2px 8px;border-radius:999px;white-space:nowrap}
+.tag.high{color:var(--red)}
+.tag.medium{color:var(--amber)}
+
+/* Project cards */
+.projects{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}
+.project{background:var(--card);border:1px solid var(--line);border-radius:var(--radius-xl);padding:16px;cursor:pointer;transition:border-color .12s}
+.project:hover{border-color:var(--blue)}
+.project h3{font-size:15px;margin-bottom:4px}
+.project .lane{font-size:11px;color:var(--muted);margin-bottom:6px}
+.project .desc{font-size:12px;color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+
+/* Stats grid */
+.statGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.statCard{background:var(--soft);border:1px solid var(--line);border-radius:var(--radius-lg);padding:14px;text-align:center}
+.statCard b{font-size:20px;font-weight:700;display:block}
+.statCard span{font-size:11px;color:var(--muted)}
+
+/* Daily Check-in */
+.checkinCard{background:var(--card);border:1px solid var(--line);border-radius:var(--radius-xl);padding:16px;margin-bottom:12px}
+.checkinHeader{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.checkinHeader b{font-size:14px}
+.checkinHeader small{font-size:11px;color:var(--dim)}
+.moodRow{display:flex;gap:8px;margin:8px 0;flex-wrap:wrap}
+.moodBtn{width:44px;height:44px;border-radius:50%;border:2px solid var(--line);background:transparent;font-size:22px;cursor:pointer;display:grid;place-items:center;transition:all .15s}
+.moodBtn:hover,.moodBtn.sel{border-color:var(--blue);background:var(--soft);transform:scale(1.1)}
+.scoreRow{display:flex;align-items:center;gap:10px;margin:8px 0}
+.scoreRow input[type=range]{flex:1}
+.scoreRow span{font-size:18px;font-weight:700;min-width:24px;text-align:center}
+.hoursRow{display:flex;align-items:center;gap:8px;margin:8px 0}
+.hoursRow input[type=number]{width:70px;padding:6px 8px;background:var(--bg);border:1px solid var(--line);color:var(--text);border-radius:var(--radius-lg);font-size:14px;text-align:center}
+.hoursRow label{font-size:13px;color:var(--muted)}
+.miniChart{display:flex;gap:4px;align-items:flex-end;height:60px;margin-top:8px}
+.miniBar{flex:1;background:var(--blue);border-radius:3px 3px 0 0;min-width:8px;transition:height .3s;position:relative}
+.miniBar span{position:absolute;bottom:-18px;left:0;right:0;text-align:center;font-size:9px;color:var(--dim);white-space:nowrap}
+.miniBar.mood{background:var(--amber)}
+.miniBar.prod{background:var(--green)}
+.chartRow{display:flex;gap:10px;margin-top:10px}
+.chartCol{flex:1}
+.chartCol .label{font-size:10px;color:var(--muted);margin-bottom:4px;text-align:center}
+
+/* Revenue */
+.revPanel{margin-top:12px}
+.revRow{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.revStat{background:var(--soft);border:1px solid var(--line);border-radius:var(--radius);padding:12px;text-align:center}
+.revStat b{font-size:18px;display:block}
+.revStat span{font-size:10px;color:var(--muted)}
+.barChart{display:flex;align-items:flex-end;gap:12px;height:100px;padding:8px 0}
+.barWrap{flex:1;display:flex;flex-direction:column;align-items:center;height:100%;justify-content:flex-end}
+.bar{width:100%;max-width:50px;background:var(--blue);border-radius:4px 4px 0 0;min-height:4px;transition:height .3s}
+.barLabel{font-size:10px;color:var(--muted);margin-top:4px}
+
+/* Calendar */
+.calGrid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin:12px 0}
+.calDay{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:var(--radius);font-size:12px;font-weight:600;cursor:pointer}
+.calDay:hover{background:var(--soft)}
+.calDay.today{background:var(--blue);color:var(--bg)}
+.calDay.selected{border:2px solid var(--blue)}
+.calDay.other{color:var(--dim)}
+.dayEvents{font-size:12px}
+.eventRow{padding:6px 0;border-bottom:1px solid var(--line)}
+
+/* Timetable */
+.timelineWrap{height:400px;overflow-y:auto;position:relative}
+.timeline{position:relative}
+.timelineHour{position:absolute;left:0;font-size:10px;color:var(--dim)}
+.timelineLine{position:absolute;left:40px;right:0;border-top:1px solid var(--line)}
+.timetableBlock{position:absolute;left:44px;right:8px;border-radius:6px;padding:4px 8px;overflow:hidden;font-size:11px}
+.timetableBlock.meeting{background:color-mix(in srgb,var(--blue)15%,var(--card));border:1px solid color-mix(in srgb,var(--blue)30%,var(--line))}
+.timetableBlock.task{background:color-mix(in srgb,var(--green)10%,var(--card));border:1px solid color-mix(in srgb,var(--green)20%,var(--line))}
+.tbTitle{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tbTime{font-size:10px;color:var(--muted)}
+
+/* Chat page */
+.chatWrap{display:flex;flex-direction:column;height:100%}
+.msgList{flex:1;overflow-y:auto;padding:8px 0}
+.msg{display:flex;flex-direction:column;margin-bottom:10px}
+.msg.user{align-items:flex-end}
+.msg .bubble{max-width:85%;padding:10px 14px;border-radius:var(--radius-lg);font-size:13px;line-height:1.5}
+.msg .bubble{background:var(--soft);border:1px solid var(--line)}
+.msg.user .bubble{background:var(--blue);color:var(--bg)}
+.msg.system{align-items:center}
+.msg.system .bubble{background:transparent;font-size:11px;color:var(--dim);text-align:center;max-width:100%}
+
+/* Persistent Chat Bar */
+.chatBar{position:fixed;bottom:0;left:0;right:0;z-index:100;background:var(--card);border-top:1px solid var(--line);padding:6px 10px env(safe-area-inset-bottom);display:flex;align-items:center;gap:8px}
+.chatBar textarea{flex:1;border:1px solid var(--line);background:var(--bg);color:var(--text);border-radius:var(--radius-lg);padding:10px 14px;font:inherit;font-size:14px;outline:none;min-height:40px;resize:none;overflow-y:auto;line-height:1.4}
+.chatBar textarea:focus{border-color:var(--blue)}
+.chatBar .sendBtn{border:0;background:var(--blue);color:var(--bg);border-radius:var(--radius-lg);width:40px;height:40px;cursor:pointer;font-size:18px;display:grid;place-items:center;flex-shrink:0}
+.chatBar .sendBtn:hover{opacity:.85}
+
+/* History sidebar toggle for chat */
+.historyToggle{position:fixed;left:0;top:56px;z-index:45;border:0;background:var(--card);color:var(--muted);padding:6px 10px;border-radius:0 var(--radius) var(--radius) 0;cursor:pointer;font-size:14px}
+.historyPane{position:fixed;left:0;top:56px;bottom:56px;z-index:44;width:200px;background:var(--bg);border-right:1px solid var(--line);overflow-y:auto;padding:10px;transform:translateX(-100%);transition:transform .2s}
+.historyPane.open{transform:translateX(0)}
+.hist{display:block;width:100%;text-align:left;border:0;background:transparent;color:var(--text);padding:10px;border-radius:var(--radius);cursor:pointer;border-bottom:1px solid var(--line)}
+.hist:hover{background:var(--soft)}
+.hist.active{background:var(--soft);border-left:2px solid var(--blue)}
+.hist b{display:block;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hist small{display:block;font-size:10px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* Settings popup */
+.settingsPop{display:none;position:fixed;bottom:56px;right:12px;z-index:90;background:var(--card);border:1px solid var(--line);border-radius:var(--radius-xl);padding:14px;min-width:180px;box-shadow:var(--shadow)}
+.settingsPop.open{display:grid;gap:4px}
+.settingsPop button{border:0;background:transparent;color:var(--text);padding:8px 12px;border-radius:var(--radius);cursor:pointer;text-align:left;font-size:13px}
+.settingsPop button:hover{background:var(--soft)}
+
+/* Chat Overlay */
+.chatOverlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:95;background:rgba(0,0,0,.5)}
+.chatOverlay.open{display:block}
+.chatPanel{position:fixed;bottom:56px;left:8px;right:8px;max-height:60dvh;background:var(--card);border:1px solid var(--line);border-radius:var(--radius-xl) var(--radius-xl) var(--radius-lg) var(--radius-lg);display:flex;flex-direction:column;overflow:hidden;box-shadow:var(--shadow)}
+.chatPanelHead{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line);flex-shrink:0}
+.chatDragHandle{height:8px;cursor:ns-resize;background:var(--line);border-radius:0 0 4px 4px;margin:0 40%;flex-shrink:0;transition:background .15s}
+.chatDragHandle:hover,.chatDragHandle:active{background:var(--blue)}
+.chatPanel .msgList{flex:1;overflow-y:auto;padding:8px 12px;min-height:100px}
+
+/* Model Picker */
+.modelBtn{border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:11px;font-weight:600;cursor:pointer;color:var(--muted);flex-shrink:0}
+
+/* Content */
+.contentTabs{display:flex;gap:4px;margin-bottom:12px}
+.contentTabs button{border:0;background:var(--soft);color:var(--muted);padding:6px 14px;border-radius:var(--radius-lg);cursor:pointer;font-size:12px;font-weight:600}
+.contentTabs button.active{background:var(--ink);color:var(--bg)}
+.contentPanel{display:none}.contentPanel.active{display:block}
+
+/* Charts */
+.chart canvas{width:100%!important;height:200px!important}
+
+/* Project detail */
+.badge{padding:2px 8px;border-radius:12px;font-size:10px;font-weight:600;display:inline-block}
+
+/* Responsive */
+@media(max-width:480px){.menuGrid{gap:10px}.menuTile{padding:20px 12px}.projects{grid-template-columns:1fr}}
+</style></head><body>
+
+<!-- Top Nav -->
+<nav class="topNav" id="topNav"></nav>
+
+<!-- Main Area -->
+<div class="main" id="appMain"></div>
+
+<!-- Persistent Chat Bar -->
+<div class="chatBar" id="chatBar">
+  <textarea id="chatInput" placeholder="Ask AI to update anything…" autocomplete="off" rows="1"></textarea>
+  <button class="modelBtn" id="modelBtn" onclick="toggleModelPicker()" title="Model" style="padding:6px 8px;font-size:11px;min-width:28px">⚡</button>
+  <button class="sendBtn" id="sendBtn" onclick="sendChatMessage()">➤</button>
+  <button class="modelBtn" onclick="openChatOverlay()" title="Chat history" style="padding:6px 8px;font-size:13px;min-width:28px">☰</button>
+</div>
+
+<!-- Model Picker Popup -->
+<div class="settingsPop" id="modelPop" style="bottom:60px;right:60px;min-width:140px"></div>
+
+<!-- Chat Slide-up Overlay -->
+<div id="chatOverlay" class="chatOverlay" onclick="closeChatOverlay(event)">
+  <div class="chatPanel" id="chatPanel" onclick="event.stopPropagation()" style="height:45vh;min-height:120px;max-height:90vh">
+    <div class="chatDragHandle" id="chatDragHandle" onmousedown="startChatResize(event)" ontouchstart="startChatResize(event)" title="Drag to resize"></div>
+    <div class="chatPanelHead">
+      <b id="chatOverlayTitle">Chat</b>
+      <button class="btn ghost" onclick="createNewChat();openChatOverlay()" title="New chat" style="padding:4px 8px;font-size:14px">＋</button>
+      <button class="btn ghost" onclick="closeChatOverlay()" style="padding:4px 8px;font-size:14px">×</button>
+    </div>
+    <div class="msgList" id="overlayMsgList"></div>
+    <button class="btn alt" onclick="closeChatOverlay();navTo('chat')" style="margin:8px;font-size:11px">Open full chat →</button>
+  </div>
+</div>
+
+<!-- Settings Popup -->
+<div class="settingsPop" id="settingsPop"></div>
+
+<script>
+// ─── STATE ────────────────────────────────────────────
+let state={},activePage='todo',activeThread='general',calCursor=new Date(),selectedDate='';
+const $=id=>document.getElementById(id);
+const esc=s=>{const d=document.createElement('div');d.textContent=String(s);return d.innerHTML};
+const clip=(s,n=140)=>{s=String(s||'').replace(/\s+/g,' ').trim();return s.length>n?s.slice(0,n-1)+'…':s};
+function todayKey(d){d=d||new Date();if(d.getHours()<6)d.setDate(d.getDate()-1);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function api(u,o){return fetch(u,o).then(r=>r.json().catch(()=>({}))).then(j=>{if(j.error)throw Error(j.error);return j})}
+
+// ─── PAGES ────────────────────────────────────────────
+const pages={
+  home:`
+    <div class="menuGrid">
+      <div class="menuTile" onclick="navTo('todo')"><div class="icon">✓</div><div class="name">Todo</div><div class="desc">Tasks & priorities</div></div>
+      <div class="menuTile" onclick="navTo('board')"><div class="icon">📋</div><div class="name">Board</div><div class="desc">Kanban by project</div></div>
+      <div class="menuTile" onclick="navTo('projects')"><div class="icon">□</div><div class="name">Projects</div><div class="desc">Businesses & revenue</div></div>
+      <div class="menuTile" onclick="navTo('schedule')"><div class="icon">⏱</div><div class="name">Schedule</div><div class="desc">Timetable & planning</div></div>
+      <div class="menuTile" onclick="navTo('calendar')"><div class="icon">◷</div><div class="name">Calendar</div><div class="desc">Events & meetings</div></div>
+      <div class="menuTile" onclick="navTo('vault')"><div class="icon">🧠</div><div class="name">Vault</div><div class="desc">Obsidian knowledge base</div></div>
+      <div class="menuTile" onclick="navTo('mindmap')"><div class="icon">🗺️</div><div class="name">Mindmap</div><div class="desc">RAGmind strategy map</div></div>
+      <div class="menuTile" onclick="navTo('scrape')"><div class="icon">🕷️</div><div class="name">Scraper</div><div class="desc">ScrapeGraphAI web scraper</div></div>
+      <div class="menuTile" onclick="navTo('skills')"><div class="icon">📋</div><div class="name">Skills</div><div class="desc">Agent skills & tools</div></div>
+      <div class="menuTile" onclick="navTo('docs')"><div class="icon">📄</div><div class="name">Docs</div><div class="desc">Document archive</div></div>
+      <div class="menuTile" onclick="navTo('leads')"><div class="icon">📊</div><div class="name">Leads</div><div class="desc">Lead database (l.ragmedium.com)</div></div>
+      <div class="menuTile" onclick="navTo('convert')"><div class="icon">🔁</div><div class="name">Convert</div><div class="desc">MarkItDown file converter</div></div>
+    </div>
+    <div class="card"><div class="statGrid" id="homeStats"></div></div>
+    <div class="checkinCard" id="checkinCard"></div>`,
+
+  todo:`
+    <div class="card">
+      <div class="todoList" id="todoList"></div>
+    </div>`,
+
+  projects:`
+    <div class="row" style="display:flex;gap:8px;align-items:center;margin-bottom:12px">
+      <button class="btn alt" onclick="projView='list';renderProjects()" id="pvList">📋 List</button>
+      <button class="btn alt" onclick="projView='stats';renderProjects()" id="pvStats">📊 Stats</button>
+    </div>
+    <div id="projectsWrap"></div>`,
+
+  projectDetail:`
+    <div id="pdWrap"></div>`,
+
+  schedule:`
+    <div class="card">
+      <div class="row" style="display:flex;justify-content:space-between;margin-bottom:12px">
+        <h2 style="margin:0;font-size:16px">Timetable</h2>
+        <button class="btn" onclick="generateTimetable()">Schedule</button>
+      </div>
+      <div class="timelineWrap"><div class="timeline" id="timeline"></div></div>
+      <div id="timetableConfig" style="margin-top:12px"></div>
+    </div>`,
+
+  calendar:`
+    <div class="card">
+      <div class="row" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <button class="btn ghost" onclick="moveCal(-1)">←</button>
+        <h2 id="calMonth" style="margin:0;font-size:16px"></h2>
+        <button class="btn ghost" onclick="moveCal(1)">→</button>
+      </div>
+      <div class="calGrid" id="calGrid"></div>
+      <div class="dayEvents" id="dayEvents"></div>
+    </div>`,
+
+  chat:`
+    <div class="chatWrap">
+      <div class="historyPane" id="historyPane"><button class="btn alt" onclick="createNewChat();navTo('chat')" style="margin:8px;width:calc(100% - 16px);font-size:11px">＋ New Chat</button><div id="histList"></div></div>
+      <button class="historyToggle" onclick="$('historyPane').classList.toggle('open')">☰</button>
+      <div class="msgList" id="msgList"></div>
+    </div>`,
+
+  mindmap:`
+    <div style="width:100%;height:calc(100vh - 56px);overflow:hidden;border-radius:8px">
+      <iframe src="http://100.111.98.27:4444/" style="width:100%;height:100%;border:none;border-radius:8px" title="RAGmind Strategy Map"></iframe>
+    </div>`,
+
+  scrape:`
+    <div style="width:100%;height:calc(100vh - 56px);overflow:hidden;border-radius:8px">
+      <iframe src="https://scrape.ragmedium.com/" style="width:100%;height:100%;border:none;border-radius:8px" title="ScrapeGraphAI Web Scraper"></iframe>
+    </div>`,
+
+  code:`
+    <div style="padding:8px;display:flex;flex-direction:column;height:100%">
+      <div class="card" style="flex-shrink:0">
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
+          <h3 style="margin:0;font-size:15px">⌘ Code Workspace</h3>
+          <select id="codeProject" style="margin-left:auto;padding:6px 12px;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:12px;max-width:200px" onchange="switchCodeProject(this.value)"></select>
+        </div>
+        <div id="codeStats" style="display:flex;gap:16px;font-size:11px;color:var(--muted);flex-wrap:wrap"></div>
+      </div>
+      <div id="codeChatWrap" style="flex:1;overflow-y:auto;min-height:0" class="card" style="padding:8px">
+        <div id="codeMessages" style="display:flex;flex-direction:column;gap:8px;padding:4px"></div>
+      </div>
+      <div class="chatBar" style="position:relative;border:0;padding:8px 0 0">
+        <textarea id="codeInput" placeholder="Send a coding command..." style="flex:1;border:1px solid var(--line);background:var(--bg);color:var(--text);border-radius:8px;padding:10px 14px;font:inherit;font-size:13px;outline:none;min-height:40px;resize:none" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendCodeCommand()}"></textarea>
+        <button onclick="sendCodeCommand()" style="border:0;background:var(--blue);color:var(--bg);border-radius:8px;padding:10px 16px;cursor:pointer;font-size:13px;font-weight:600;margin-left:8px">⏎</button>
+      </div>
+    </div>`,
+
+  leads:`
+    <div style="width:100%;height:calc(100dvh - 120px);overflow:hidden;border-radius:8px">
+      <iframe src="https://l.ragmedium.com/" style="width:100%;height:100%;border:none;border-radius:8px" title="Lead Database"></iframe>
+    </div>`,
+
+  vault:`
+    <div class="card">
+      <div class="row" style="display:flex;gap:8px;align-items:center;margin-bottom:12px">
+        <h2 style="margin:0;font-size:16px">🧠 Knowledge Vault</h2>
+        <span style="font-size:11px;color:var(--muted)">Obsidian · ${new Date().toISOString().slice(0,10)}</span>
+      </div>
+      <div id="vaultStats" style="font-size:12px;color:var(--muted);margin-bottom:12px"></div>
+      <div id="vaultSearch" style="margin-bottom:12px">
+        <input type="text" placeholder="Search vault..." style="width:100%;padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text)" oninput="filterVault(this.value)">
+      </div>
+      <div id="vaultFiles"></div>
+    </div>`,
+
+  skills:`
+    <div style="padding:8px">
+      <div class="card"><h3 style="margin:0 0 8px">📋 Skills</h3>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+          <select id="skillFilter" style="padding:6px 12px;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:12px" onchange="renderSkills()">
+            <option value="all">All categories</option>
+          </select>
+          <input id="skillSearch" type="text" placeholder="Search skills..." style="flex:1;min-width:120px;padding:6px 12px;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:12px" oninput="renderSkills()">
+        </div>
+        <div id="skillGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px"></div>
+      </div>
+    </div>`,
+
+  docs:`
+    <div style="padding:8px">
+      <div class="card">
+        <h3 style="margin:0 0 8px">📄 Documents</h3>
+        <p style="color:var(--muted);font-size:12px;margin-bottom:12px">All ingested documents from the RAG memory system. ${new Date().toISOString().slice(0,10)}</p>
+        <div style="display:flex;gap:8px;margin-bottom:12px">
+          <input id="docSearch" type="text" placeholder="Search documents..." style="flex:1;padding:8px 12px;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:13px" oninput="filterDocs(this.value)">
+        </div>
+        <div id="docUploadArea" style="border:2px dashed var(--line);border-radius:12px;padding:24px;text-align:center;margin-bottom:12px;cursor:pointer" onclick="document.getElementById('docFileInput').click()" ondragover="event.preventDefault()" ondrop="handleDocDrop(event)">
+          <div style="font-size:24px;margin-bottom:8px">📤</div>
+          <div style="font-size:13px;color:var(--muted)">Drop files here or click to upload</div>
+          <input id="docFileInput" type="file" multiple style="display:none" onchange="handleDocUpload(this.files)">
+        </div>
+        <div id="docStats" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;font-size:12px;color:var(--muted)"></div>
+        <div id="docList" style="display:grid;gap:6px"></div>
+      </div>
+    </div>`,
+
+  board:`
+    <div class="boardWrap">
+      <div class="boardFilter">
+        <select id="boardProjectFilter" onchange="renderBoard()"><option value="__all">All projects</option></select>
+        <select id="boardPriorityFilter" onchange="renderBoard()"><option value="__all">All priorities</option><option value="high">🔥 High</option><option value="medium">📌 Medium</option><option value="low">💤 Low</option></select>
+      </div>
+      <div class="boardCols" id="boardCols"></div>
+    </div>
+    <div class="taskOverlay" id="taskOverlay" onclick="closeTaskMenu(event)">
+      <div class="taskPopup" onclick="event.stopPropagation()">
+        <h3 id="tpTitle"></h3>
+        <div class="tpMeta" id="tpMeta"></div>
+        <div class="tpDescHeader">
+          <label>📝 Description</label>
+          <button class="btn ghost" id="tpEditBtn" onclick="toggleDescEdit()" style="padding:2px 10px;font-size:10px">✏️ Edit</button>
+        </div>
+        <div class="tpDesc" id="tpDesc"></div>
+        <textarea class="tpDescEdit" id="tpDescEdit" placeholder="Add notes, context, steps…"></textarea>
+        <button class="btn alt" id="tpSaveDesc" onclick="saveTaskDesc()" style="display:none;width:100%;margin-bottom:12px;font-size:11px">💾 Save description</button>
+        <div class="tpActions">
+          <div class="tpBtn" onclick="taskDone()"><span class="tpIcon">✅</span> <div>Mark done <span class="tpSub">— complete this task</span></div></div>
+          <div class="tpBtn" onclick="taskChat()"><span class="tpIcon">💬</span> <div>Discuss in Chat <span class="tpSub">— talk it through with Kaneki</span></div></div>
+          <div class="tpBtn" onclick="taskCode()"><span class="tpIcon">⌘</span> <div>Code mode <span class="tpSub">— build / implement / configure</span></div></div>
+        </div>
+        <button class="tpClose" onclick="closeTaskMenu()">Cancel</button>
+      </div>
+    </div>`
+};
+
+function renderPage(id){
+  const main=$('appMain');
+  if(!main)return;
+  if(pages[id])main.innerHTML=pages[id];
+  activePage=id;
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  main.querySelectorAll('.page').forEach(p=>p.id===id&&p.classList.add('active'));
+  navButtons();
+  // Render specific page
+  if(id==='home')renderHomeStats();
+  if(id==='todo')renderTodos();
+  if(id==='projects')renderProjects();
+  if(id==='schedule'){renderTimetableConfig();generateTimetable()}
+  if(id==='calendar')renderCalendar();
+  if(id==='chat')renderChat();
+  if(id==='skills')renderSkills();
+  if(id==='docs')renderDocs();
+  if(id==='board')renderBoard();
+}
+
+function navTo(id){
+  if(id==='board'){renderPage('board');renderBoard();return}
+  if(id==='project-detail'){
+    const main=$('appMain');if(main)main.innerHTML=pages.projectDetail;
+    activePage='project-detail';
+    navButtons();
+    renderProjectDetail();
+    return;
+  }
+  renderPage(id);
+  // Switch to this page's thread if it exists
+  const tid=pageThreads[id];
+  if(tid){ activeThread=tid; renderChatHist(); }
+}
+
+// ─── NAV ──────────────────────────────────────────────
+const tabs=[
+  ['home','◈','Home'],
+  ['todo','✓','Todo'],
+  ['board','📋','Board'],
+  ['projects','□','Projects'],
+  ['schedule','⏱','Schedule'],
+  ['calendar','◷','Calendar'],
+  ['chat','💬','Chat'],
+  ['vault','🧠','Vault'],
+  ['skills','📋','Skills'],
+  ['docs','📄','Docs'],
+  ['mindmap','🗺️','Mindmap'],
+  ['scrape','🕷️','Scraper'],
+  ['code','⌘','Code'],
+  ['leads','📊','Leads']
+];
+
+function navButtons(){
+  const nav=$('topNav');
+  if(!nav)return;
+  nav.innerHTML=tabs.map(t=>
+    `<button class="${activePage===t[0]?'active':''}" onclick="navTo('${t[0]}')">${t[1]}&nbsp;${t[2]}</button>`
+  ).join('');
+}
+
+// ─── HOME STATS ───────────────────────────────────────
+function renderHomeStats(){
+  const el=$('homeStats');
+  if(!el)return;
+  const pays=state.payments||[];
+  const mrr=pays.filter(p=>p.type==='recurring'&&p.status==='paid').reduce((a,p)=>a+Number(p.amount||0),0);
+  const upcoming=pays.filter(p=>p.status==='upcoming').reduce((a,p)=>a+Number(p.amount||0),0);
+  const pipeline=pays.filter(p=>p.status==='pipeline').reduce((a,p)=>a+Number(p.amount||0),0);
+  const todos=(state.todos||{})[todayKey()]||[];
+  el.innerHTML=`
+    <div class="statCard"><b>£${mrr.toLocaleString()}</b><span>MRR</span></div>
+    <div class="statCard"><b>£${upcoming.toLocaleString()}</b><span>Upcoming</span></div>
+    <div class="statCard"><b>£${pipeline.toLocaleString()}</b><span>Pipeline</span></div>
+    <div class="statCard"><b>${(state.businesses||[]).length}</b><span>Projects</span></div>`;
+  renderCheckin();
+}
+
+// ─── DAILY CHECK-IN ──────────────────────────────────
+const moods=[{v:1,e:'😫',l:'Awful'},{v:2,e:'😕',l:'Meh'},{v:3,e:'😐',l:'Okay'},{v:4,e:'🙂',l:'Good'},{v:5,e:'😄',l:'Great'}];
+function renderCheckin(){
+  const el=$('checkinCard');if(!el)return;
+  const checkins=state.metrics||{};checkins.dailyCheckin||={};
+  const today=checkins.dailyCheckin[todayKey()]||{};
+  const days=getLast7Days();
+  // Mini mood chart
+  const moodBars=days.map(d=>{const v=((checkins.dailyCheckin||{})[d]||{}).mood||0;return `<div class="miniBar mood" style="height:${v*12}px" title="${d}: ${v}/5"><span>${d.slice(5)}</span></div>`;}).join('');
+  const prodBars=days.map(d=>{const v=((checkins.dailyCheckin||{})[d]||{}).productivity||0;return `<div class="miniBar prod" style="height:${v*6}px" title="${d}: ${v}/10"><span>${d.slice(5)}</span></div>`;}).join('');
+  el.innerHTML=`
+    <div class="checkinHeader"><b>📊 Daily Check-in</b><small>${new Date().toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'})}</small></div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:6px">Mood</div>
+    <div class="moodRow">${moods.map(m=>`<button class="moodBtn ${today.mood===m.v?'sel':''}" onclick="setCheckin('mood',${m.v})" title="${m.l}">${m.e}</button>`).join('')}</div>
+    <div class="scoreRow"><label style="font-size:12px;color:var(--muted)">Productivity</label>
+      <input type="range" min="1" max="10" value="${today.productivity||5}" onchange="setCheckin('productivity',this.value)" oninput="$('prodScoreVal').textContent=this.value">
+      <span id="prodScoreVal">${today.productivity||5}</span></div>
+    <div class="hoursRow"><label>Hours worked</label>
+      <input type="number" min="0" max="24" step="0.5" value="${today.hours||''}" placeholder="-" onchange="setCheckin('hours',this.value)"></div>
+    <div class="chartRow">
+      <div class="chartCol"><div class="label">Mood (7d)</div><div class="miniChart">${moodBars||'<span style="font-size:10px;color:var(--dim)">no data</span>'}</div></div>
+      <div class="chartCol"><div class="label">Productivity (7d)</div><div class="miniChart">${prodBars||'<span style="font-size:10px;color:var(--dim)">no data</span>'}</div></div>
+    </div>`;
+}
+function getLast7Days(){
+  const days=[];const d=new Date();
+  for(let i=6;i>=0;i--){const n=new Date(d);n.setDate(d.getDate()-i);if(n.getHours()<6)n.setDate(n.getDate()-1);days.push(n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0'));}
+  return days;
+}
+async function setCheckin(field,value){
+  const s=state;const sm=s.metrics||{};sm.dailyCheckin||={};sm.dailyCheckin[todayKey()]||={};
+  sm.dailyCheckin[todayKey()][field]=field==='mood'?Number(value):field==='hours'?parseFloat(value)||0:Number(value);
+  await api('/api/checkin',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({date:todayKey(),field,value:sm.dailyCheckin[todayKey()][field]})});
+  await load();
+}
+
+// ─── TODOS ────────────────────────────────────────────
+function renderTodos(){
+  const el=$('todoList');
+  if(!el)return;
+  // Show ALL undone tasks across all dates, sorted by priority
+  const allTodos=Object.values(state.todos||{}).flat().filter(t=>!t.done);
+  allTodos.sort((a,b)=>((a.priority==='high'?-1:1)-(b.priority==='high'?-1:1)));
+  el.innerHTML=allTodos.length?allTodos.map((t,i)=>`
+    <div class="todo ${t.done?'done':''}">
+      <div class="rank">${i+1}</div>
+      <div><div class="text">${esc(t.text)}</div>${t.project||t.priority?`<div class="meta">${t.project?`<span class="tag">${esc(t.project)}</span>`:''}${t.priority?`<span class="tag ${t.priority}">${t.priority}</span>`:''}</div>`:''}</div>
+      <button class="btn ghost" style="padding:4px 8px;font-size:12px" onclick="toggleTodo('${t.id}')">${t.done?'↩':'✓'}</button>
+    </div>`).join(''):'<div class="softNote" style="color:var(--dim);padding:20px;text-align:center">No tasks. Ask the AI below to add some.</div>';
+}
+async function toggleTodo(id){
+  // Search across all dates
+  for(const date of Object.keys(state.todos||{})){
+    const t=(state.todos[date]||[]).find(x=>x.id===id);
+    if(t){
+      await api('/api/todos/'+id,{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({done:!t.done})});
+      await load();
+      return;
+    }
+  }
+}
+
+// ─── KANBAN BOARD ─────────────────────────────────────
+function renderBoard(){
+  const cols=$('boardCols');
+  if(!cols)return;
+  
+  // Populate project filter
+  const projFilter=$('boardProjectFilter');
+  if(projFilter&&projFilter.options.length===1){
+    (state.businesses||[]).forEach(b=>{
+      const opt=document.createElement('option');
+      opt.value=b.id;opt.textContent=b.name;
+      projFilter.appendChild(opt);
+    });
+  }
+  
+  const projFilterVal=projFilter?projFilter.value:'__all';
+  const prioFilter=$('boardPriorityFilter');
+  const prioFilterVal=prioFilter?prioFilter.value:'__all';
+  
+  // Get all undone tasks
+  let allTodos=Object.values(state.todos||{}).flat().filter(t=>!t.done);
+  
+  // Filter by project
+  if(projFilterVal!=='__all'){
+    const projName=(state.businesses||[]).find(b=>b.id===projFilterVal)?.name||'';
+    allTodos=allTodos.filter(t=>t.businessId===projFilterVal||t.project===projName||t.project===projFilterVal);
+  }
+  
+  // Filter by priority
+  if(prioFilterVal!=='__all'){
+    allTodos=allTodos.filter(t=>t.priority===prioFilterVal);
+  }
+  
+  // Group by project
+  const grouped={};
+  const projectNames={};
+  (state.businesses||[]).forEach(b=>{projectNames[b.id]=b.name});
+  
+  // 'Unassigned' bucket
+  grouped['__unassigned']=[];
+  // 'Other' bucket
+  grouped['__other']=[];
+  
+  allTodos.forEach(t=>{
+    const bizId=t.businessId||'';
+    const proj=t.project||'';
+    if(bizId&&grouped[bizId]===undefined) grouped[bizId]=[];
+    if(!bizId&&proj) {
+      // Match project by name
+      const matched=Object.entries(projectNames).find(([,n])=>n===proj);
+      if(matched){if(grouped[matched[0]]===undefined)grouped[matched[0]]=[];grouped[matched[0]].push(t);}
+      else grouped['__other'].push(t);
+    } else if(bizId) {
+      grouped[bizId].push(t);
+    } else {
+      grouped['__unassigned'].push(t);
+    }
+  });
+  
+  // Sort within each group by priority
+  Object.values(grouped).forEach(arr=>arr.sort((a,b)=>(a.priority==='high'?-1:0)-(b.priority==='high'?-1:0)));
+  
+  // Build board columns sorted by business order
+  const bizOrder=(state.businesses||[]).map(b=>b.id);
+  const colOrder=['__unassigned',...bizOrder,'__other'].filter(k=>grouped[k]&&grouped[k].length>0);
+  
+  const projectIcons={syneticx:'🧬',waterspring:'🌊',unitas:'🤝','imam-connect':'🕌',concordia:'🏛️',rema:'🏠','rema-exteriors':'🏠',ragx:'📧',lamatrader:'📈','ragmedium-b2b':'🎯','content-empire':'📣'};
+  
+  cols.innerHTML=colOrder.map(colId=>{
+    const tasks=grouped[colId]||[];
+    let colTitle, colIcon='📋';
+    if(colId==='__unassigned'){colTitle='Unassigned';colIcon='📥'}
+    else if(colId==='__other'){colTitle='Other';colIcon='📦'}
+    else{colTitle=projectNames[colId]||colId;colIcon=projectIcons[colId]||'📋'}
+    
+    return '<div class="boardCol">'+
+      '<div class="boardColHead">'+colIcon+'&nbsp;'+esc(colTitle)+' <span class="count">'+tasks.length+'</span></div>'+
+      '<div class="boardColBody">'+
+      tasks.map(t=>{
+        const prio=t.priority||'medium';
+        const src=t.source||'';
+        const dateStr=t.createdAt?t.createdAt.slice(0,10):'';
+        const tid=t.id;
+        return '<div class="boardCard" onclick="openTaskMenu(\''+tid+'\')">'+
+          '<div class="bcTitle">'+esc(t.text)+'</div>'+
+          '<div class="bcMeta">'+
+            '<span class="bcTag '+prio+'">● '+prio+'</span>'+
+            (t.minutes?'<span class="bcTag">⏱ '+t.minutes+'m</span>':'')+
+            (dateStr?'<span class="bcTag">📅 '+dateStr+'</span>':'')+
+          '</div>'+
+          '<div class="bcActions">'+
+            '<button class="bcDoneBtn" onclick="event.stopPropagation();taskDoneDirect(\''+tid+'\')" title="Done">✅</button>'+
+            '<button class="bcChatBtn" onclick="event.stopPropagation();taskChatDirect(\''+tid+'\')" title="Discuss">💬</button>'+
+            '<button class="bcCodeBtn" onclick="event.stopPropagation();taskCodeDirect(\''+tid+'\')" title="Code">⌘</button>'+
+          '</div>'+
+        '</div>';
+      }).join('')+
+      (!tasks.length?'<div class="boardEmpty">No tasks</div>':'')+
+      '</div></div>';
+  }).join('');
+  
+  // Hide empty columns
+  if(!colOrder.length) cols.innerHTML='<div style="color:var(--dim);padding:40px;text-align:center;width:100%;font-size:14px">✨ No undone tasks to show. Ask the AI below to add some.</div>';
+}
+
+// ─── TASK ACTION MENU ────────────────────────────────
+let _activeTaskId=null;
+function findTask(id){
+  for(const date of Object.keys(state.todos||{})){
+    const t=(state.todos[date]||[]).find(x=>x.id===id);
+    if(t) return t;
+  }
+  return null;
+}
+function openTaskMenu(id){
+  _activeTaskId=id;
+  _editOpen=false;
+  const t=findTask(id);
+  if(!t)return;
+  const overlay=$('taskOverlay');
+  const title=$('tpTitle');
+  const meta=$('tpMeta');
+  const desc=$('tpDesc');
+  const descEdit=$('tpDescEdit');
+  const editBtn=$('tpEditBtn');
+  const saveBtn=$('tpSaveDesc');
+  if(!overlay||!title||!meta||!desc)return;
+  title.textContent=t.text;
+  const proj=t.project||t.businessId||'Unassigned';
+  const prio=t.priority||'medium';
+  const mins=t.minutes?' · ⏱ '+t.minutes+'m':'';
+  const date=t.createdAt?t.createdAt.slice(0,10):'';
+  meta.textContent=proj+' · '+prio+mins+(date?' · 📅 '+date:'');
+  
+  // Show description
+  const hasDesc=t.description&&t.description.trim();
+  desc.textContent=hasDesc?t.description:'No description yet. Click Edit to add notes, context, or steps.';
+  desc.className='tpDesc'+(hasDesc?'':' empty');
+  desc.style.display='block';
+  if(descEdit){descEdit.value=t.description||'';descEdit.classList.remove('open')}
+  if(editBtn)editBtn.textContent='✏️ Edit';
+  if(saveBtn)saveBtn.style.display='none';
+  
+  overlay.classList.add('open');
+}
+let _editOpen=false;
+function toggleDescEdit(){
+  _editOpen=!_editOpen;
+  const desc=$('tpDesc');
+  const edit=$('tpDescEdit');
+  const btn=$('tpEditBtn');
+  const save=$('tpSaveDesc');
+  if(!desc||!edit||!btn)return;
+  desc.style.display=_editOpen?'none':'block';
+  edit.classList.toggle('open',_editOpen);
+  btn.textContent=_editOpen?'🔍 Preview':'✏️ Edit';
+  if(save)save.style.display=_editOpen?'block':'none';
+}
+async function saveTaskDesc(){
+  const id=_activeTaskId;
+  const edit=$('tpDescEdit');
+  if(!id||!edit)return;
+  const desc=edit.value.trim();
+  await api('/api/todos/'+id,{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({description:desc})});
+  await load();
+  toggleDescEdit();
+  const t=findTask(id);
+  const descEl=$('tpDesc');
+  if(t&&descEl){
+    descEl.textContent=desc||'No description yet. Click Edit to add notes, context, or steps.';
+    descEl.className='tpDesc'+(desc?'':' empty');
+  }
+}
+function closeTaskMenu(e){
+  if(e&&e.target!==e.currentTarget)return;
+  const overlay=$('taskOverlay');
+  if(overlay)overlay.classList.remove('open');
+  _activeTaskId=null;
+  _editOpen=false;
+}
+async function taskDone(){
+  const id=_activeTaskId;
+  closeTaskMenu();
+  if(!id)return;
+  await toggleTodo(id);
+  await load();
+}
+async function taskChat(){
+  const id=_activeTaskId;
+  closeTaskMenu();
+  const t=findTask(id);
+  if(!t)return;
+  const input=$('chatInput');
+  if(input){input.value=t.text;input.focus();input.dispatchEvent(new Event('input'))}
+  navTo('chat');
+}
+async function taskCode(){
+  const id=_activeTaskId;
+  closeTaskMenu();
+  const t=findTask(id);
+  if(!t)return;
+  const input=$('codeInput');
+  if(input){input.value=t.text;input.focus()}
+  navTo('code');
+}
+
+// Direct hover button actions
+async function taskDoneDirect(id){
+  await toggleTodo(id);
+  await load();
+}
+async function taskChatDirect(id){
+  const t=findTask(id);
+  if(!t)return;
+  const input=$('chatInput');
+  if(input){input.value=t.text;input.focus();input.dispatchEvent(new Event('input'))}
+  navTo('chat');
+}
+async function taskCodeDirect(id){
+  const t=findTask(id);
+  if(!t)return;
+  const input=$('codeInput');
+  if(input){input.value=t.text;input.focus()}
+  navTo('code');
+}
+
+// ─── PROJECTS ─────────────────────────────────────────
+var projView='list';
+
+function renderProjects(){
+  const wrap=$('projectsWrap');
+  if(!wrap)return;
+  const biz=state.businesses||[];
+  if(!biz.length){wrap.innerHTML='<div class="softNote" style="padding:20px;text-align:center;color:var(--dim)">No projects yet.</div>';return}
+  if(projView==='list'){
+    wrap.innerHTML=`<div class="projects">${biz.map(p=>`
+      <div class="project" onclick="projectDetailId='${p.id}';navTo('project-detail')">
+        <h3>${esc(p.name)}</h3>
+        <div class="lane">${esc(p.lane||'')}${p.health?` · ${p.health}`:''}</div>
+        <div class="desc">${esc(clip(p.description||'',90))}</div>
+      </div>`).join('')}</div>`;
+  } else {
+    const pays=state.payments||[];
+    const mrr=pays.filter(p=>p.type==='recurring'&&p.status==='paid').reduce((a,p)=>a+Number(p.amount||0),0);
+    const paid30d=pays.filter(p=>p.status==='paid'&&p.date&&p.date>=todayKey(new Date(Date.now()-30*86400000))).reduce((a,p)=>a+Number(p.amount||0),0);
+    const paidTotal=pays.filter(p=>p.status==='paid').reduce((a,p)=>a+Number(p.amount||0),0);
+    const upcoming=pays.filter(p=>p.status==='upcoming').reduce((a,p)=>a+Number(p.amount||0),0);
+    const pipeline=pays.filter(p=>p.status==='pipeline').reduce((a,p)=>a+Number(p.amount||0),0);
+    
+    // Monthly chart data
+    const months={};const now=new Date();
+    for(let i=5;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1);const k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');months[k]={paid:0,upcoming:0}}
+    pays.forEach(p=>{if(!p.date)return;const k=p.date.slice(0,7);if(months[k]){if(p.status==='paid')months[k].paid+=Number(p.amount||0);else if(p.status==='upcoming')months[k].upcoming+=Number(p.amount||0)}});
+    const sortedM=Object.entries(months);const max=Math.max(...sortedM.flatMap(([,v])=>[v.paid,v.upcoming]),1);
+    
+    const perProject=biz.map(b=>{
+      const pp=pays.filter(p=>p.projectId===b.id);
+      return{name:b.name,id:b.id,paid:pp.filter(p=>p.status==='paid').reduce((a,p)=>a+Number(p.amount||0),0),upcoming:pp.filter(p=>p.status==='upcoming').reduce((a,p)=>a+Number(p.amount||0),0),pipeline:pp.filter(p=>p.status==='pipeline').reduce((a,p)=>a+Number(p.amount||0),0),mrr:pp.filter(p=>p.type==='recurring'&&p.status==='paid').reduce((a,p)=>a+Number(p.amount||0),0)};
+    }).filter(p=>p.paid||p.upcoming||p.pipeline||p.mrr);
+    
+    wrap.innerHTML=`
+      <div class="revRow"><div class="revStat"><b>£${mrr.toLocaleString()}</b><span>MRR</span></div><div class="revStat" style="border-color:var(--green)"><b style="color:var(--green)">£${paid30d.toLocaleString()}</b><span>Paid 30d</span></div><div class="revStat" style="border-color:var(--amber)"><b style="color:var(--amber)">£${upcoming.toLocaleString()}</b><span>Upcoming</span></div></div>
+      <div class="revRow"><div class="revStat" style="border-color:var(--blue)"><b>£${paidTotal.toLocaleString()}</b><span>Total Paid</span></div><div class="revStat" style="border-color:var(--red)"><b style="color:var(--red)">£${pipeline.toLocaleString()}</b><span>Pipeline</span></div><div class="revStat"><b>${pays.length}</b><span>Payments</span></div></div>
+      
+      <div style="background:var(--card);border-radius:var(--radius-lg);padding:14px;border:1px solid var(--line);margin-bottom:12px">
+        <h3 style="font-size:13px;margin-bottom:10px;color:var(--muted)">6-Month Revenue</h3>
+        <div class="barChart" style="height:120px">${sortedM.map(([k,v])=>`
+          <div class="barWrap" style="position:relative">
+            <div class="bar" style="height:${Math.max(v.paid/max*100,2)}%;background:var(--green);position:absolute;bottom:16px;width:35%;left:15%"></div>
+            <div class="bar" style="height:${Math.max(v.upcoming/max*100,2)}%;background:var(--amber);position:absolute;bottom:16px;width:35%;right:15%"></div>
+            <div class="barLabel" style="margin-top:auto">${k.slice(5)}</div>
+          </div>`).join('')}</div>
+        <div style="display:flex;gap:16px;font-size:11px;color:var(--muted);margin-top:8px"><span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;background:var(--green);border-radius:2px;display:inline-block"></span>Paid</span><span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;background:var(--amber);border-radius:2px;display:inline-block"></span>Upcoming</span></div>
+      </div>
+      
+      <div><h3 style="font-size:14px;margin-bottom:8px">Per Project</h3></div>
+      ${perProject.length?perProject.map(p=>`
+        <div class="card" style="padding:12px;margin-bottom:6px;cursor:pointer" onclick="showProjectPayments(''+p.id+'')" title="Click to view/edit payments">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <b>${esc(p.name)}</b>
+            <span style="font-size:11px;color:var(--muted)">MRR: £${p.mrr.toLocaleString()}</span>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:6px;font-size:12px">
+            <span style="color:var(--green)">Paid: £${p.paid.toLocaleString()}</span>
+            <span style="color:var(--amber)">Upcoming: £${p.upcoming.toLocaleString()}</span>
+            <span style="color:var(--red)">Pipeline: £${p.pipeline.toLocaleString()}</span>
+          </div>
+        </div>`).join(''):'<div class="softNote" style="color:var(--dim);padding:10px;font-size:12px">No payments recorded yet.</div>'}
+      <button class="btn alt" onclick="addPayment()" style="margin-top:8px;width:100%">+ Add Payment</button>`;
+  }
+  document.querySelectorAll('#pvList,#pvStats').forEach(b=>b.classList.remove('active'));
+  const btn=$(projView==='list'?'pvList':'pvStats');
+  if(btn)btn.classList.add('active');
+}
+var projectDetailId=null;
+function renderProjectDetail(){
+  const wrap=$('pdWrap');
+  if(!wrap)return;
+  const p=(state.businesses||[]).find(x=>x.id===projectDetailId);
+  if(!p){navTo('projects');return}
+  const pays=(state.payments||[]).filter(pay=>pay.projectId===projectDetailId);
+  const mrr=pays.filter(pay=>pay.type==='recurring'&&pay.status==='paid').reduce((a,pay)=>a+Number(pay.amount||0),0);
+  const paidTotal=pays.filter(p=>p.status==='paid').reduce((a,p)=>a+Number(p.amount||0),0);
+  const upcoming=pays.filter(p=>p.status==='upcoming').reduce((a,p)=>a+Number(p.amount||0),0);
+  const pipeline=pays.filter(p=>p.status==='pipeline').reduce((a,p)=>a+Number(p.amount||0),0);
+  const todos=(state.todos||{})[todayKey()]||[];
+  const ptodos=todos.filter(t=>t.project===p.name);
+  wrap.innerHTML=`
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:start">
+        <div><h2 style="margin:0 0 4px">${esc(p.name)}</h2><div style="font-size:12px;color:var(--muted)">${esc(p.lane||'')}${p.priority?` · priority: ${p.priority}`:''}${p.health?` · health: ${p.health}`:''}</div></div>
+        <button class="btn ghost" onclick="navTo('projects')">← Back</button>
+      </div>
+      <p style="font-size:13px;color:var(--muted);margin-top:8px">${esc(p.description||'')}</p>
+      ${p.tags?`<div style="margin-top:6px;display:flex;gap:4px;flex-wrap:wrap">${p.tags.map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div>`:''}
+    </div>
+    <div class="revRow"><div class="revStat"><b>£${mrr.toLocaleString()}</b><span>MRR</span></div><div class="revStat" style="border-color:var(--green)"><b style="color:var(--green)">£${paidTotal.toLocaleString()}</b><span>Paid</span></div><div class="revStat" style="border-color:var(--amber)"><b style="color:var(--amber)">£${upcoming.toLocaleString()}</b><span>Upcoming</span></div></div>
+    <div class="revRow"><div class="revStat" style="border-color:var(--red)"><b style="color:var(--red)">£${pipeline.toLocaleString()}</b><span>Pipeline</span></div><div class="revStat"><b>${pays.length}</b><span>Payments</span></div><div class="revStat"><b>£${(paidTotal+upcoming+pipeline).toLocaleString()}</b><span>Total Value</span></div></div>
+    ${pays.length?`<div class="card"><div class="barChart" style="height:100px">${(()=>{const months={};pays.forEach(pay=>{if(!pay.date)return;const k=pay.date.slice(0,7);months[k]=(months[k]||0)+Number(pay.amount||0)});const sorted=Object.entries(months).sort().slice(-6);const max=Math.max(...sorted.map(([,v])=>v),1);return sorted.map(([k,v])=>`<div class="barWrap"><div class="bar" style="height:${Math.max(v/max*100,4)}%;background:var(--green)"></div><div class="barLabel">${k.slice(2)}</div></div>`).join('')})()}</div><div style="font-size:10px;color:var(--dim);text-align:center;margin-top:4px">Monthly paid revenue</div></div>`:''}
+    <div class="card"><div class="todoList">${ptodos.length?ptodos.map(t=>`<div class="todo ${t.done?'done':''}" style="min-height:40px"><div class="rank">·</div><div class="text" style="font-size:12px;font-weight:400">${esc(t.text)}</div><button class="btn ghost" style="padding:2px 6px;font-size:10px" onclick="toggleTodo('${t.id}')">${t.done?'↩':'✓'}</button></div>`).join(''):'<div style="color:var(--dim);font-size:12px;text-align:center;padding:10px">No tasks for this project.</div>'}</div></div>
+    <button class="btn alt" onclick="addPayment()" style="width:100%">+ Add Payment</button>`;
+}
+
+async function addPayment(){
+  const amount=prompt('Amount (£)?');if(!amount||isNaN(parseFloat(amount)))return;
+  const status=prompt('Status: paid / upcoming / pipeline?')||'paid';
+  if(!['paid','upcoming','pipeline'].includes(status)){alert('Use: paid, upcoming, or pipeline');return}
+  const type=status==='paid'?(confirm('Recurring (OK) or one-time (Cancel)?')?'recurring':'nonrecurring'):'nonrecurring';
+  const desc=prompt('Description?')||'';
+  const pid=projectDetailId||prompt('Project ID?')||'';
+  const date=status==='paid'?todayKey():(prompt('Expected date (YYYY-MM-DD)?')||todayKey());
+  await api('/api/payments',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({projectId:pid,amount:parseFloat(amount),type,status,description:desc,date})});
+  await load();
+}
+
+// ─── SCHEDULE / TIMETABLE ─────────────────────────────
+function renderTimetableConfig(){
+  const el=$('timetableConfig');
+  if(!el)return;
+  const cfg=state.brain?.timetable||{};
+  el.innerHTML=`
+    <div class="card" style="padding:12px">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <label style="font-size:11px">Start <input type="time" id="ttStart" value="${cfg.workStart||'08:00'}" class="input" style="width:auto;padding:4px 8px;font-size:12px"></label>
+        <label style="font-size:11px">End <input type="time" id="ttEnd" value="${cfg.workEnd||'18:00'}" class="input" style="width:auto;padding:4px 8px;font-size:12px"></label>
+        <label style="font-size:11px">Buffer <input type="number" id="ttBuf" value="${cfg.bufferMinutes||10}" class="input" style="width:50px;padding:4px 8px;font-size:12px"></label>
+        <label style="font-size:11px">Max <input type="number" id="ttMax" value="${cfg.maxBlockMinutes||90}" class="input" style="width:50px;padding:4px 8px;font-size:12px"></label>
+        <button class="btn" style="padding:4px 12px;font-size:11px" onclick="saveTtConfig()">Save config</button>
+      </div>
+    </div>`;
+}
+async function saveTtConfig(){
+  const cfg={workStart:$('ttStart')?.value||'08:00',workEnd:$('ttEnd')?.value||'18:00',bufferMinutes:parseInt($('ttBuf')?.value)||10,maxBlockMinutes:parseInt($('ttMax')?.value)||90};
+  await api('/api/timetable/config',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(cfg)});
+  await load();
+  generateTimetable();
+}
+function renderTimetable(t){
+  const tl=$('timeline');
+  if(!tl||!t)return;
+  const cfg=t.config||{};
+  const ws=parseTime(cfg.workStart||'08:00'),we=parseTime(cfg.workEnd||'18:00');
+  const total=we-ws;const ppm=Math.max(1,400/Math.max(total,60));
+  tl.style.height=(total*ppm)+'px';
+  let html='';
+  for(let m=ws;m<=we;m+=60){const h=Math.floor(m/60);html+=`<div class="timelineHour" style="top:${(m-ws)*ppm}px">${String(h).padStart(2,'0')}:00</div><div class="timelineLine" style="top:${(m-ws)*ppm}px"></div>`}
+  (t.meetings||[]).forEach(e=>{const s=Math.max(parseTime(e.startTime),ws),en=Math.min(parseTime(e.endTime),we);if(en<=s)return;const top=(s-ws)*ppm;const h=Math.max(22,(en-s)*ppm);html+=`<div class="timetableBlock meeting" style="top:${top}px;height:${h}px"><div class="tbTitle">📅 ${esc(e.title||'')}</div><div class="tbTime">${e.startTime}–${e.endTime}</div></div>`});
+  (t.scheduled||[]).forEach(s2=>{const s=Math.max(parseTime(s2.startTime),ws),en=Math.min(parseTime(s2.endTime),we);if(en<=s)return;const top=(s-ws)*ppm;const h=Math.max(20,(en-s)*ppm);html+=`<div class="timetableBlock task ${s2.priority||'medium'}" style="top:${top}px;height:${h}px"><div class="tbTitle">${esc(s2.text||'')}</div><div class="tbTime">${s2.startTime}–${s2.endTime}${s2.project?' · '+esc(s2.project):''}</div></div>`});
+  tl.innerHTML=html;
+}
+function parseTime(s){if(!s)return 0;const p=s.split(':');return parseInt(p[0])*60+(parseInt(p[1])||0)}
+async function generateTimetable(){
+  const tl=$('timeline');
+  if(tl)tl.innerHTML='<div style="padding:20px;color:var(--dim);font-size:12px">Scheduling…</div>';
+  try{
+    const res=await api('/api/timetable?date='+todayKey());
+    renderTimetable(res.timetable);
+  }catch(e){
+    if(tl)tl.innerHTML='<div style="padding:20px;color:var(--red);font-size:12px">Failed: '+e.message+'</div>';
+  }
+}
+
+// ─── CALENDAR ─────────────────────────────────────────
+function renderCalendar(){
+  const grid=$('calGrid'),ml=$('calMonth'),ev=$('dayEvents');
+  if(!grid)return;
+  const y=calCursor.getFullYear(),m=calCursor.getMonth();
+  const first=new Date(y,m,1).getDay()||7;const days=new Date(y,m+1,0).getDate();
+  const today=todayKey();const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  if(ml)ml.textContent=months[m]+' '+y;
+  const events=state.brain?.calendar||[];
+  let html='';['M','T','W','T','F','S','S'].forEach(d=>{html+=`<div style="font-size:10px;color:var(--dim);text-align:center;font-weight:700;padding:4px 0">${d}</div>`});
+  for(let i=1-first+1;i<=days;i++){
+    if(i<1){html+=`<div class="calDay other"></div>`;continue}
+    const ds=y+'-'+String(m+1).padStart(2,'0')+'-'+String(i).padStart(2,'0');
+    const hasEvent=events.some(e=>e.start&&e.start.startsWith(ds));
+    html+=`<div class="calDay${ds===today?' today':''}${ds===selectedDate?' selected':''}" onclick="selectedDate='${ds}';renderCalendar()">${i}${hasEvent?'<span style="position:absolute;bottom:2px;font-size:6px;color:var(--blue)">●</span>':''}</div>`;
+  }
+  grid.innerHTML=html;
+  if(ev&&selectedDate){
+    const dayEvents=events.filter(e=>e.start&&e.start.startsWith(selectedDate));
+    ev.innerHTML=dayEvents.length?dayEvents.map(e=>`<div class="eventRow"><b>${esc(e.title||'')}</b>${e.time?`<span style="color:var(--dim);margin-left:8px">${e.time}</span>`:''}</div>`).join(''):'<div style="padding:8px 0;font-size:12px;color:var(--dim)">No events on this day.</div>';
+  }
+}
+function moveCal(d){calCursor.setMonth(calCursor.getMonth()+d);renderCalendar()}
+
+// ─── CHAT ─────────────────────────────────────────────
+function renderChat(){
+  renderChatHist();
+  const c=currentThread();
+  const msgs=c.messages||[];
+  const ml=$('msgList');
+  if(!ml)return;
+  ml.innerHTML=msgs.filter(m=>m.role!=='system').map(m=>{
+    const body=esc(m.text||'');
+    const ts=m.at?new Date(m.at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'';
+    return `<div class="msg ${m.role==='user'?'user':''}"><div class="bubble">${body.replace(/\n/g,'<br>').replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/```(\w*)\n?([\s\S]*?)```/g,'<pre style="background:var(--bg);padding:8px;border-radius:6px;overflow-x:auto;font-size:11px"><code>$2</code></pre>')}</div><span style="font-size:9px;color:var(--dim);margin-top:2px">${ts}</span></div>`;
+  }).join('');
+  if(ml)ml.scrollTop=ml.scrollHeight;
+}
+function renderChatHist(){
+  const hl=$('histList');
+  if(!hl)return;
+  const threads=state.brain?.threads||[];
+  hl.innerHTML=threads.map(t=>`
+    <button class="hist ${t.id===activeThread?'active':''}" onclick="activeThread='${t.id}';renderChat()">
+      <b>${esc(t.title||'Chat')}</b>
+      <small>${clip(((t.messages||[]).slice(-1)[0]||{}).text||'Empty',55)}</small>
+    </button>`).join('')||'<div style="padding:10px;font-size:11px;color:var(--dim)">No chats</div>';
+}
+function currentThread(){return(state.brain?.threads||[]).find(x=>x.id===activeThread)||(state.brain?.threads||[])[0]||{id:'general',title:'General',messages:[]}}
+
+// ─── AI CHAT BAR ──────────────────────────────────────
+function autoResizeChatInput(){
+  const el=$('chatInput');
+  if(!el)return;
+  el.style.height='auto';
+  el.style.height=Math.min(el.scrollHeight,200)+'px';
+}
+function sendChatMessage(msg){
+  const input=$('chatInput');
+  const text=msg||(input?input.value:'').trim();
+  if(!text)return;
+  if(input){input.value='';input.style.height='auto';}
+  
+  // Parse commands locally — execute directly + ALSO send to AI
+  const lower=text.toLowerCase();
+  
+  // Auto-detect payment data in ANY message
+  // Match patterns like: "ProjectName £X paid", "ProjectName: £X upcoming", "£X for Project"
+  const paymentPatterns=[];
+  const lines=text.split(/[,;\n]+/);
+  for(const line of lines){
+    const ll=line.toLowerCase().trim();
+    if(!ll)continue;
+    // Try: "Project £X [status]" or "Project: £X [status]"
+    let m=ll.match(/([a-z][a-z0-9\s]+?)\s*[:\-]?\s*[£$€]?\s*(\d+[.,]?\d*)\s*(k|k)?\s*(paid|upcoming|pipeline|monthly|mrr)?/i);
+    if(!m) m=ll.match(/[£$€]\s*(\d+[.,]?\d*)\s*(k)?\s*(?:paid|upcoming|pipeline|monthly|mrr)?\s*(?:for|from|to|:)?\s*(.+)/i);
+    if(m){
+      let projectName='', amount=0, status='paid', desc='', type='nonrecurring';
+      if(m[1]&&!/^\d+$/.test(m[1])&&parseFloat((m[2]||'0').replace(',','.'))>0){ // "Project £X [status]"
+        projectName=m[1].trim().replace(/^[\s:,.-]+/,'').replace(/[\s:,.-]+$/,'');
+        amount=parseFloat((m[2]||'0').replace(',','.'))*((m[3]||'').toLowerCase()==='k'?1000:1);
+        if(m[4]){status=m[4].toLowerCase();if(status==='monthly'||status==='mrr'){status='paid';type='recurring'}}
+        desc=projectName+' payment';
+      } else if(m[3]&&m[4]){ // "£X [status] for Project"
+        amount=parseFloat((m[1]||'0').replace(',','.'))*((m[2]||'').toLowerCase()==='k'?1000:1);
+        status=m[3].toLowerCase();if(status==='monthly'||status==='mrr'){status='paid';type='recurring'}
+        projectName=m[4].trim();
+        desc=projectName+' payment';
+      }
+      if(projectName&&amount>10){
+        const biz=(state.businesses||[]).find(b=>projectName.toLowerCase().includes(b.name.toLowerCase())||b.name.toLowerCase().includes(projectName.toLowerCase()));
+        paymentPatterns.push({projectId:biz?biz.id:'',amount,type:type||'nonrecurring',status:status||'paid',description:desc,date:todayKey()});
+      }
+    }
+  }
+  
+  // Execute detected payments
+  for(const pp of paymentPatterns){
+    api('/api/payments',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(pp)});
+  }
+  
+  // Also handle explicit commands
+  // "add task: X" or "add todo: X"
+  if(lower.startsWith('add task')||lower.startsWith('add todo')||lower.startsWith('task:')){
+    const taskText=text.replace(/^(add\s+task\s*:?|add\s+todo\s*:?|task\s*:?)\s*/i,'');
+    if(taskText){
+      api('/api/todos',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({date:todayKey(),text:taskText,priority:'medium'})});
+    }
+  }
+  
+  // "mark X as done" / "complete X"
+  if(lower.includes('mark')&&(lower.includes('done')||lower.includes('complete'))){
+    const kw=text.replace(/mark\s+|as\s+|done|complete/gi,'').trim().toLowerCase();
+    const arr=(state.todos||{})[todayKey()]||[];
+    const match=arr.find(t=>t.text.toLowerCase().includes(kw));
+    if(match) api('/api/todos/'+match.id,{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({done:true})});
+  }
+  
+  // Navigation commands
+  if(lower.includes('show projects')||lower.includes('go to projects')){navTo('projects');load();return}
+  if(lower.includes('show stats')||lower.includes('show revenue')||lower.includes('show mrr')){projView='stats';navTo('projects');load();return}
+  if(lower.includes('show list')||lower.includes('show calendar')){projView='list';navTo('projects');load();return}
+  if(lower.includes('show schedule')||lower.includes('show timetable')){navTo('schedule');load();return}
+  if(lower.includes('show chat')||lower.includes('go to chat')){navTo('chat');load();return}
+  if(lower.includes('show todo')||lower.includes('show tasks')){navTo('todo');load();return}
+  if(lower.includes('show home')){navTo('home');load();return}
+  
+  // ─── Daily check-in commands ───
+  // "mood 4", "feeling great" (maps to mood 5), "productivity 7", "worked 6 hours"
+  const moodMatch=text.match(/(?:mood|feeling)\s*(\d|awful|meh|okay|good|great)/i);
+  if(moodMatch){
+    let v=moodMatch[1].toLowerCase();
+    if(v==='awful')v=1;else if(v==='meh')v=2;else if(v==='okay'||v==='ok')v=3;else if(v==='good')v=4;else if(v==='great')v=5;else v=parseInt(v)||3;
+    fetch('/api/checkin',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({date:todayKey(),field:'mood',value:Math.min(5,Math.max(1,v))})}).catch(()=>{});
+  }
+  const prodMatch=text.match(/productivity\s*(\d+)/i);
+  if(prodMatch){const v=Math.min(10,Math.max(1,parseInt(prodMatch[1])||5));fetch('/api/checkin',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({date:todayKey(),field:'productivity',value:v})}).catch(()=>{});}
+  const hoursMatch=text.match(/(?:worked|did)\s*(\d+(?:\.\d+)?)\s*(?:hours?|hrs?|h)/i);
+  if(hoursMatch){const v=Math.min(24,Math.max(0,parseFloat(hoursMatch[1])||0));fetch('/api/checkin',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({date:todayKey(),field:'hours',value:v})}).catch(()=>{});}
+  
+  // ─── Thread management: page-aware ───
+  let thread;
+  if(activePage==="chat"){
+    thread=currentThread();
+    pageThreads[activePage]=thread.id;
+  } else {
+    thread=ensureFreshThread();
+  }
+  // Tag thread with current page context if not already set
+  if(thread.context) thread.context.page=activePage;
+  // On project detail page, inject the project ID so AI knows which project you're on
+  if(activePage==='project-detail' && projectDetailId){
+    thread.context.businessIds = [projectDetailId];
+    const proj = (state.businesses||[]).find(b=>b.id===projectDetailId);
+    if(proj) thread.context.projectName = proj.name;
+  }
+  
+  const userMsg={id:'usr_'+Date.now(),role:'user',text:text,at:new Date().toISOString(),surface:'dashboard',threadId:thread.id};
+  thread.messages=thread.messages||[];
+  thread.messages.push(userMsg);
+  // Add client-side Thinking placeholder immediately
+  const thinkMsg={id:'think_'+Date.now(),role:'assistant',text:'Thinking…',pending:true,at:new Date().toISOString()};
+  thread.messages.push(thinkMsg);
+  // Open chat overlay immediately on non-chat pages
+  if(activePage!=='chat') openChatOverlay();
+  
+  api('/api/threads/'+thread.id+'/messages',{
+    method:'POST',headers:{'content-type':'application/json'},
+    body:JSON.stringify({message:text,projectId:(thread.context?.businessIds||[])[0]||'',async:true,model:activeModel})
+  }).then(res=>{
+    if(res.queued){
+      let attempts=0;
+      const poll=()=>{
+        attempts++;
+        if(attempts>40)return;
+        api('/api/state').then(s=>{
+          state=s;
+          const t2=(s.brain?.threads||[]).find(x=>x.id===thread.id);
+          if(t2){
+            const serverMsgs=t2.messages||[];
+            const localMsgs=thread.messages||[];
+            const hasNew=serverMsgs.length!==localMsgs.length || JSON.stringify(serverMsgs.slice(-1))!==JSON.stringify(localMsgs.slice(-1));
+            if(hasNew){
+              thread.messages=serverMsgs;
+              if(activePage==='chat')renderChat();
+              else if($('chatOverlay').classList.contains('open')) renderChatOverlayMsgs();
+              else openChatOverlay();
+            }
+            // Check for final response (non-pending assistant message) to stop polling
+            const lastMsg=serverMsgs[serverMsgs.length-1];
+            if(lastMsg && lastMsg.role==='assistant' && !lastMsg.pending){
+              // Real-time refresh: update todos and project page if relevant
+              if(activePage==='todo') renderTodos();
+              else if(activePage==='project-detail') renderProjectDetail();
+              else if(activePage==='home') renderHomeStats();
+              return;
+            }
+            setTimeout(poll,500);
+          } else setTimeout(poll,500);
+        }).catch(()=>setTimeout(poll,500));
+      };
+      setTimeout(poll,500);
+    }
+    setTimeout(()=>load(),2000);
+  }).catch(()=>{});
+  // Also reload for local payment creations
+  setTimeout(()=>load(),500);
+}
+// ─── LOAD ─────────────────────────────────────────────
+async function load(){
+  try{
+    state=await api('/api/state');
+  }catch(e){
+    document.title='Dashboard offline';
+    return;
+  }
+  navButtons();
+  if(activePage==='home')renderHomeStats();
+  else if(activePage==='todo')renderTodos();
+  else if(activePage==='projects')renderProjects();
+  else if(activePage==='project-detail')renderProjectDetail();
+  else if(activePage==='calendar')renderCalendar();
+  else if(activePage==='chat')renderChat();
+  else if(activePage==='board')renderBoard();
+  else if(activePage==='vault')renderVault();
+}
+
+// ─── INIT ─────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded',()=>{
+  navButtons();
+  renderPage('todo');
+  load();
+});
+
+// Auto-resize chat textarea
+$('chatInput').addEventListener('input',autoResizeChatInput);
+
+// Enter key sends message (Shift+Enter for new line)
+document.addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&!e.shiftKey&&document.activeElement===$('chatInput')){
+    e.preventDefault();
+    sendChatMessage();
+  }
+});
+
+// ─── MODEL PICKER ────────────────────────────────
+const models=[
+  {id:'opencode-go/deepseek-v4-flash',name:'DeepSeek Flash',short:'⚡'},
+  {id:'deepseek/deepseek-v4-pro',name:'DeepSeek Pro',short:'🔷'},
+  {id:'opencode-go/minimax-m2-5',name:'MiniMax M2.5',short:'🎯'},
+  {id:'opencode-go/qwen-3.5-plus',name:'Qwen 3.5+',short:'🧠'},
+];
+let activeModel=models[0].id;
+function toggleModelPicker(){
+  const pop=$('modelPop');
+  if(!pop)return;
+  pop.classList.toggle('open');
+  pop.innerHTML=models.map(m=>
+    `<button onclick="setModel('${m.id}');toggleModelPicker()" style="${m.id===activeModel?'color:var(--blue);font-weight:700':''}">${m.short} ${m.name}</button>`
+  ).join('');
+  const btn=$('modelBtn');
+  if(btn)btn.textContent=models.find(m=>m.id===activeModel)?.short||'⚡';
+}
+function setModel(id){
+  activeModel=id;
+  const btn=$('modelBtn');
+  if(btn)btn.textContent=models.find(m=>m.id===id)?.short||'⚡';
+}
+
+// ─── CHAT RESIZE ────────────────────────────────────
+let chatResizeActive=false,chatResizeStartY=0,chatResizeStartH=0;
+function startChatResize(e){
+  chatResizeActive=true;
+  chatResizeStartY=e.touches?e.touches[0].clientY:e.clientY;
+  const p=$('chatPanel');
+  chatResizeStartH=p?p.offsetHeight:300;
+  e.preventDefault();
+}
+document.addEventListener('mousemove',e=>{
+  if(!chatResizeActive)return;
+  const p=$('chatPanel');if(!p)return;
+  const dy=chatResizeStartY-e.clientY;
+  const nh=Math.min(Math.max(chatResizeStartH+dy,120),window.innerHeight*0.9);
+  p.style.height=nh+'px';p.style.maxHeight='none';
+});
+document.addEventListener('touchmove',e=>{
+  if(!chatResizeActive)return;
+  const p=$('chatPanel');if(!p)return;
+  const dy=chatResizeStartY-(e.touches[0]?.clientY||0);
+  const nh=Math.min(Math.max(chatResizeStartH+dy,120),window.innerHeight*0.9);
+  p.style.height=nh+'px';p.style.maxHeight='none';
+},{passive:false});
+document.addEventListener('mouseup',()=>{chatResizeActive=false;});
+document.addEventListener('touchend',()=>{chatResizeActive=false;});
+
+// ─── CHAT OVERLAY ────────────────────────────────────
+function renderChatOverlayMsgs(){
+  const ml=$('overlayMsgList');
+  if(!ml)return;
+  const c=currentThread();
+  const msgs=c.messages||[];
+  ml.innerHTML=msgs.filter(m=>m.role!=='system').map(m=>{
+    const body=esc(m.text||'');
+    return '<div class="msg '+(m.role==='user'?'user':'')+'"><div class="bubble">'+body.replace(/\n/g,'<br>').substring(0,500)+'</div></div>';
+  }).join('')||'<div style="padding:20px;text-align:center;color:var(--dim);font-size:12px">No messages yet</div>';
+  ml.scrollTop=ml.scrollHeight;
+}
+function openChatOverlay(){
+  const ov=$('chatOverlay');
+  if(!ov)return;
+  ov.classList.add('open');
+  renderChatOverlayMsgs();
+}
+function closeChatOverlay(e){if(e&&e.target!==e.currentTarget)return;const ov=$('chatOverlay');if(ov)ov.classList.remove('open')}
+
+// ─── PAYMENT EDITING ────────────────────────────────
+function editPayment(id){
+  const pays=state.payments||[];
+  const p=pays.find(x=>x.id===id);
+  if(!p)return;
+  const amount=prompt('Amount (£)?',p.amount)||p.amount;
+  const status=prompt('Status (paid/upcoming/pipeline)?',p.status)||p.status;
+  const desc=prompt('Description?',p.description)||p.description;
+  api('/api/payments/'+id,{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({amount:parseFloat(amount),status,description:desc})}).then(()=>load());
+}
+function deletePayment(id){
+  if(!confirm('Delete this payment?'))return;
+  api('/api/payments/'+id,{method:'DELETE'}).then(()=>load());
+}
+function showProjectPayments(id){
+  const el=$('projectPaymentsList');
+  if(!el)return;
+  const pays=(state.payments||[]).filter(p=>p.projectId===id);
+  el.style.display=el.style.display==='none'?'':'none';
+  if(el.style.display==='none')return;
+  el.innerHTML=pays.length?pays.map(p=>`
+    <div style="background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;gap:8px">
+      <div><span style="font-weight:700">\u00a3${p.amount.toLocaleString()}</span><span style="font-size:11px;color:var(--muted);margin-left:6px">${p.status}${p.type==='recurring'?' \u00b7 MRR':''}</span><div style="font-size:11px;color:var(--dim)">${esc(p.description||'')}</div></div>
+      <div style="display:flex;gap:4px;flex-shrink:0">
+        <button class="btn ghost" onclick="editPayment(\''+p.id+'\')" style="padding:2px 6px;font-size:10px">\u270e</button>
+        <button class="btn ghost" onclick="deletePayment(\''+p.id+'\')" style="padding:2px 6px;font-size:10px;color:var(--red)">\u2716</button>
+      </div>
+    </div>`).join(''):'<div style="color:var(--dim);padding:10px;font-size:12px">No payments for this project.</div>';
+}
+
+// ─── THREAD MANAGEMENT ───────────────────────────────
+// Track last message time - new thread if >5min since last
+let lastMsgTime=0;
+function createNewChat(){
+  // Immediately create a fresh empty thread and switch to it
+  state.brain=state.brain||{};state.brain.threads=state.brain.threads||[];
+  delete pageThreads[activePage];
+  const tid='thread_'+Date.now();
+  const pageLabel=tabs.find(t=>t[0]===activePage)?.[2]||activePage;
+  state.brain.threads.unshift({id:tid,title:pageLabel+' chat '+(state.brain.threads.length+1),messages:[],context:{businessIds:[],page:activePage}});
+  activeThread=tid;
+  pageThreads[activePage]=tid;
+  api('/api/state',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(state)});
+  renderChatHist();renderChat();
+}
+// Page-aware thread map — each page gets its own thread
+const pageThreads={};
+function ensureFreshThread(){
+  state.brain=state.brain||{};state.brain.threads=state.brain.threads||[];
+  // Check if this page already has a thread
+  const existingId=pageThreads[activePage];
+  if(existingId){
+    const t=state.brain.threads.find(x=>x.id===existingId);
+    if(t){ activeThread=existingId; return t; }
+  }
+  // Create fresh thread for this page
+  const tid='thread_'+Date.now();
+  const pageLabel=tabs.find(t=>t[0]===activePage)?.[2]||activePage;
+  state.brain.threads.unshift({id:tid,title:pageLabel+' chat '+(state.brain.threads.length+1),messages:[],context:{businessIds:[],page:activePage}});
+  activeThread=tid;
+  pageThreads[activePage]=tid;
+  // Persist thread to server immediately so message API can find it
+  fetch('/api/threads',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({id:tid,title:state.brain.threads[0].title,context:state.brain.threads[0].context})}).catch(()=>{});
+  return state.brain.threads[0];
+}
+
+let vaultData=[];
+async function renderVault(){
+  try{
+    const r=await fetch('/api/vault');
+    const d=await r.json();
+    vaultData=d.files||[];
+    const s=$('vaultStats');
+    if(s)s.innerHTML=`${d.fileCount||0} files · ${((d.totalSize||0)/1024).toFixed(1)} KB · indexed ${d.generated?.slice(0,10)||'today'}`;
+    renderVaultFiles(vaultData);
+  }catch(e){
+    const f=$('vaultFiles'); if(f)f.innerHTML='<p style="color:var(--danger)">Vault index not available</p>';
+  }
+}
+function renderVaultFiles(files){
+  const el=$('vaultFiles'); if(!el)return;
+  el.innerHTML=files.map(f=>`
+    <div class="vaultFile" style="padding:8px;border-bottom:1px solid var(--border);cursor:pointer" onclick="toggleVaultFile(this,'${f.path}')">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <strong style="font-size:13px">📄 ${f.title}</strong>
+        <span style="font-size:10px;color:var(--muted)">${f.path}</span>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">${f.sections.length} sections · ${f.size}B · ${f.fullKeywords?.length||0} keywords</div>
+      <div class="vaultDetail" style="display:none;margin-top:8px;padding:8px;background:var(--bg);border-radius:6px">
+        ${f.sections.map(s=>`
+          <div style="margin-bottom:6px">
+            <strong style="font-size:12px">${s.heading||'·'}</strong>
+            <p style="font-size:11px;color:var(--muted);margin:2px 0">${s.content?.slice(0,200)||''}</p>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+function toggleVaultFile(el,path){
+  const detail=el.querySelector('.vaultDetail');
+  if(detail) detail.style.display=detail.style.display==='none'?'block':'none';
+}
+function filterVault(q){
+  if(!q) return renderVaultFiles(vaultData);
+  const lower=q.toLowerCase();
+  const filtered=vaultData.filter(f=>
+    f.title.toLowerCase().includes(lower)||
+    f.path.toLowerCase().includes(lower)||
+    f.sections.some(s=>s.content.toLowerCase().includes(lower))
+  );
+  renderVaultFiles(filtered);
+}
+
+const ALL_TOOLS=[
+  // AI Skills — GitHub repos
+  {n:'Caveman Skill',c:'AI Skills',d:'Claude Code token-saver — 65% fewer tokens, caveman talk',gh:'JuliusBrussee/caveman'},
+  {n:'Impeccable',c:'AI Skills',d:'Design language for agents — 23 commands, 7 domain refs',gh:'pbakaus/impeccable',w:'https://impeccable.style'},
+  {n:'UI/UX Pro Max',c:'AI Skills',d:'Design intelligence for professional UI across all stacks',gh:'nextlevelbuilder/ui-ux-pro-max-skill'},
+  {n:'Context Mode',c:'AI Skills',d:'MCP server — 98% context window reduction',gh:'mksglu/context-mode'},
+  {n:'NotFair',c:'AI Skills',d:'SEO, Google Ads, Meta Ads agent skills',gh:'nowork-studio/NotFair'},
+  {n:'Graphify',c:'AI Skills',d:'Turn code/knowledge into queryable graphs',gh:'safishamsi/graphify'},
+  {n:'Remotion',c:'AI Skills',d:'React-based video generation + agent skill',gh:'remotion-dev/skills',w:'https://remotion.dev'},
+  // Browser & Automation
+  {n:'Browser Harness',c:'Browser & Automation',d:'Connect LLM to real Chrome via CDP',gh:'browser-use/browser-harness',w:'https://browser-use.com'},
+  {n:'Camofox Browser',c:'Browser & Automation',d:'Stealth Firefox — bypass bot detection/Cloudflare',gh:'jo-inc/camofox-browser'},
+  {n:'yt-dlp',c:'Browser & Automation',d:'Download video from 1000+ sites',gh:'yt-dlp/yt-dlp'},
+  // Video & Media
+  {n:'HyperFrames',c:'Video & Media',d:'Write HTML, render MP4 video. For agents.',gh:'heygen-com/hyperframes',w:'https://hyperframes.heygen.com'},
+  {n:'Motion (Framer)',c:'Video & Media',d:'Animation library — React, Vue, JS',gh:'motiondivision/motion',w:'https://motion.dev'},
+  // Finance & Data
+  {n:'FinceptTerminal',c:'Finance & Data',d:'C++20 Qt6 terminal — 37 agents, DCF, trading, QuantLib',gh:'Fincept-Corporation/FinceptTerminal'},
+  // Infrastructure
+  {n:'OpenGenAI',c:'Infrastructure',d:'Open source GenAI stack for developing world',gh:'anurajennai/OpenGenAI'},
+  {n:'Obsidian Agent Client',c:'Infrastructure',d:'AI agents inside Obsidian vault (ACP protocol)',gh:'rait-09/obsidian-agent-client',w:'https://rait-09.github.io/obsidian-agent-client/'},
+  // Internal Skills
+  {n:'Waterspring Build',c:'Internal',d:'Waterspring AI platform — project context & build plan',local:true},
+  {n:'Business Guru',c:'Internal',d:'Multi-discipline business advisor skill',local:true},
+  {n:'Hormozi Advisor',c:'Internal',d:'Hormozi-style business strategy',local:true},
+  {n:'Sentient Guru',c:'Internal',d:'Advanced business advisor skill',local:true},
+  {n:'RAG Engineering',c:'Internal',d:'Engineering best practices skill',local:true},
+  {n:'RAG Email',c:'Internal',d:'Cold email / outreach marketing',local:true},
+  {n:'RAG GTM',c:'Internal',d:'Go-to-market strategy',local:true},
+  {n:'RAG LinkedIn',c:'Internal',d:'LinkedIn outreach',local:true},
+  {n:'RAG Reddit',c:'Internal',d:'Reddit marketing',local:true},
+  {n:'RAG SEO',c:'Internal',d:'SEO strategy',local:true},
+  {n:'RAG X/Twitter',c:'Internal',d:'X/Twitter marketing',local:true},
+  {n:'RAG Prompt',c:'Internal',d:'AI prompting skill',local:true},
+  {n:'RAG Revenue',c:'Internal',d:'Revenue optimization',local:true},
+  {n:'RAG Voice',c:'Internal',d:'Voice/narrative skill',local:true},
+  {n:'LamaTrader',c:'Internal',d:'Trading platform skill',local:true},
+  // Platforms & Integrations
+  {n:'RAGmind Mindmap',c:'Platforms',d:'Strategy mindmap & knowledge graph',w:'http://100.111.98.27:4444'},
+  {n:'Lead Database',c:'Platforms',d:'Lead management on l.ragmedium.com',w:'https://l.ragmedium.com'},
+  {n:'ScrapeGraphAI',c:'Platforms',d:'AI web scraper interface',w:'https://scrape.ragmedium.com'},
+  {n:'KASM Desktop',c:'Platforms',d:'Browser-based Linux desktop VNC',w:'https://kasmweb.com'},
+  {n:'Flight Scanner',c:'Tools',d:'7-prompt flight pricing analyst — hidden routes, geo-arbitrage, fare rules, OTA traps',gh:'',w:'',local:true},
+  {n:'Design.md',c:'Tools',d:'Google Labs — design token format spec + CLI for lint/diff/export',gh:'google-labs-code/design.md'},
+  {n:'SuperDesign',c:'Tools',d:'AI Product Design Agent — generate mockups/components from prompts',gh:'superdesigndev/superdesign',w:'https://www.superdesign.dev'},
+  {n:'MoneyPrinterTurbo',c:'Tools',d:'AI short video gen — topic/script/clips/subtitles/music → MP4. Perfect for Content Empire.',gh:'harry0703/MoneyPrinterTurbo'},
+];
+
+async function renderSkills(){
+  const grid=$('skillGrid');if(!grid)return;
+  const filter=$('skillFilter');
+  const search=$('skillSearch');
+  
+  // Populate filter dropdown (once)
+  if(!filter.dataset.loaded){
+    const cats=[...new Set(ALL_TOOLS.map(t=>t.c))].sort();
+    filter.innerHTML='<option value="all">All categories</option>'+cats.map(c=>'<option value="'+esc(c)+'">'+esc(c)+'</option>').join('');
+    filter.dataset.loaded='1';
+  }
+  
+  const cat=filter.value;
+  const q=(search.value||'').toLowerCase().trim();
+  
+  let filtered=cat==='all'?ALL_TOOLS:ALL_TOOLS.filter(t=>t.c===cat);
+  if(q) filtered=filtered.filter(t=>t.n.toLowerCase().includes(q)||(t.d||'').toLowerCase().includes(q));
+  
+  if(!filtered.length){grid.innerHTML='<div style="color:var(--muted);padding:24px;text-align:center;font-size:13px">No tools found.</div>';return}
+  
+  grid.innerHTML=filtered.map(t=>{
+    const url=t.gh?'https://github.com/'+t.gh:(t.w||'#');
+    return '<div style="background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:14px;cursor:pointer;transition:border-color .15s" onclick="window.open(\''+url+'\',\'_blank\')" title="'+esc(t.d||'')+'">'+
+      '<div style="font-size:10px;color:var(--blue);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px">'+esc(t.c)+'</div>'+
+      '<div style="font-size:14px;font-weight:700;margin-bottom:4px">'+esc(t.n)+(t.local?' <span style="font-size:9px;color:var(--amber);font-weight:400">local</span>':'')+'</div>'+
+      '<div style="font-size:11px;color:var(--muted)">'+esc(t.d||'')+'</div>'+
+      (t.gh?'<div style="font-size:9px;color:var(--dim);margin-top:6px">→ github.com/'+esc(t.gh)+'</div>':'')+
+    '</div>';
+  }).join('');
+}
+
+// ─── CODE WORKSPACE ───────────────────────────────────
+let codeThreads=[];
+async function renderCodePage(){
+  const projSel=$('codeProject');if(!projSel)return;
+  const chats=$('codeMessages');
+  const stats=$('codeStats');
+  const wrap=$('codeChatWrap');
+  
+  // Load coding-related threads (from businesses)
+  const r=await fetch('/api/brain');
+  const d=await r.json();
+  const threads=d.brain?.threads||[];
+  codeThreads=threads;
+  
+  // Populate project selector with businesses
+  const bizs=d.businesses||[];
+  const current=projSel.value;
+  projSel.innerHTML='<option value="__all">⚡ All coding chats</option>'+bizs.map(b=>'<option value="'+esc(b.id)+'">'+esc(b.name)+'</option>').join('');
+  if(current) projSel.value=current;
+  
+  // Stats
+  const openTodos=Object.values(d.todos||{}).flat().filter(t=>!t.done).length;
+  const activeBiz=bizs.filter(b=>b.status==='active'||b.status==='design').length;
+  if(stats) stats.innerHTML='<span>📦 '+bizs.length+' projects</span><span>✓ '+openTodos+' open tasks</span><span>💬 '+threads.length+' chats</span>';
+  
+  // Show messages for selected project
+  switchCodeProject(projSel.value);
+}
+
+function switchCodeProject(projectId){
+  const chats=$('codeMessages');if(!chats)return;
+  const wrap=$('codeChatWrap');
+  
+  const filtered=projectId==='__all'?codeThreads:codeThreads.filter(t=>(t.context?.businessIds||[]).includes(projectId)||(t.title||'').toLowerCase().includes(projectId));
+  
+  if(!filtered.length){
+    chats.innerHTML='<div style="color:var(--muted);padding:24px;text-align:center;font-size:13px">No chats for this project yet. Send a command below.</div>';
+    return;
+  }
+  
+  chats.innerHTML=filtered.slice(0,20).map(t=>{
+    const msgs=t.messages||[];
+    const last=msgs.filter(m=>m.role!=='system').slice(-1)[0];
+    return '<div style="background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:6px;cursor:pointer" onclick="openCodeChat(\''+esc(t.id)+'\')">'+
+      '<div style="font-size:12px;font-weight:700">'+esc(t.title||'Untitled')+'</div>'+
+      '<div style="font-size:10px;color:var(--dim);margin-top:2px">'+(last?esc(clip(last.text,120)):'No messages')+'</div>'+
+      '<div style="font-size:9px;color:var(--muted);margin-top:2px">'+msgs.length+' msgs'+
+        (t.context?.businessIds?.length?' · '+(t.context.businessIds.join(', ')):'')+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+
+function openCodeChat(threadId){
+  // Navigate to chat page with this thread
+  activeThread=threadId;
+  navTo('chat');
+}
+
+async function sendCodeCommand(){
+  const input=$('codeInput');
+  const text=input.value.trim();
+  if(!text)return;
+  input.value='';
+  
+  const project=$('codeProject').value;
+  // Create a new thread or reuse existing
+  const r=await fetch('/api/threads',{
+    method:'POST',
+    headers:{'content-type':'application/json'},
+    body:JSON.stringify({
+      title:'⌘ Code: '+clip(text,40),
+      businessIds:project==='__all'?[]:[project],
+      scope:'Coding workspace chat'
+    })
+  });
+  const d=await r.json();
+  if(d.thread){
+    // Send the message
+    const r2=await fetch('/api/threads/'+d.thread.id+'/messages',{
+      method:'POST',
+      headers:{'content-type':'application/json'},
+      body:JSON.stringify({message:text, async:true})
+    });
+    await r2.json();
+    // Switch to chat page with this thread
+    activeThread=d.thread.id;
+    navTo('chat');
+  }
+}
+
+// ─── LEADS ─────────────────────────────────────────────
+function renderLeads(){
+  // handled by iframe, no extra JS needed
+}
+
+// ─── RENDER DISPATCH ──────────────────────────────────
+var _origRenderPage=renderPage;
+renderPage=function(id){
+  _origRenderPage(id);
+  if(id==='code')renderCodePage();
+  if(id==='leads')renderLeads();
+};
+
+// ─── DOCUMENTS ─────────────────────────────────────────
+let allDocs=[];
+let docFiltered=[];
+async function renderDocs(){
+  const list=$('docList');if(!list)return;
+  const stats=$('docStats');
+  try{
+    // Query the RAG system for document listing
+    const r=await fetch('/api/skills'); // reuse for now, real doc list via vault
+    // Build doc list from known files in lamatrader-ingest
+    const r2=await fetch('/api/vault');
+    const vault=await r2.json();
+    allDocs=vault.files||[];
+    docFiltered=allDocs;
+  }catch(e){list.innerHTML='<div style="color:var(--muted);padding:16px;text-align:center">No documents loaded yet.</div>';return}
+  
+  if(stats) stats.innerHTML='<span>📄 '+allDocs.length+' files</span>';
+  
+  if(!allDocs.length){
+    list.innerHTML='<div style="color:var(--muted);padding:16px;text-align:center">No documents found.</div>';
+    return;
+  }
+  
+  list.innerHTML=docFiltered.map(f=>
+    '<div style="background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px;font-size:12px">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center">'+
+        '<strong>📄 '+esc(f.title||f.path.split('/').pop())+'</strong>'+
+        '<span style="color:var(--muted);font-size:10px">'+(f.size?((f.size/1024).toFixed(1)+' KB'):'')+'</span>'+
+      '</div>'+
+      '<div style="color:var(--muted);margin-top:2px;font-size:10px">'+esc(f.path)+'</div>'+
+      '<div style="color:var(--dim);margin-top:4px;font-size:11px">'+(f.sections?f.sections.length+' sections':'')+'</div>'+
+    '</div>'
+  ).join('');
+}
+
+function filterDocs(q){
+  if(!q){docFiltered=allDocs;renderDocs();return}
+  const lower=q.toLowerCase();
+  docFiltered=allDocs.filter(f=>
+    (f.title||'').toLowerCase().includes(lower)||
+    f.path.toLowerCase().includes(lower)
+  );
+  renderDocs();
+}
+
+let docUploadQueue=[];
+function handleDocUpload(files){
+  for(const f of files) docUploadQueue.push(f);
+  alert('Uploaded '+(files.length)+' file(s). They are queued for processing.');
+  // In a full implementation, we'd send to a server endpoint for indexing
+}
+function handleDocDrop(e){
+  e.preventDefault();
+  handleDocUpload(e.dataTransfer.files);
+}
+
+
+</script>  
+<script>
+// ── MarkItDown file converter ──
+const CONVERT_API = '/convert/api/convert';
+let convertResult = '';
+
+async function handleDrop(e) {
+  const file = e.dataTransfer.files[0];
+  if (file) await convertFile(file);
+}
+async function handleFileInput(input) {
+  const file = input.files[0];
+  if (file) await convertFile(file);
+}
+async function convertFile(file) {
+  document.getElementById('uploadPrompt').classList.add('hidden');
+  document.getElementById('converting').classList.remove('hidden');
+  document.getElementById('resultArea').classList.add('hidden');
+  
+  try {
+    const form = new FormData();
+    form.append('file', file);
+    const r = await fetch(CONVERT_API, { method: 'POST', body: form });
+    const d = await r.json();
+    
+    document.getElementById('converting').classList.add('hidden');
+    
+    if (d.error) {
+      alert('Error: ' + d.error);
+      resetConvert();
+      return;
+    }
+    
+    convertResult = d.text_content || '';
+    document.getElementById('resultFilename').textContent = d.filename + ' (' + (d.title || 'no title') + ')';
+    document.getElementById('resultLength').textContent = convertResult.length + ' chars · ready for AI';
+    document.getElementById('resultText').value = convertResult;
+    document.getElementById('resultArea').classList.remove('hidden');
+  } catch(e) {
+    document.getElementById('converting').classList.add('hidden');
+    alert('Conversion failed: ' + e.message);
+    resetConvert();
+  }
+}
+function copyResult() {
+  if (!convertResult) return;
+  navigator.clipboard.writeText(convertResult).then(() => {
+    const btn = event.target;
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy', 2000);
+  });
+}
+function resetConvert() {
+  document.getElementById('uploadPrompt').classList.remove('hidden');
+  document.getElementById('converting').classList.add('hidden');
+  document.getElementById('resultArea').classList.add('hidden');
+  convertResult = '';
+}
+</script><script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("/sw.js").then(function(r){console.log("SW registered:",r.scope)},function(e){console.log("SW failed:",e)})})}</script>
+</body></html>

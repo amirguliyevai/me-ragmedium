@@ -1,0 +1,486 @@
+const http = require('http');
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
+const { execFile } = require('child_process');
+
+const PORT = Number(process.env.PORT || 1702);
+const HOST = '0.0.0.0';
+const ROOT = __dirname;
+const DATA = path.join(ROOT, 'data', 'state.json');
+const MINDMAP = '/home/admin/.openclaw/workspace/ragmind-deploy/index.html';
+const SKILL_ROOT = '/home/admin/.openclaw/workspace/lamatrader-ingest/skills-unpacked';
+
+const nowISO = () => new Date().toISOString();
+function localDateKey(d=new Date()){ const x=new Date(d); const y=x.getFullYear(), m=String(x.getMonth()+1).padStart(2,'0'), day=String(x.getDate()).padStart(2,'0'); return `${y}-${m}-${day}`; }
+function todayKey(d=new Date()){ const x=new Date(d); if(x.getHours()<6)x.setDate(x.getDate()-1); return localDateKey(x); }
+function id(prefix='id'){ return `${prefix}_${crypto.randomBytes(6).toString('hex')}`; }
+function slug(s){ return String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'').slice(0,54)||id('slug'); }
+function clip(s,n=140){ s=String(s||'').replace(/\s+/g,' ').trim(); return s.length>n?s.slice(0,n-1)+'…':s; }
+function genericTitle(t){ return !t || /^(new chat|chat|kaneki)$/i.test(String(t).trim()); }
+function smartThreadTitle(text, thread, state){
+  let x=String(text||'').replace(/^Turn this into clean dashboard to-dos.*?:\s*/i,'').replace(/^Create useful content ideas.*?:\s*/i,'').replace(/^Make a concise execution plan.*?:\s*/i,'').replace(/^VISUALIZE this\..*?:\s*/i,'').replace(/^Return a structured.*?:\s*/i,'').replace(/\s+/g,' ').trim();
+  x=x.replace(/^(can you|could you|please|hey|hi|yo|bro|ibr)\b[,.\s]*/i,'').trim();
+  const pid=(thread.context?.businessIds||[])[0]; const proj=pid?(state.businesses||[]).find(b=>b.id===pid)?.name:'';
+  let title=clip(x,48).replace(/[?.!,:;]+$/,'') || (proj?`${proj} chat`:'New thread');
+  if(proj && !title.toLowerCase().includes(proj.toLowerCase().split(' ')[0])) title=`${proj}: ${title}`;
+  return title;
+}
+function sessionKeyForThread(t){ return t.sessionKey || `agent:main:dashboard-${t.id||'general'}`; }
+
+function parseSkillFrontmatter(txt){
+  const m=String(txt||'').match(/^---\n([\s\S]*?)\n---/); const meta={}; if(!m) return meta;
+  const lines=m[1].split(/\r?\n/); let key=null, buf=[];
+  const flush=()=>{ if(key){ meta[key]=buf.join('\n').replace(/^\s+/gm,'').trim(); key=null; buf=[]; } };
+  for(const line of lines){
+    const mm=line.match(/^([A-Za-z0-9_-]+):\s*(.*)$/);
+    if(mm){ flush(); key=mm[1]; let v=mm[2]||''; if(v==='>'||v==='|'){ buf=[]; } else { buf=[v.replace(/^['"]|['"]$/g,'')]; } }
+    else if(key) buf.push(line);
+  }
+  flush(); return meta;
+}
+function discoverSkills(){
+  const out=[]; const walk=dir=>{ let entries=[]; try{ entries=fs.readdirSync(dir,{withFileTypes:true}); }catch{return;} for(const e of entries){ const p=path.join(dir,e.name); if(e.isDirectory()) walk(p); else if(e.isFile()&&e.name==='SKILL.md'){ try{ const txt=fs.readFileSync(p,'utf8'); const meta=parseSkillFrontmatter(txt); const rel=path.relative(SKILL_ROOT,p); const id=slug(meta.name||path.basename(path.dirname(p))); const group=rel.split(path.sep)[0]||'skills'; out.push({id,name:meta.name||id,description:clip(meta.description||txt.replace(/^---[\s\S]*?---/,'').replace(/[#*_`]/g,' '),420),path:p,group,enabled:true,configured:true}); }catch{} } } };
+  walk(SKILL_ROOT); return out.sort((a,b)=>(a.group+a.name).localeCompare(b.group+b.name));
+}
+function ensureSkills(s){
+  s.brain ||= {}; const found=discoverSkills(); const existing=new Map((s.brain.skills||[]).map(x=>[x.id,x]));
+  s.brain.skills=found.map(x=>({...x,...(existing.get(x.id)||{}),path:x.path,description:(existing.get(x.id)?.description||x.description),configured:true}));
+  for(const t of s.brain.threads||[]) { t.context ||= {businessIds:[]}; t.context.skillIds ||= t.context.skillIds||[]; }
+  return s.brain.skills;
+}
+
+function defaultNonnegotiables(){ return [
+  { id:'fajr', text:'Fajr / prayer discipline', cadence:'daily' },
+  { id:'gym', text:'Workout / physical training', cadence:'daily' },
+  { id:'deepwork', text:'One serious deep-work block', cadence:'daily' },
+  { id:'shutdown', text:'End-of-day review + tomorrow plan', cadence:'daily' }
+]; }
+function defaultBusinesses(){ return [
+  { id:'rema-exteriors', name:'Rema Exteriors', type:'B2C home services', lane:'Volume engine', status:'pilot-design', priority:'high', health:'amber', tags:['homeowners','email-first','sms-careful'], description:'Homeowner/home-services acquisition engine. Email-first, careful SMS follow-up, quote-booking pipeline.', links:[], metrics:{ leads:0, replies:0, booked:0 } },
+  { id:'ragx', name:'RAGx', type:'Outreach infrastructure', lane:'Email/SMS ops', status:'active', priority:'high', health:'green', tags:['campaigns','inboxes','suppression'], description:'Main B2B outreach platform: inboxes, campaigns, suppression, replies, sending guardrails.', links:[], metrics:{ inboxes:0, activeCampaigns:0 } },
+  { id:'ragmedium-b2b', name:'RAGmedium B2B', type:'Lead-gen/enrichment', lane:'Precision appointment setting', status:'design', priority:'high', health:'amber', tags:['enrichment','appointments','fresh-data'], description:'Fresh enrichment, decision-maker validation, lead scoring, appointment generation.', links:[], metrics:{ enriched:0, meetings:0 } },
+  { id:'lamatrader', name:'LamaTrader', type:'Fintech/white-label trading', lane:'Sniper targeting', status:'targeting-map', priority:'medium', health:'amber', tags:['fintech','email-only','white-label'], description:'Professional enriched email only. Focus on operators/funds/quants/internal desks/brokerages.', links:[], metrics:{ targetAccounts:0 } },
+  { id:'content-empire', name:'Content Empire', type:'Media/content', lane:'Distribution', status:'tracker-needed', priority:'medium', health:'gray', tags:['social','content','distribution'], description:'Social/media tracker, content calendar, post ideas, distribution metrics.', links:[], metrics:{ posts:0 } }
+]; }
+function defaultThreads(){ return [
+  { id:'general', title:'General Brain', icon:'🧠', scope:'Personal + cross-topic thinking', sessionKey:'agent:main:dashboard-general', tags:['general'], context:{ businessIds:[] }, messages:[] },
+  { id:'rema', title:'Rema Exteriors', icon:'🏠', scope:'Home-services acquisition, homeowner campaigns, SMS/email flow', sessionKey:'agent:main:dashboard-rema', tags:['rema','homeowners'], context:{ businessIds:['rema-exteriors'] }, messages:[] },
+  { id:'ragx', title:'RAGx Ops', icon:'📨', scope:'Email/SMS infra, inboxes, campaign ops, suppression', sessionKey:'agent:main:dashboard-ragx', tags:['ragx','outreach'], context:{ businessIds:['ragx'] }, messages:[] },
+  { id:'ragmedium', title:'RAGmedium B2B', icon:'🎯', scope:'Enrichment, appointment setting, B2B lead-gen system', sessionKey:'agent:main:dashboard-ragmedium', tags:['ragmedium','b2b'], context:{ businessIds:['ragmedium-b2b'] }, messages:[] },
+  { id:'lamatrader', title:'LamaTrader', icon:'📈', scope:'Fintech ICP, professional email targeting, product strategy', sessionKey:'agent:main:dashboard-lamatrader', tags:['lama','fintech'], context:{ businessIds:['lamatrader'] }, messages:[] },
+  { id:'crm', title:'CRM / Leads', icon:'🧲', scope:'Leads, clients, pipeline movement, follow-ups', sessionKey:'agent:main:dashboard-crm', tags:['crm','leads'], context:{ businessIds:[] }, messages:[] },
+  { id:'content', title:'Content Empire', icon:'📣', scope:'Social media, content calendar, distribution tracker', sessionKey:'agent:main:dashboard-content', tags:['content','social'], context:{ businessIds:['content-empire'] }, messages:[] },
+  { id:'discipline', title:'Discipline / Life', icon:'⚔️', scope:'Fitness, religion, reminders, personal accountability', sessionKey:'agent:main:dashboard-discipline', tags:['fitness','religion','reminders'], context:{ businessIds:[] }, messages:[] }
+]; }
+function defaultIntegrations(){ return [
+  { id:'openclaw', name:'OpenClaw / Kaneki', category:'AI', status:'connected', mode:'live', url:'local gateway', note:'Chats are real OpenClaw sessions with selectable project context.' },
+  { id:'ragmind', name:'RAGmind Mindmap', category:'Knowledge', status:'linked', mode:'read', url:'http://100.111.98.27:4444/', note:'Dashboard can pull readable strategy context.' },
+  { id:'google-calendar', name:'Google Calendar', category:'Calendar', status:'connected', mode:'read-live/write-planned', url:'gog calendar', note:'Live pull through gog; creation/update can be routed through Kaneki with confirmation.' },
+  { id:'ragx', name:'RAGx', category:'Outreach', status:'stubbed', mode:'planned-api', url:'', note:'Next: connect campaign/leads/replies API.' },
+  { id:'social', name:'Social Media Tracker', category:'Content', status:'stubbed', mode:'planned-api', url:'', note:'Content calendar and social metrics can sync here.' },
+  { id:'domain-apps', name:'Domain / old apps', category:'Apps', status:'inventory-needed', mode:'manual', url:'', note:'Add links and API notes as platforms are mapped.' }
+]; }
+function defaultContent(){ return {
+  accounts:[
+    {id:'linkedin-amir', platform:'LinkedIn', handle:'Amir / RAGmedium', businessId:'ragmedium-b2b', status:'planned', followers:0, impressions30d:0},
+    {id:'rema-local', platform:'Local/Reels', handle:'Rema Exteriors', businessId:'rema-exteriors', status:'planned', followers:0, impressions30d:0},
+    {id:'lama-linkedin', platform:'LinkedIn', handle:'LamaTrader', businessId:'lamatrader', status:'planned', followers:0, impressions30d:0}
+  ],
+  posts:[
+    {id:'post_ragx_case', title:'Proof-before-pitch: outreach system lesson', platform:'LinkedIn', businessId:'ragx', type:'insight', status:'idea', scheduledAt:'', impressions:0, engagement:0},
+    {id:'post_rema_offer', title:'Rema homeowner offer angle test', platform:'Instagram/TikTok', businessId:'rema-exteriors', type:'short-form', status:'idea', scheduledAt:'', impressions:0, engagement:0}
+  ],
+  personas:[
+    {id:'founder-amir', name:'Founder Amir', angle:'builder / operator / honest lessons', tone:'sharp, reflective, useful', accounts:['linkedin-amir']},
+    {id:'kaneki-edge', name:'Kaneki Edge', angle:'discipline, scars, execution, faith', tone:'direct, motivational, no fluff', accounts:['linkedin-amir']},
+    {id:'rema-local', name:'Rema Local Operator', angle:'homeowner trust + exterior transformations', tone:'clear, local, proof-led', accounts:['rema-local']}
+  ],
+  platforms:[
+    {id:'linkedin', name:'LinkedIn', formats:['text post','carousel','case study'], cadence:'3-5/wk', status:'planned'},
+    {id:'x', name:'X', formats:['thread','short post'], cadence:'daily', status:'planned'},
+    {id:'tiktok', name:'TikTok/Reels', formats:['short video','before-after'], cadence:'3/wk', status:'planned'},
+    {id:'youtube', name:'YouTube', formats:['short','long-form'], cadence:'weekly', status:'planned'},
+    {id:'newsletter', name:'Newsletter', formats:['essay','digest'], cadence:'weekly', status:'planned'}
+  ],
+  engine:{status:'designing', focus:'mass distribution with persona-safe repurposing', backlog:['Map account/persona matrix','Define platform-specific templates','Create weekly content engine review','Connect social metrics/export sources'], lastThought:'Use one source idea and repurpose by persona/platform instead of creating from scratch.'},
+  personalPlan:{mission:'Build public proof around AI ops, discipline, and businesses without becoming noisy.', weeklyTheme:'Proof > pitch', notes:'Tie posts back to RAGmedium/RAGx/Lama/Rema when useful, but keep personal credibility first.'},
+  pillars:['Founder story','Proof/results','Educational breakdowns','Offer/CTA','Behind-the-scenes ops'],
+  metrics:{ impressions30d:0, posts30d:0, connectedAccounts:0 }
+}; }
+function defaultPipelines(){ return {
+  leads:{ name:'Lead CRM', stages:['new','researching','contacted','replied','qualified','booked','won','lost'] },
+  clients:{ name:'Client delivery', stages:['prospect','trial','onboarding','active','at-risk','paused','closed'] },
+  tasks:{ name:'Execution board', stages:['backlog','today','doing','waiting','done'] }
+}; }
+function defaultState(){ return {
+  todos:{}, journal:[], metrics:{ focusSessions:[], weight:[], nonnegotiables:{} }, chat:[],
+  ops:{ inbox:[], briefs:{}, nonnegotiables:defaultNonnegotiables(), activity:[] },
+  businesses:defaultBusinesses(), crm:{ leads:[], clients:[], pipelines:defaultPipelines(), tags:[] }, integrations:defaultIntegrations(),
+  brain:{ activeThread:'general', threads:defaultThreads(), reminders:[], calendar:[], timetable:defaultTimetableConfig(), commands:[], sync:{ lastRefresh:null, sources:{} }, notes:[], content:defaultContent() },
+  views:{ activeBusiness:'rema-exteriors' }, updatedAt:nowISO()
+}; }
+function normalizeState(s){
+  const d=defaultState(); s=s&&typeof s==='object'?s:d;
+  s.todos ||= {}; s.journal ||= []; s.metrics ||= d.metrics; s.metrics.focusSessions ||= []; s.metrics.weight ||= []; s.metrics.nonnegotiables ||= {};
+  s.chat ||= []; s.ops ||= d.ops; s.ops.inbox ||= []; s.ops.briefs ||= {}; s.ops.nonnegotiables ||= defaultNonnegotiables(); s.ops.activity ||= [];
+  s.businesses = Array.isArray(s.businesses)&&s.businesses.length ? s.businesses : defaultBusinesses();
+  s.crm ||= {}; s.crm.leads ||= []; s.crm.clients ||= []; s.crm.pipelines ||= defaultPipelines(); s.crm.tags ||= [];
+  s.integrations = Array.isArray(s.integrations)&&s.integrations.length ? s.integrations : defaultIntegrations();
+  for(const def of defaultIntegrations()) if(!s.integrations.find(x=>x.id===def.id)) s.integrations.push(def);
+  s.brain ||= {}; s.brain.activeThread ||= 'general'; s.brain.threads = Array.isArray(s.brain.threads)&&s.brain.threads.length ? s.brain.threads : defaultThreads();
+  for(const def of defaultThreads()) if(!s.brain.threads.find(x=>x.id===def.id)) s.brain.threads.push(def);
+  for(const t of s.brain.threads){ t.messages ||= []; t.tags ||= []; t.context ||= {businessIds:[]}; t.context.skillIds ||= t.context.skillIds||[]; t.sessionKey ||= sessionKeyForThread(t); }
+  ensureSkills(s);
+  s.brain.reminders ||= []; s.brain.calendar ||= []; s.brain.timetable ||= defaultTimetableConfig(); s.brain.commands ||= []; s.brain.notes ||= []; s.brain.content ||= defaultContent(); s.brain.content.accounts ||= []; s.brain.content.posts ||= []; s.brain.content.personas ||= defaultContent().personas; s.brain.content.platforms ||= defaultContent().platforms; s.brain.content.engine ||= defaultContent().engine; s.brain.content.personalPlan ||= defaultContent().personalPlan; s.brain.content.pillars ||= defaultContent().pillars; s.brain.content.metrics ||= defaultContent().metrics; s.brain.sync ||= { lastRefresh:null, sources:{} }; s.brain.sync.sources ||= {};
+  s.payments ||= [];
+  s.views ||= { activeBusiness:s.businesses[0]?.id };
+  return s;
+}
+function backupState(s,label){
+  const bakDir=path.join(path.dirname(DATA),'backups');
+  fs.mkdirSync(bakDir,{recursive:true});
+  const ts=new Date().toISOString().replace(/[:.]/g,'-');
+  const bakPath=path.join(bakDir,`state-${ts}-${label||'auto'}.json`);
+  try { fs.writeFileSync(bakPath, JSON.stringify(normalizeState(s),null,2)); }
+  catch(e){ console.error('[backup] failed:',e.message); }
+  // Keep only last 20 backups
+  try {
+    const files=fs.readdirSync(bakDir).filter(f=>f.startsWith('state-')).sort().reverse();
+    for(let i=20;i<files.length;i++) fs.unlinkSync(path.join(bakDir,files[i]));
+  } catch(e){}
+}
+function readState(){
+  try {
+    const parsed=JSON.parse(fs.readFileSync(DATA,'utf8'));
+    return normalizeState(parsed);
+  } catch(e){
+    console.error('[state] read error:',e.message);
+    // Try restoring from latest backup before falling back to fresh default
+    try {
+      const bakDir=path.join(path.dirname(DATA),'backups');
+      if(fs.existsSync(bakDir)){
+        const files=fs.readdirSync(bakDir).filter(f=>f.startsWith('state-')).sort().reverse();
+        if(files.length>0){
+          const restored=JSON.parse(fs.readFileSync(path.join(bakDir,files[0]),'utf8'));
+          console.log('[state] restored from backup:',files[0]);
+          return normalizeState(restored);
+        }
+      }
+    } catch(bakErr){ console.error('[state] backup restore failed:',bakErr.message); }
+    const s=defaultState(); writeState(s); return s;
+  }
+}
+function writeState(s){ s.updatedAt=nowISO(); fs.mkdirSync(path.dirname(DATA),{recursive:true}); fs.writeFileSync(DATA, JSON.stringify(normalizeState(s),null,2)); backupState(s,'write'); }
+function activity(s,type,text,meta={}){ s.ops.activity.unshift({ id:id('act'), type, text:clip(text,280), meta, at:nowISO() }); s.ops.activity=s.ops.activity.slice(0,400); }
+function body(req){ return new Promise((res,rej)=>{ let b=''; req.on('data',c=>{ b+=c; if(b.length>8e6){ req.destroy(); rej(new Error('too_large')); }}); req.on('end',()=>{ try{ res(b?JSON.parse(b):{}); }catch(e){ rej(e); }}); }); }
+function send(res,code,data,type='application/json'){ const out=type==='application/json'?JSON.stringify(data):data; res.writeHead(code,{'content-type':`${type}; charset=utf-8`,'cache-control':'no-store','access-control-allow-origin':'*','access-control-allow-methods':'GET,POST,PUT,PATCH,DELETE,OPTIONS','access-control-allow-headers':'content-type'}); res.end(out); }
+function upsertById(arr,input,prefix){ const item={...input}; item.id ||= slug(item.name||item.company||item.title||item.text)||id(prefix); const idx=arr.findIndex(x=>x.id===item.id); if(idx>=0) arr[idx]={...arr[idx],...item,updatedAt:nowISO()}; else arr.unshift({...item,createdAt:nowISO(),updatedAt:nowISO()}); return idx>=0?arr[idx]:arr[0]; }
+
+function getMindmapContext(){
+  try{ const raw=fs.readFileSync(MINDMAP,'utf8'); const out=[]; const patterns=[/title:"([^"]+)"[^\n]{0,160}/g,/n:"([^"]+)"[^\n]{0,100}/g,/>\s*([^<>]{18,150})\s*</g];
+    for(const re of patterns){ let m; while((m=re.exec(raw))&&out.length<260){ const x=clip(m[1],170); if(x&&!out.includes(x)) out.push(x); } }
+    return out.join('\n').slice(0,36000);
+  }catch{ return ''; }
+}
+function extractProject(text){ const m=String(text||'').match(/^(Rema Exteriors|RAGx|RAGmedium|LamaTrader|LamaBroker|Grademy|Pripitch|HalalBooking|Unitas|Content Empire)\b/i); return m ? m[1].replace(/\b\w/g,c=>c.toUpperCase()).replace('Ragx','RAGx') : 'Execution'; }
+function generateSuggestions(state,prompt=''){
+  state=normalizeState(state); const p=String(prompt||'').toLowerCase(); const open=(state.todos[todayKey()]||[]).filter(t=>!t.done); const ideas=[]; const add=(text,project='Execution',priority='medium',minutes=45,source='brain')=>ideas.push({text,project,priority,minutes,source});
+  for(const x of state.ops.inbox.slice(0,5)) add(`Turn ops note into concrete next action: ${clip(x.text,85)}`, x.project||extractProject(x.text), x.urgency==='high'?'high':'medium', 35, 'ops-inbox');
+  for(const t of open.slice(0,4)) add(`Advance open task: ${clip(t.text,90)}`, t.project||'Execution', t.priority||'medium', t.minutes||45, 'todo-followup');
+  const hay=[p,...open.map(x=>x.text),...state.ops.inbox.slice(0,8).map(x=>x.text)].join(' ').toLowerCase();
+  if(/dashboard|brain|thread|chat/.test(hay)) add('Create topic-specific dashboard threads and decide which business data each thread sees','Mastermind OS','high',45);
+  if(/crm|lead|pipeline/.test(hay)) add('Load first real lead table into CRM with business tags, stage, owner, next action','CRM','high',60);
+  if(/calendar|remind|personal/.test(hay)) add('Centralize reminders/calendar: prayer, gym, calls, deadlines, follow-ups','Discipline','high',35);
+  if(/sync|integration|app/.test(hay)) add('Map each external app: source, API/export path, refresh cadence, fields to ingest','Integrations','high',45);
+  if(/rema|homeowner/.test(hay)) add('Define Rema pilot: niche, location, offer, daily cap, reply/SMS rules','Rema Exteriors','high',45);
+  if(/ragx|inbox|campaign/.test(hay)) add('Set RAGx campaign health schema: inboxes, sends, bounces, replies, suppression','RAGx','high',50);
+  if(/social|content/.test(hay)) add('Design social tracker: idea → scripted → recorded → edited → posted → repurposed','Content Empire','medium',45);
+  const existing=new Set((state.todos[todayKey()]||[]).map(t=>String(t.text).toLowerCase())); const seen=new Set();
+  return ideas.filter(x=>!existing.has(x.text.toLowerCase())&&!seen.has(x.text.toLowerCase())&&seen.add(x.text.toLowerCase())).slice(0,10);
+}
+function generateBrief(state,date=todayKey()){
+  const open=(state.todos[date]||[]).filter(t=>!t.done); const sorted=[...open.filter(t=>t.priority==='high'),...open.filter(t=>t.priority!=='high')].slice(0,6); const existing=state.ops.briefs[date]||{};
+  const lanes=[...new Set(open.map(t=>t.project).filter(Boolean))]; const biz=state.businesses.filter(b=>b.priority==='high').map(b=>`${b.name}: ${b.lane}`); const reminders=state.brain.reminders.filter(r=>!r.done).slice(0,3).map(r=>`Reminder: ${r.text}${r.dueAt?' @ '+r.dueAt:''}`);
+  return { date, mission: existing.mission || (sorted[0]?.text ? `Win the day by finishing: ${sorted[0].text}` : 'Pick one sharp outcome and execute.'), priorities: existing.priorities || sorted.map(t=>({id:t.id,text:t.text,project:t.project||'Execution',minutes:t.minutes||30})), mind: existing.mind || [`Active threads: ${state.brain.threads.map(t=>t.title).slice(0,6).join(', ')}`, lanes.length?`Open task lanes: ${lanes.join(', ')}`:'No task lanes yet', ...biz.slice(0,4), ...reminders].filter(Boolean), avoid: existing.avoid || ['Do not merge every topic into one messy stream.', 'Do not plan instead of shipping.', 'Do not let shallow admin eat deep work.'], nonnegotiables: state.ops.nonnegotiables.map(n=>({...n,done:!!(state.metrics.nonnegotiables[date]||{})[n.id]})), source: existing.source || 'generated' };
+}
+function threadContext(state,thread){
+  const bizIds=new Set(thread.context?.businessIds||[]); const businesses=bizIds.size?state.businesses.filter(b=>bizIds.has(b.id)):state.businesses;
+  const leads=state.crm.leads.filter(l=>!bizIds.size || bizIds.has(l.businessId) || businesses.some(b=>l.business===b.name)).slice(0,40);
+  const tasks=Object.values(state.todos).flat().filter(t=>!t.done && (!bizIds.size || businesses.some(b=>String(t.project||'').toLowerCase().includes(b.name.toLowerCase().split(' ')[0])))).slice(0,25);
+  const reminders=state.brain.reminders.filter(r=>!r.done).slice(0,12);
+  const skillIds=new Set(thread.context?.skillIds||[]); const skills=(state.brain.skills||[]).filter(sk=>skillIds.has(sk.id)).slice(0,8);
+  const skillCtx=skills.map(sk=>{ let body=''; try{ body=fs.readFileSync(sk.path,'utf8').slice(0,3500); }catch{} return `SKILL ${sk.name} (${sk.path})\nDescription: ${sk.description}\nInstructions excerpt:\n${body}`; }).join('\n---\n')||'none';
+  return [`Thread: ${thread.title} — ${thread.scope}`, `Relevant businesses: ${businesses.map(b=>`${b.name}(${b.status}/${b.health})`).join('; ')||'all'}`, `Selected skills: ${skillCtx}`, `Open tasks: ${tasks.map(t=>`${t.project||'Execution'}: ${t.text}`).join(' | ')||'none'}`, `Leads: ${leads.map(l=>`${l.company||l.name||'Lead'} [${l.stage||'new'}] ${l.nextAction||''}`).join(' | ')||'none'}`, `Reminders: ${reminders.map(r=>`${r.text}${r.dueAt?' @ '+r.dueAt:''}`).join(' | ')||'none'}`, `Recent ops: ${state.ops.inbox.slice(0,8).map(x=>x.text).join(' | ')||'none'}`].join('\n').slice(0,14000);
+}
+function gogEnv(){ const env={...process.env}; const gogPaths=['/home/linuxbrew/.linuxbrew/bin','/home/linuxbrew/.linuxbrew/sbin']; const pathParts=[]; for(const p of (env.PATH||'').split(':')) if(p&&!pathParts.includes(p)) pathParts.push(p); for(const p of gogPaths) if(!pathParts.includes(p)) pathParts.unshift(p); env.PATH=pathParts.join(':'); try{ const raw=fs.readFileSync('/home/admin/.openclaw/private/gog.env','utf8'); for(const line of raw.split(/\r?\n/)){ const m=line.match(/^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)=(.*)\s*$/); if(m){ let v=m[2].trim(); if((v.startsWith('"')&&v.endsWith('"'))||(v.startsWith("'")&&v.endsWith("'"))) v=v.slice(1,-1); env[m[1]]=v; } } }catch{} return env; }
+function execGog(args,timeoutMs=45000){ return new Promise((resolve,reject)=>execFile('gog',args,{timeout:timeoutMs,maxBuffer:8*1024*1024,env:gogEnv()},(err,stdout,stderr)=>err?reject(new Error((stderr||stdout||err.message).slice(0,1800))):resolve(stdout))); }
+// ─── RAG MEMORY SEARCH ───
+const RAG_SCRIPT = '/home/admin/.openclaw/workspace/rag-memory/rag.sh';
+let lastRagCache = { query: '', results: '', at: 0 };
+function searchRagMemory(queryStr){
+  const maxAge = 120 * 1000;
+  if(lastRagCache.query === queryStr && Date.now() - lastRagCache.at < maxAge && lastRagCache.results) {
+    return Promise.resolve(lastRagCache.results);
+  }
+  return new Promise((resolve, reject) => {
+    const { execFile } = require('child_process');
+    const child = execFile(RAG_SCRIPT, ['search', '--brief', '--top-k', '8', queryStr],
+      { timeout: 12000, maxBuffer: 64 * 1024, env: { ...process.env, HF_TOKEN: '' } },
+      (err, stdout, stderr) => {
+        if (err) { resolve(''); return; }
+        const out = (stdout || '').trim().split('\n').filter(l => l.startsWith('  \uD83D\uDCC1 ') || l.startsWith('  \uD83D\uDCCE ')).slice(0, 16).map(l => l.replace(/\s{2,}/g,' ').trim()).join('\n');
+        if(out && out.length > 30) {
+          lastRagCache = { query: queryStr, results: out, at: Date.now() };
+          resolve(out);
+        } else resolve('');
+      });
+  });
+}
+
+// ─── DIRECT LLM BRIDGE (DeepSeek API, no gateway dependency) ───
+const DEEPSEEK_KEY = 'sk-fb946711863549a7a270354f3d75d3c0';
+const DEEPSEEK_MODEL = 'deepseek-chat';
+const DEEPSEEK_URL = 'https://api.deepseek.com/v1/chat/completions';
+
+async function sendToAssistant(state,thread,message,model){
+  const ctxProjectIds=(thread.context?.businessIds||[]);
+  const ctxProjects=ctxProjectIds.map(id=>state.businesses.find(b=>b.id===id)?.name).filter(Boolean).join(', ')||'';
+  const ctxProjectName=thread.context?.projectName||ctxProjects||'';
+  const projectLine=ctxProjectName?`You are on the **${ctxProjectName}** project page. Reference this naturally when confirming actions.`:'You are on the general dashboard. No specific project selected.';
+  // RAG memory search — pull relevant long-term context from vector DB
+  let ragCtx = '';
+  try {
+    const ragResults = await searchRagMemory(message);
+    if (ragResults) {
+      const mindmapCtx = getMindmapContext();
+      ragCtx = `\n\n🔍 RAG MEMORY CONTEXT (semantic search for "${message.replace(/"/g,'\\"').slice(0,120)}"):\n${ragResults}${mindmapCtx ? `\n\n🧠 MINDMAP STRATEGY CONTEXT (from RAGmind mindmap):\n${mindmapCtx}` : ''}`;
+    }
+  } catch(e) { /* RAG search is non-critical */ }
+  const systemPrompt=`You are Kaneki Ken, Amir's AI productivity assistant. You reflect Amir's coaching style: motivational, pushy, direct, with a scarred-discipline tone and occasional Johnny Silverhand rebellious edge. Signature emoji: 🫡\n\nCurrent dashboard context:\n${threadContext(state,thread)}\n\n${projectLine}\n${ragCtx}\n\nRules:\n- Be concise. No fluff. One message, one punch.\n- When Amir asks you to add/update tasks, confirm what changed and say which project it's linked to.\n- If he asks you to execute tools, tell him it's handled.\n- Don't over-explain. He knows you're an AI.\n- Reference his actual project names, tasks, and metrics naturally.\n- Reference relevant RAG memory and mindmap context when it adds value.\n- If adding a task to the current project page, say "Added to [Project Name]" not "Added to project page".`;
+  const history=(thread.messages||[]).filter(m=>m.role!=='system'&&!m.pending&&m.text).slice(-16).map(m=>({role:m.role==='assistant'?'assistant':'user',content:m.text}));
+  const messages=[{role:'system',content:systemPrompt.slice(0,100000)},...history,{role:'user',content:message}];
+  const resp=await fetch(DEEPSEEK_URL,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${DEEPSEEK_KEY}`},body:JSON.stringify({model:DEEPSEEK_MODEL,messages,max_tokens:2048,temperature:0.7}),signal:AbortSignal.timeout(45000)});
+  if(!resp.ok){const e=await resp.text();throw new Error(`API ${resp.status}: ${e.slice(0,200)}`)}
+  const data=await resp.json();const reply=data.choices?.[0]?.message?.content||'No response';
+  return {reply,runId:`dash-${Date.now()}`,sessionKey:thread.id};
+}
+function contentMetrics(content){ const accounts=content.accounts||[], posts=content.posts||[]; return { connectedAccounts:accounts.filter(a=>a.status==='connected').length, totalAccounts:accounts.length, impressions30d:posts.reduce((a,p)=>a+(+p.impressions||0),0)+accounts.reduce((a,x)=>a+(+x.impressions30d||0),0), posts30d:posts.filter(p=>p.scheduledAt||p.status==='posted').length, scheduled:posts.filter(p=>p.status==='scheduled').length, ideas:posts.filter(p=>p.status==='idea').length }; }
+function timeToMin(t){ if(!t)return 0; const d=new Date(t); return d.getHours()*60+d.getMinutes(); }
+function minToTime(m){ const h=Math.floor(m/60),min=m%60; return `${String(h).padStart(2,'0')}:${String(min).padStart(2,'0')}`; }
+function defaultTimetableConfig(){ return { workStart:'08:00', workEnd:'18:00', bufferMinutes:10, maxBlockMinutes:90, breakAt:'12:30', breakMinutes:30, preferMornings:true }; }
+function parseTime(s){ const parts=String(s||'').split(':'); return (parseInt(parts[0])||0)*60+(parseInt(parts[1])||0); }
+function dateFromISO(s){ try{ const d=new Date(s); if(isNaN(d.getTime()))return null; return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }catch{return null;} }
+function scheduleDay(state,date){
+  const cfg=state.brain.timetable||defaultTimetableConfig();
+  const workStart=parseTime(cfg.workStart);
+  const workEnd=parseTime(cfg.workEnd);
+  const buffer=cfg.bufferMinutes||5;
+  const maxBlock=cfg.maxBlockMinutes||90;
+  const breakAt=parseTime(cfg.breakAt||'12:30');
+  const breakMin=cfg.breakMinutes||0;
+
+  // Collect calendar events for this date
+  const dayEvents=(state.brain.calendar||[]).filter(e=>{
+    const sd=dateFromISO(e.start), ed=dateFromISO(e.end);
+    return sd===date||ed===date||(sd&&ed&&sd<=date&&ed>=date);
+  });
+
+  // Build busy blocks (in minutes from midnight)
+  const busy=dayEvents.map(e=>({start:timeToMin(e.start),end:timeToMin(e.end),title:e.title,id:e.id,source:e.source})).filter(b=>b.end>b.start).sort((a,b)=>a.start-b.start);
+
+  // Merge overlapping busy blocks
+  const merged=[];
+  for(const b of busy){
+    if(merged.length&&b.start<=merged[merged.length-1].end+2){
+      merged[merged.length-1].end=Math.max(merged[merged.length-1].end,b.end);
+      merged[merged.length-1].title=merged[merged.length-1].title+', '+b.title;
+    }else merged.push({...b});
+  }
+
+  // Build free blocks between busy periods, bounded by working hours
+  let cursor=workStart;
+  const freeBlocks=[];
+  for(const b of merged){
+    const meetStart=Math.max(b.start,workStart);
+    const meetEnd=Math.min(b.end,workEnd);
+    if(meetStart>cursor+buffer){
+      let gapEnd=meetStart;
+      // Insert lunch break if it falls in this gap
+      if(breakMin>0&&cursor<breakAt&&breakAt+breakMin<gapEnd){
+        freeBlocks.push({start:cursor,end:breakAt});
+        cursor=breakAt+breakMin;
+      }
+      if(cursor+buffer<gapEnd) freeBlocks.push({start:cursor,end:gapEnd});
+    }
+    cursor=Math.max(cursor,Math.min(meetEnd,workEnd));
+  }
+  // Remaining time after last meeting
+  if(cursor+buffer<workEnd){
+    let gapEnd=workEnd;
+    if(breakMin>0&&cursor<breakAt&&breakAt+breakMin<gapEnd){
+      freeBlocks.push({start:cursor,end:breakAt});
+      cursor=breakAt+breakMin;
+    }
+    if(cursor+buffer<gapEnd) freeBlocks.push({start:cursor,end:gapEnd});
+  }
+
+  // Collect undone tasks for this date
+  const tasks=(state.todos[date]||[]).filter(t=>!t.done).map(t=>({...t,minutes:t.minutes||30}));
+  // Also include tasks without a specific date (general backlog) on today's date
+  if(date===todayKey()){
+    for(const d of Object.keys(state.todos)){
+      if(d===date)continue;
+      const open=(state.todos[d]||[]).filter(t=>!t.done).map(t=>({...t,minutes:t.minutes||30}));
+      tasks.push(...open);
+    }
+  }
+
+  // Deduplicate by id
+  const seen=new Set(); const uniqueTasks=[];
+  for(const t of tasks){ if(!seen.has(t.id)){seen.add(t.id);uniqueTasks.push(t);} }
+
+  // Priority weight: high=3, medium=2, low=1
+  const prioWeight={high:3,medium:2,low:1};
+  // Sort: priority desc, then minutes desc (FFD for bin-packing)
+  uniqueTasks.sort((a,b)=>(prioWeight[b.priority]||2)-(prioWeight[a.priority]||2)||(b.minutes||30)-(a.minutes||30));
+
+  // Schedule using first-fit
+  const blocks=freeBlocks.map(b=>({start:b.start,end:b.end,duration:b.end-b.start}));
+  const schedule=[];
+  const overflow=[];
+
+  for(const task of uniqueTasks){
+    let placed=false;
+    const dur=Math.min(task.minutes||30,maxBlock);
+    for(let i=0;i<blocks.length;i++){
+      const b=blocks[i];
+      // Need room for task + buffer after (unless last task in block)
+      const needed=dur+(b.duration-dur>buffer?buffer:0);
+      if(b.duration>=needed){
+        const slotStart=b.start;
+        schedule.push({taskId:task.id,text:task.text,project:task.project||'Execution',priority:task.priority,minutes:dur,start:slotStart,end:slotStart+dur,startTime:minToTime(slotStart),endTime:minToTime(slotStart+dur)});
+        // Shrink block from left
+        b.start=slotStart+dur+(cfg.preferMornings?buffer:0);
+        b.duration=Math.max(0,b.end-b.start);
+        placed=true;
+        break;
+      }
+    }
+    if(!placed) overflow.push(task);
+  }
+
+  // Sort schedule by start time
+  schedule.sort((a,b)=>a.start-b.start);
+
+  return {
+    date,
+    config:cfg,
+    meetings:merged.filter(b=>b.end>workStart&&b.start<workEnd).map(b=>({...b,startTime:minToTime(Math.max(b.start,workStart)),endTime:minToTime(Math.min(b.end,workEnd))})),
+    freeBlocks:blocks.filter(b=>b.duration>buffer),
+    scheduled:schedule,
+    overflow:overflow.map(t=>({id:t.id,text:t.text,project:t.project||'Execution',priority:t.priority,minutes:t.minutes||30})),
+    stats:{totalTasks:uniqueTasks.length,scheduled:schedule.length,overflow:overflow.length,totalMinutes:schedule.reduce((a,s)=>a+s.minutes,0),freeMinutes:blocks.reduce((a,b)=>a+Math.max(0,b.duration-buffer),0)}
+  };
+}
+async function syncGoogleCalendar(s, opts={}){
+  const from=opts.from || new Date(Date.now()-7*864e5).toISOString();
+  const to=opts.to || new Date(Date.now()+60*864e5).toISOString();
+  const account=opts.account || process.env.GOG_ACCOUNT || 'amirg@ragmedium.com';
+  const raw=await execGog(['calendar','events','primary','--from',from,'--to',to,'--account',account,'--json','--no-input'],60000);
+  const parsed=JSON.parse(raw); const items=Array.isArray(parsed)?parsed:(parsed.events||parsed.items||[]);
+  const mapped=items.map(e=>({ id:`gcal_${e.id||slug(e.summary||e.title||e.start)}`, source:'google', providerId:e.id, title:e.summary||e.title||'(No title)', start:e.start?.dateTime||e.start?.date||e.start||'', end:e.end?.dateTime||e.end?.date||e.end||'', location:e.location||'', description:e.description||'', attendees:e.attendees||[], type:'event', tags:['google-calendar'] }));
+  const local=s.brain.calendar.filter(e=>e.source!=='google'); s.brain.calendar=[...mapped,...local].sort((a,b)=>String(a.start||'').localeCompare(String(b.start||''))).slice(0,1000);
+  s.brain.sync.sources['google-calendar']={status:'ok',lastSync:nowISO(),summary:`Pulled ${mapped.length} Google Calendar events (${from.slice(0,10)} → ${to.slice(0,10)}).`};
+  return mapped;
+}
+async function refreshSync(s,source='all'){
+  const ts=nowISO(); const sources=s.brain.sync.sources; const touch=(id,status='ok',summary='')=>sources[id]={status,lastSync:ts,summary};
+  if(source==='all'||source==='ragmind') touch('ragmind','ok',`${getMindmapContext().split('\n').filter(Boolean).length} context snippets indexed from local RAGmind.`);
+  if(source==='all'||source==='dashboard') touch('dashboard','ok',`${s.businesses.length} projects, ${s.crm.leads.length} leads, ${Object.values(s.todos).flat().length} tasks, ${s.brain.threads.length} conversations.`);
+  if(source==='all'||source==='calendar'||source==='google-calendar') { try{ await syncGoogleCalendar(s,{}); }catch(e){ touch('google-calendar','error',`Google Calendar sync failed: ${e.message}`); } }
+  if(source==='all'||source==='ragx') touch('ragx','stubbed','RAGx source registered; API/export connection not configured yet.');
+  if(source==='all'||source==='social') { s.brain.content.metrics=contentMetrics(s.brain.content); touch('social','stubbed',`${s.brain.content.metrics.totalAccounts} accounts tracked, ${s.brain.content.metrics.impressions30d} local impressions. Social APIs next.`); }
+  s.brain.sync.lastRefresh=ts; activity(s,'sync',`Refreshed ${source} sources`,{source}); return s.brain.sync;
+}
+
+
+function runAssistantBackground(tid, snapshot, thread, text, model){
+  sendToAssistant(snapshot, thread, text, model).then(out=>{
+    const s2=readState(); const t2=s2.brain.threads.find(x=>x.id===tid); if(!t2) return;
+    t2.messages = (t2.messages||[]).filter(m=>!(m.role==='assistant' && m.pending && m.replyTo===snapshot.__pendingMessageId));
+    const ai={id:id('msg'),role:'assistant',text:out.reply,at:nowISO(),surface:'openclaw',threadId:tid,runId:out.runId};
+    t2.messages.push(ai); activity(s2,'thread-reply',`${thread.title}: ${clip(out.reply,110)}`,{threadId:tid,runId:out.runId}); writeState(s2);
+  }).catch(e=>{
+    const s2=readState(); const t2=s2.brain.threads.find(x=>x.id===tid); if(!t2) return;
+    t2.messages = (t2.messages||[]).filter(m=>!(m.role==='assistant' && m.pending && m.replyTo===snapshot.__pendingMessageId));
+    t2.messages.push({id:id('msg'),role:'system',text:`Assistant bridge error: ${e.message}`,at:nowISO(),threadId:tid}); writeState(s2);
+  });
+}
+
+async function route(req,res){
+  if(req.method==='OPTIONS') return send(res,200,{ok:true}); const u=new URL(req.url,'http://x');
+  if(u.pathname==='/manifest.webmanifest') return send(res,200,fs.readFileSync(path.join(ROOT,'manifest.webmanifest'),'utf8'),'application/manifest+json');
+  if(u.pathname==='/sw.js') return send(res,200,fs.readFileSync(path.join(ROOT,'sw.js'),'utf8'),'application/javascript');
+  if(u.pathname.startsWith('/icons/')){ const file=path.join(ROOT,u.pathname.replace(/^\/+/,'')); if(file.startsWith(path.join(ROOT,'icons'))&&fs.existsSync(file)){ const ext=path.extname(file); return send(res,200,fs.readFileSync(file),ext==='.svg'?'image/svg+xml':'image/png'); } }
+  if(u.pathname==='/'||u.pathname==='/index.html'||!u.pathname.startsWith('/api/')) return send(res,200,fs.readFileSync(path.join(ROOT,'index.html'),'utf8'),'text/html');
+  if(u.pathname==='/api/state'&&req.method==='GET') return send(res,200,readState());
+  if(u.pathname==='/api/state'&&(req.method==='POST'||req.method==='PUT')){ const b=await body(req); writeState(b); return send(res,200,{ok:true,state:normalizeState(b)}); }
+  if(u.pathname==='/api/brain'&&req.method==='GET'){ const s=readState(); s.brain.content.metrics=contentMetrics(s.brain.content); return send(res,200,{ok:true,brain:s.brain,businesses:s.businesses,projects:s.businesses,crm:s.crm,integrations:s.integrations,brief:generateBrief(s)}); }
+  if(u.pathname==='/api/vault'&&req.method==='GET'){ const idx=path.join(ROOT,'..','obsidian','rag-index','search-index.json'); if(fs.existsSync(idx)) return send(res,200,JSON.parse(fs.readFileSync(idx,'utf8'))); return send(res,200,{error:'vault_index_not_found',files:[]}); }
+  if(u.pathname==='/api/skills'&&req.method==='GET'){ const s=readState(); ensureSkills(s); writeState(s); return send(res,200,{ok:true,skills:s.brain.skills}); }
+  if(u.pathname==='/api/skills/configure'&&req.method==='POST'){ const s=readState(); const skills=ensureSkills(s); activity(s,'skills',`Configured ${skills.length} dashboard skills from skill archive`,{root:SKILL_ROOT,count:skills.length}); writeState(s); return send(res,200,{ok:true,skills,state:s}); }
+  if(u.pathname==='/api/conversations'&&req.method==='GET'){ const s=readState(); return send(res,200,{ok:true,conversations:s.brain.threads}); }
+  if(u.pathname==='/api/threads'&&req.method==='POST'){ const s=readState(), b=await body(req); const title=b.title||'New chat'; const t=upsertById(s.brain.threads,{icon:'💬',tags:[],context:{businessIds:b.businessIds||b.context?.businessIds||[]},messages:[],scope:'Focused conversation',...b,id:b.id||`chat-${Date.now().toString(36)}-${crypto.randomBytes(2).toString('hex')}`,title,sessionKey:b.sessionKey||`agent:main:dashboard-chat-${Date.now().toString(36)}-${crypto.randomBytes(2).toString('hex')}`},'thread'); s.brain.activeThread=t.id; activity(s,'conversation',`New/updated chat: ${t.title}`,{id:t.id,context:t.context}); writeState(s); return send(res,200,{ok:true,thread:t,state:s}); }
+  const startProject=u.pathname.match(/^\/api\/projects\/([^/]+)\/start-chat$/); if(startProject&&req.method==='POST'){ const s=readState(), b=await body(req); const p=s.businesses.find(x=>x.id===startProject[1]); if(!p) return send(res,404,{error:'project_not_found'}); const t={ id:`chat-${p.id}-${Date.now().toString(36)}`, title:b.title||`${p.name} — new chat`, icon:b.icon||'💬', scope:`Project chat for ${p.name}: ${p.description||p.lane||''}`, tags:[...(p.tags||[]),'project-chat'], context:{businessIds:[p.id]}, sessionKey:`agent:main:dashboard-${p.id}-${Date.now().toString(36)}`, messages:[] }; s.brain.threads.unshift(t); s.brain.activeThread=t.id; activity(s,'conversation',`Started project chat: ${t.title}`,{projectId:p.id,threadId:t.id}); writeState(s); return send(res,200,{ok:true,thread:t,state:s}); }
+  const projectDash=u.pathname.match(/^\/api\/projects\/([^/]+)\/dashboard$/); if(projectDash&&req.method==='GET'){ const s=readState(), p=s.businesses.find(x=>x.id===projectDash[1]); if(!p) return send(res,404,{error:'project_not_found'}); const allTodos=Object.values(s.todos).flat(); const projTodos=allTodos.filter(t=>!t.done&&(t.businessId===p.id||t.project===p.name||t.project===p.id)); const projChats=(s.brain.threads||[]).filter(t=>(t.messages||[]).length>0&&((t.context?.businessIds||[]).includes(p.id)||(t.title||'').toLowerCase().includes(p.name.toLowerCase().split(' ')[0])||(t.tags||[]).some(tg=>(p.tags||[]).includes(tg)))).map(t=>({id:t.id,title:t.title,lastMessage:(t.messages||[]).filter(m=>m.role!=='system').slice(-1)[0]?.text?.slice(0,120)||'',messageCount:t.messages.length,updatedAt:t.updatedAt})).slice(0,10); const leads=(s.crm?.leads||[]).filter(l=>l.businessId===p.id||l.projectId===p.id||projects().find(b=>b.id===p.id)?.name&&l.business===p.name); const stats={totalTodos:allTodos.filter(t=>t.businessId===p.id||t.project===p.name).length,openTodos:projTodos.length,highTodos:projTodos.filter(t=>t.priority==='high').length,totalChats:projChats.length,totalLeads:leads.length,leadsByStage:{},doneTodos:allTodos.filter(t=>t.done&&(t.businessId===p.id||t.project===p.name)).length}; for(const l of leads){ stats.leadsByStage[l.stage||'new']=(stats.leadsByStage[l.stage||'new']||0)+1; } const ops=(s.ops?.activity||[]).filter(a=>String(a.text).toLowerCase().includes(p.name.toLowerCase())).slice(0,15); return send(res,200,{ok:true,project:p,todos:projTodos.slice(0,20),chats:projChats,leads,stats,ops}); }
+  const threadMsg=u.pathname.match(/^\/api\/threads\/([^/]+)\/messages$/); if(threadMsg&&req.method==='POST'){ const s=readState(), b=await body(req), tid=threadMsg[1]; let t=s.brain.threads.find(x=>x.id===tid); if(!t){ s.brain.threads||=[]; t={id:tid,title:'Chat',icon:'💬',tags:[],context:{businessIds:[]},messages:[],scope:'Dashboard chat',sessionKey:`agent:main:dashboard-${tid.slice(-12)}`}; s.brain.threads.unshift(t); } const text=String(b.message||'').trim(); if(!text) return send(res,400,{error:'message_required'}); if(genericTitle(t.title)) t.title=smartThreadTitle(text,t,s); const user={id:id('msg'),role:'user',text,at:nowISO(),surface:'dashboard',threadId:tid}; t.messages.push(user); s.brain.activeThread=tid; activity(s,'thread-message',`${t.title}: ${clip(text,100)}`,{threadId:tid}); if(b.localOnly) { writeState(s); return send(res,200,{ok:true,thread:t,state:s}); } const pending={id:id('msg'),role:'assistant',text:'Thinking…',pending:true,replyTo:user.id,at:nowISO(),surface:'openclaw',threadId:tid}; t.messages.push(pending); writeState(s); const snap=JSON.parse(JSON.stringify(s)); snap.__pendingMessageId=user.id; const model=b.model||''; if(b.async!==false){ runAssistantBackground(tid,snap,JSON.parse(JSON.stringify(t)),text,model); return send(res,202,{ok:true,queued:true,thread:t,state:s}); } try{ const out=await sendToAssistant(s,t,text,model); const s2=readState(); const t2=s2.brain.threads.find(x=>x.id===tid); t2.messages=(t2.messages||[]).filter(m=>!(m.role==='assistant'&&m.pending&&m.replyTo===user.id)); const ai={id:id('msg'),role:'assistant',text:out.reply,at:nowISO(),surface:'openclaw',threadId:tid,runId:out.runId}; t2.messages.push(ai); activity(s2,'thread-reply',`${t.title}: ${clip(out.reply,110)}`,{threadId:tid,runId:out.runId}); writeState(s2); return send(res,200,{ok:true,reply:out.reply,runId:out.runId,sessionKey:out.sessionKey,thread:t2,state:s2}); }catch(e){ const s2=readState(); const t2=s2.brain.threads.find(x=>x.id===tid); t2.messages=(t2.messages||[]).filter(m=>!(m.role==='assistant'&&m.pending&&m.replyTo===user.id)); t2.messages.push({id:id('msg'),role:'system',text:`Assistant bridge error: ${e.message}`,at:nowISO(),threadId:tid}); writeState(s2); return send(res,502,{ok:false,error:'assistant_bridge_failed',detail:e.message,state:s2}); } }
+  if(u.pathname==='/api/assistant/chat'&&req.method==='POST'){ req.url='/api/threads/general/messages'; return route(req,res); }
+  if(u.pathname==='/api/commands'&&req.method==='POST'){ const s=readState(), b=await body(req); const command={id:id('cmd'),text:String(b.text||b.command||'').trim(),threadId:b.threadId||'general',status:'queued',target:b.target||'assistant',createdAt:nowISO(),tags:b.tags||[]}; if(!command.text) return send(res,400,{error:'command_required'}); s.brain.commands.unshift(command); activity(s,'command',command.text,{threadId:command.threadId}); writeState(s); if(b.send!==false){ const fake={url:`/api/threads/${command.threadId}/messages`,method:'POST'}; req.url=fake.url; req.method='POST'; req._body=JSON.stringify({message:`Command: ${command.text}`}); } return send(res,200,{ok:true,command,state:s}); }
+  if(u.pathname==='/api/ops/brief'&&req.method==='GET'){ const s=readState(); return send(res,200,{ok:true,brief:generateBrief(s,u.searchParams.get('date')||todayKey())}); }
+  if(u.pathname==='/api/ops/inbox'&&req.method==='POST'){ const s=readState(), b=await body(req); const item={id:id('note'),text:String(b.text||'').trim(),project:b.project||'',urgency:b.urgency||'normal',source:b.source||'dashboard',createdAt:nowISO(),tags:b.tags||[]}; if(!item.text) return send(res,400,{error:'text_required'}); s.ops.inbox.unshift(item); activity(s,'ops-note',item.text,{project:item.project}); writeState(s); return send(res,200,{ok:true,item,state:s}); }
+  if(u.pathname==='/api/ai/suggest'&&req.method==='POST'){ const s=readState(), b=await body(req); return send(res,200,{ok:true,suggestions:generateSuggestions(s,b.prompt||'')}); }
+  if(u.pathname==='/api/todos'&&req.method==='GET'){ const s=readState(), date=u.searchParams.get('date')||todayKey(); return send(res,200,{ok:true,date,todos:s.todos[date]||[]}); }
+  if(u.pathname==='/api/todos'&&req.method==='POST'){ const s=readState(), b=await body(req); const date=b.date||todayKey(); s.todos[date] ||= []; const t={id:id('todo'),text:String(b.text||'').trim(),done:false,priority:b.priority||'medium',project:b.project||'',businessId:b.businessId||'',tags:b.tags||[],stage:b.stage||'today',minutes:b.minutes||30,createdAt:nowISO(),source:b.source||'manual'}; if(!t.text) return send(res,400,{error:'text_required'}); s.todos[date].push(t); activity(s,'task',`Added task: ${t.text}`,{project:t.project,date}); writeState(s); return send(res,200,{ok:true,todo:t,state:s}); }
+  if(u.pathname==='/api/todos/bulk'&&req.method==='POST'){ const s=readState(), b=await body(req), date=b.date||todayKey(); s.todos[date] ||= []; for(const x of b.todos||[]) if(x.text) s.todos[date].push({id:id('todo'),done:false,priority:'medium',minutes:30,createdAt:nowISO(),source:'bulk',...x,text:String(x.text).trim()}); activity(s,'tasks',`Added ${(b.todos||[]).length} tasks`,{date}); writeState(s); return send(res,200,{ok:true,state:s}); }
+  if(u.pathname==='/api/todos/reorder'&&req.method==='POST'){ const s=readState(), b=await body(req), date=b.date||todayKey(); const order=Array.isArray(b.order)?b.order:[]; const cur=s.todos[date]||[]; const by=new Map(cur.map(t=>[t.id,t])); const next=order.map(x=>by.get(x)).filter(Boolean); for(const t of cur) if(!order.includes(t.id)) next.push(t); s.todos[date]=next; activity(s,'priority','Reordered dashboard priority queue',{date}); writeState(s); return send(res,200,{ok:true,state:s}); }
+  const todoPatch=u.pathname.match(/^\/api\/todos\/([^/]+)$/); if(todoPatch&&req.method==='PATCH'){ const s=readState(), b=await body(req), tid=todoPatch[1]; for(const date of Object.keys(s.todos)){ const t=(s.todos[date]||[]).find(x=>x.id===tid); if(t){ Object.assign(t,b,{updatedAt:nowISO()}); if('done'in b)t.doneAt=b.done?nowISO():null; writeState(s); return send(res,200,{ok:true,todo:t,state:s}); } } return send(res,404,{error:'not_found'}); }
+  if(todoPatch&&req.method==='DELETE'){ const s=readState(), tid=todoPatch[1]; for(const date of Object.keys(s.todos)){ const n=s.todos[date].length; s.todos[date]=s.todos[date].filter(x=>x.id!==tid); if(s.todos[date].length!==n){ writeState(s); return send(res,200,{ok:true,state:s}); } } return send(res,404,{error:'not_found'}); }
+  const nn=u.pathname.match(/^\/api\/nonnegotiables\/([^/]+)$/); if(nn&&req.method==='PATCH'){ const s=readState(), b=await body(req), date=b.date||todayKey(); s.metrics.nonnegotiables[date] ||= {}; s.metrics.nonnegotiables[date][nn[1]]=!!b.done; writeState(s); return send(res,200,{ok:true,brief:generateBrief(s,date),state:s}); }
+  if(u.pathname==='/api/checkin'&&req.method==='POST'){ const s=readState(), b=await body(req); const date=b.date||todayKey(); s.metrics.dailyCheckin||={}; s.metrics.dailyCheckin[date]||={}; s.metrics.dailyCheckin[date][b.field]=b.value; writeState(s); return send(res,200,{ok:true,checkin:s.metrics.dailyCheckin[date]}); }
+  if(u.pathname==='/api/businesses'&&req.method==='POST'){ const s=readState(), b=await body(req); const item=upsertById(s.businesses,b,'biz'); activity(s,'business',`Updated business: ${item.name}`,{id:item.id}); writeState(s); return send(res,200,{ok:true,item,state:s}); }
+  const bizPatch=u.pathname.match(/^\/api\/businesses\/([^/]+)$/); if(bizPatch&&req.method==='PATCH'){ const s=readState(), b=await body(req); const item=s.businesses.find(x=>x.id===bizPatch[1]); if(!item)return send(res,404,{error:'not_found'}); Object.assign(item,b,{updatedAt:nowISO()}); writeState(s); return send(res,200,{ok:true,item,state:s}); }
+  if(u.pathname==='/api/crm/leads'&&req.method==='POST'){ const s=readState(), b=await body(req); const item=upsertById(s.crm.leads,{stage:'new',tags:[],...b},'lead'); activity(s,'lead',`Updated lead: ${item.company||item.name||item.id}`,{id:item.id,stage:item.stage}); writeState(s); return send(res,200,{ok:true,item,state:s}); }
+  const leadPatch=u.pathname.match(/^\/api\/crm\/leads\/([^/]+)$/); if(leadPatch&&req.method==='PATCH'){ const s=readState(), b=await body(req); const item=s.crm.leads.find(x=>x.id===leadPatch[1]); if(!item)return send(res,404,{error:'not_found'}); Object.assign(item,b,{updatedAt:nowISO()}); writeState(s); return send(res,200,{ok:true,item,state:s}); }
+  if(u.pathname==='/api/crm/clients'&&req.method==='POST'){ const s=readState(), b=await body(req); const item=upsertById(s.crm.clients,{stage:'prospect',tags:[],...b},'client'); activity(s,'client',`Updated client: ${item.company||item.name||item.id}`,{id:item.id,stage:item.stage}); writeState(s); return send(res,200,{ok:true,item,state:s}); }
+  if(u.pathname==='/api/reminders'&&req.method==='POST'){ const s=readState(), b=await body(req); const item=upsertById(s.brain.reminders,{done:false,priority:'medium',tags:[],...b,text:String(b.text||'').trim()},'rem'); if(!item.text)return send(res,400,{error:'text_required'}); activity(s,'reminder',`Reminder: ${item.text}`,{dueAt:item.dueAt}); writeState(s); return send(res,200,{ok:true,item,state:s}); }
+  const remPatch=u.pathname.match(/^\/api\/reminders\/([^/]+)$/); if(remPatch&&req.method==='PATCH'){ const s=readState(), b=await body(req); const item=s.brain.reminders.find(x=>x.id===remPatch[1]); if(!item)return send(res,404,{error:'not_found'}); Object.assign(item,b,{updatedAt:nowISO()}); writeState(s); return send(res,200,{ok:true,item,state:s}); }
+  if(u.pathname==='/api/calendar'&&req.method==='GET'){ const s=readState(); return send(res,200,{ok:true,calendar:s.brain.calendar}); }
+  
+  if(u.pathname==='/api/calendar/gateway-sync'&&req.method==='POST'){ const s=readState(), b=await body(req); try{ const items=b.items||b.events||(b.value?b.value:[]); const mapped=items.map(e=>({ id:'gcal_'+(e.id||e.iCalUID||slug(e.summary||e.title||e.start||Date.now())), source:'google', providerId:e.id, title:e.summary||e.title||'(No title)', start:e.start?.dateTime||e.start?.date||e.start||'', end:e.end?.dateTime||e.end?.date||e.end||'', location:e.location||'', description:e.description||'', attendees:e.attendees||[], type:'event', tags:['google-calendar'] })); const local=s.brain.calendar.filter(e=>e.source!=='google'); s.brain.calendar=[...mapped,...local].sort((a,b)=>String(a.start||'').localeCompare(String(b.start||''))).slice(0,1000); s.brain.sync.sources['google-calendar']={status:'ok',lastSync:nowISO(),summary:'Gateway sync: pulled '+mapped.length+' events.'}; s.brain.sync.lastCalendarSync=nowISO(); writeState(s); return send(res,200,{ok:true,count:mapped.length,state:s}); }catch(e){ s.brain.sync.sources['google-calendar']={status:'error',lastSync:nowISO(),summary:e.message}; writeState(s); return send(res,502,{ok:false,error:'gateway_sync_failed',detail:e.message,state:s}); } }
+  if(u.pathname==='/api/calendar/sync'&&req.method==='POST'){ const s=readState(), b=await body(req); try{ const events=await syncGoogleCalendar(s,b); activity(s,'calendar-sync',`Pulled ${events.length} Google Calendar events`,{}); writeState(s); return send(res,200,{ok:true,events,state:s}); }catch(e){ s.brain.sync.sources['google-calendar']={status:'error',lastSync:nowISO(),summary:e.message}; writeState(s); return send(res,502,{ok:false,error:'calendar_sync_failed',detail:e.message,state:s}); } }
+  if(u.pathname==='/api/calendar'&&req.method==='POST'){ const s=readState(), b=await body(req); const item=upsertById(s.brain.calendar,{type:'event',source:'local',tags:[],...b,title:String(b.title||'').trim()},'cal'); if(!item.title)return send(res,400,{error:'title_required'}); activity(s,'calendar',`Calendar: ${item.title}`,{start:item.start}); writeState(s); return send(res,200,{ok:true,item,state:s}); }
+  const calPatch=u.pathname.match(/^\/api\/calendar\/([^/]+)$/); if(calPatch&&req.method==='PATCH'){ const s=readState(), b=await body(req); const item=s.brain.calendar.find(x=>x.id===calPatch[1]); if(!item)return send(res,404,{error:'not_found'}); Object.assign(item,b,{updatedAt:nowISO()}); writeState(s); return send(res,200,{ok:true,item,state:s}); }
+  if(u.pathname==='/api/content'&&req.method==='GET'){ const s=readState(); s.brain.content.metrics=contentMetrics(s.brain.content); writeState(s); return send(res,200,{ok:true,content:s.brain.content}); }
+  if(u.pathname==='/api/content/accounts'&&req.method==='POST'){ const s=readState(), b=await body(req); const item=upsertById(s.brain.content.accounts,{status:'planned',...b},'acct'); s.brain.content.metrics=contentMetrics(s.brain.content); activity(s,'content-account',`Updated content account: ${item.platform||''} ${item.handle||item.id}`,{id:item.id}); writeState(s); return send(res,200,{ok:true,item,state:s}); }
+  if(u.pathname==='/api/content/personas'&&req.method==='POST'){ const s=readState(), b=await body(req); const item=upsertById(s.brain.content.personas,{accounts:[],...b},'persona'); activity(s,'content-persona',`Updated persona: ${item.name}`,{id:item.id}); writeState(s); return send(res,200,{ok:true,item,state:s}); }
+  if(u.pathname==='/api/content/platforms'&&req.method==='POST'){ const s=readState(), b=await body(req); const item=upsertById(s.brain.content.platforms,{formats:[],status:'planned',...b},'platform'); activity(s,'content-platform',`Updated platform: ${item.name}`,{id:item.id}); writeState(s); return send(res,200,{ok:true,item,state:s}); }
+  if(u.pathname==='/api/content/engine'&&req.method==='POST'){ const s=readState(), b=await body(req); s.brain.content.engine={...(s.brain.content.engine||{}),...b}; activity(s,'content-engine','Updated content engine settings',{}); writeState(s); return send(res,200,{ok:true,engine:s.brain.content.engine,state:s}); }
+  if(u.pathname==='/api/content/plan'&&req.method==='POST'){ const s=readState(), b=await body(req); s.brain.content.personalPlan={...(s.brain.content.personalPlan||{}),...b}; activity(s,'content-plan','Updated personal content plan',{}); writeState(s); return send(res,200,{ok:true,plan:s.brain.content.personalPlan,state:s}); }
+  if(u.pathname==='/api/content/posts'&&req.method==='POST'){ const s=readState(), b=await body(req); const item=upsertById(s.brain.content.posts,{status:'idea',type:'post',impressions:0,engagement:0,...b},'post'); s.brain.content.metrics=contentMetrics(s.brain.content); activity(s,'content-post',`Updated content item: ${item.title}`,{id:item.id,status:item.status}); writeState(s); return send(res,200,{ok:true,item,state:s}); }
+  const postPatch=u.pathname.match(/^\/api\/content\/posts\/([^/]+)$/); if(postPatch&&req.method==='PATCH'){ const s=readState(), b=await body(req); const item=s.brain.content.posts.find(x=>x.id===postPatch[1]); if(!item)return send(res,404,{error:'not_found'}); Object.assign(item,b,{updatedAt:nowISO()}); s.brain.content.metrics=contentMetrics(s.brain.content); writeState(s); return send(res,200,{ok:true,item,state:s}); }
+  if(u.pathname==='/api/payments'&&req.method==='GET'){ const s=readState(); const projectId=u.searchParams.get('projectId'); const payments=projectId?(s.payments||[]).filter(p=>p.projectId===projectId):(s.payments||[]); return send(res,200,{ok:true,payments}); }
+  if(u.pathname==='/api/payments'&&req.method==='POST'){ const s=readState(), b=await body(req); const payment={id:id('pay'),projectId:b.projectId||'',amount:parseFloat(b.amount)||0,type:b.type||'nonrecurring',status:b.status||'paid',description:b.description||'',date:b.date||(b.status==='upcoming'||b.status==='pipeline'?'':nowISO().split('T')[0]),expectedDate:b.expectedDate||b.date||'',recurringInterval:b.recurringInterval||null,createdAt:nowISO()}; s.payments.unshift(payment); activity(s,'payment',`Payment: £${payment.amount} ${payment.status} — ${payment.description||'Untitled'}`,{projectId:payment.projectId,status:payment.status}); writeState(s); return send(res,200,{ok:true,payment,state:s}); }
+  const payPatch=u.pathname.match(/^\/api\/payments\/([^/]+)$/); if(payPatch&&req.method==='PATCH'){ const s=readState(), b=await body(req), pid=payPatch[1]; const pay=s.payments.find(x=>x.id===pid); if(!pay)return send(res,404,{error:'not_found'}); Object.assign(pay,b,{updatedAt:nowISO()}); writeState(s); return send(res,200,{ok:true,payment:pay,state:s}); }
+  if(payPatch&&req.method==='DELETE'){ const s=readState(), pid=payPatch[1]; const idx=s.payments.findIndex(x=>x.id===pid); if(idx<0)return send(res,404,{error:'not_found'}); const removed=s.payments.splice(idx,1)[0]; activity(s,'payment',`Deleted payment: £${removed.amount}`,{id:removed.id}); writeState(s); return send(res,200,{ok:true,state:s}); }
+  if(u.pathname==='/api/payments/stats'&&req.method==='GET'){ const s=readState(); const pays=s.payments||[]; const mrr=pays.filter(p=>p.type==='recurring'&&p.status==='paid').reduce((a,p)=>a+Number(p.amount||0),0); const paid=pays.filter(p=>p.status==='paid'); const paid30d=paid.filter(p=>p.date&&p.date>=nowISO().split('T')[0]-30).reduce((a,p)=>a+Number(p.amount||0),0); const paidTotal=paid.reduce((a,p)=>a+Number(p.amount||0),0); const upcoming=pays.filter(p=>p.status==='upcoming').reduce((a,p)=>a+Number(p.amount||0),0); const pipeline=pays.filter(p=>p.status==='pipeline').reduce((a,p)=>a+Number(p.amount||0),0); const byProject={}; for(const biz of s.businesses||[]){ const pp=pays.filter(p=>p.projectId===biz.id); if(pp.length){ byProject[biz.id]={name:biz.name,paid:pp.filter(p=>p.status==='paid').reduce((a,p)=>a+Number(p.amount||0),0),upcoming:pp.filter(p=>p.status==='upcoming').reduce((a,p)=>a+Number(p.amount||0),0),pipeline:pp.filter(p=>p.status==='pipeline').reduce((a,p)=>a+Number(p.amount||0),0),mrr:pp.filter(p=>p.type==='recurring'&&p.status==='paid').reduce((a,p)=>a+Number(p.amount||0),0),count:pp.length}; } } return send(res,200,{ok:true,stats:{mrr,paid30d,paidTotal,upcoming,pipeline,total:pays.reduce((a,p)=>a+Number(p.amount||0),0)},byProject,payments:pays}); }
+  if(u.pathname==='/api/integrations'&&req.method==='POST'){ const s=readState(), b=await body(req); const item=upsertById(s.integrations,b,'int'); activity(s,'integration',`Updated integration: ${item.name}`,{id:item.id,status:item.status}); writeState(s); return send(res,200,{ok:true,item,state:s}); }
+  if(u.pathname==='/api/sync/refresh'&&req.method==='POST'){ const s=readState(), b=await body(req); const sync=await refreshSync(s,b.source||'all'); writeState(s); return send(res,200,{ok:true,sync,state:s}); }
+  if(u.pathname==='/api/timetable/config'&&req.method==='GET'){ const s=readState(); return send(res,200,{ok:true,config:s.brain.timetable||defaultTimetableConfig()}); }
+  if(u.pathname==='/api/timetable/config'&&req.method==='POST'){ const s=readState(), b=await body(req); s.brain.timetable={...(s.brain.timetable||defaultTimetableConfig()),...b}; activity(s,'timetable-config','Updated timetable preferences',{}); writeState(s); return send(res,200,{ok:true,config:s.brain.timetable,state:s}); }
+  if(u.pathname==='/api/timetable'&&req.method==='GET'){ const s=readState(); const date=u.searchParams.get('date')||todayKey(); const plan=scheduleDay(s,date); return send(res,200,{ok:true,date,timetable:plan}); }
+  if(u.pathname==='/api/timetable'&&req.method==='POST'){ const s=readState(), b=await body(req); const date=b.date||todayKey(); if(b.manualSchedule){ s.brain.timetable.schedules ||= {}; s.brain.timetable.schedules[date]=b.manualSchedule; activity(s,'timetable-manual',`Saved manual timetable for ${date}`,{date}); writeState(s); return send(res,200,{ok:true,date,state:s}); } const plan=scheduleDay(s,date); return send(res,200,{ok:true,date,timetable:plan}); }
+  if(u.pathname==='/api/mindmap'&&req.method==='GET') return send(res,200,{ok:true,context:getMindmapContext(),url:'http://100.111.98.27:4444/'});
+  return send(res,404,{error:'not_found'});
+}
+http.createServer((req,res)=>route(req,res).catch(e=>send(res,500,{error:'server_error',detail:String(e.message||e)}))).listen(PORT,HOST,()=>console.log(`Mastermind dashboard http://${HOST}:${PORT}`));
