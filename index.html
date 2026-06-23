@@ -52,7 +52,7 @@ a{color:var(--g-accent);text-decoration:none}
 @keyframes pulse{0%,100%{opacity:0.3;transform:scale(0.8)}50%{opacity:1;transform:scale(1.2)}}
 @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 .refreshing{animation:spin 0.6s linear infinite;display:inline-block;}
-.histPin{position:absolute;right:20px;top:8px;background:none;border:none;color:var(--dim);cursor:pointer;font-size:11px;padding:2px;border-radius:4px;z-index:2;opacity:0.4;transition:opacity.15s}
+.histPin{position:absolute;right:20px;top:8px;background:none;border:none;color:var(--dim);cursor:pointer;font-size:11px;padding:2px;border-radius:4px;z-index:2;opacity:0.4;transition:opacity .15s}
 .histWrap:hover .histPin,.histPinned .histPin{opacity:1}
 .histPinned{background:var(--panel2)!important;border-left:2px solid var(--amber)}
 .error-msg{background:var(--panel2)!important;color:var(--red)!important;border-left:3px solid var(--red)!important;font-size:12px!important}
@@ -253,7 +253,7 @@ a{color:var(--g-accent);text-decoration:none}
 .todoMini{display:flex;flex-direction:column;gap:4px}
 .todoMini .trow{display:flex;align-items:flex-start;gap:7px;padding:4px 6px;border-radius:4px;transition:var(--transition);cursor:pointer}
 .todoMini .trow:hover{background:var(--bg2)}
-.todoMini .trow .cb{width:14px;height:14px;border-radius:3px;border:1.5px solid var(--border);flex-shrink:0;margin-top:2px;cursor:pointer;display:grid;place-items:center;font-size:8px;transition:all.12s}
+.todoMini .trow .cb{width:14px;height:14px;border-radius:3px;border:1.5px solid var(--border);flex-shrink:0;margin-top:2px;cursor:pointer;display:grid;place-items:center;font-size:8px;transition:all .12s}
 .todoMini .trow .cb.done{background:var(--green);border-color:var(--green);color:#fff}
 .todoMini .trow .ttext{font-size:12px;line-height:1.35}
 .todoMini .trow .ttext .done{text-decoration:line-through;opacity:.4}
@@ -264,7 +264,7 @@ a{color:var(--g-accent);text-decoration:none}
 
 /* Non-negotiables */
 .nnRow{display:flex;align-items:center;gap:7px;padding:3px 6px;font-size:11px;color:var(--muted)}
-.nnRow .cb{width:12px;height:12px;border-radius:3px;border:1.5px solid var(--border);flex-shrink:0;display:grid;place-items:center;font-size:7px;cursor:pointer;transition:all.12s}
+.nnRow .cb{width:12px;height:12px;border-radius:3px;border:1.5px solid var(--border);flex-shrink:0;display:grid;place-items:center;font-size:7px;cursor:pointer;transition:all .12s}
 .nnRow .cb.done{background:var(--accent);border-color:var(--accent);color:#fff}
 .nnRow .nnlabel{flex:1}
 .nnRow .nnlabel.done{text-decoration:line-through;opacity:.4}
@@ -317,7 +317,7 @@ a{color:var(--g-accent);text-decoration:none}
 /* Daily Check-in (compact within exec dashboard) */
 .checkinCompact{display:flex;align-items:center;gap:12px;padding:6px 0;flex-wrap:wrap}
 .checkinCompact .moodRow{display:flex;gap:4px;margin:0}
-.checkinCompact .moodBtn{width:30px;height:30px;border-radius:50%;border:1.5px solid var(--line);background:transparent;font-size:15px;cursor:pointer;display:grid;place-items:center;transition:all.12s;padding:0}
+.checkinCompact .moodBtn{width:30px;height:30px;border-radius:50%;border:1.5px solid var(--line);background:transparent;font-size:15px;cursor:pointer;display:grid;place-items:center;transition:all .12s;padding:0}
 .checkinCompact .moodBtn:hover,.checkinCompact .moodBtn.sel{border-color:var(--blue);background:var(--soft);transform:scale(1.08)}
 .checkinCompact .scoreRow{display:flex;align-items:center;gap:6px;margin:0;flex-shrink:0}
 .checkinCompact .scoreRow input[type=range]{width:60px;height:4px}
@@ -690,7 +690,7 @@ a{color:var(--g-accent);text-decoration:none}
 .mission-todos{max-height:200px;overflow-y:auto}
 .mission-todos .trow{display:flex;align-items:flex-start;gap:7px;padding:4px 6px;border-radius:4px;transition:var(--transition);cursor:pointer}
 .mission-todos .trow:hover{background:var(--bg2)}
-.mission-todos .trow .cb{width:14px;height:14px;border-radius:3px;border:1.5px solid var(--border);flex-shrink:0;margin-top:2px;cursor:pointer;display:grid;place-items:center;font-size:8px;transition:all.12s}
+.mission-todos .trow .cb{width:14px;height:14px;border-radius:3px;border:1.5px solid var(--border);flex-shrink:0;margin-top:2px;cursor:pointer;display:grid;place-items:center;font-size:8px;transition:all .12s}
 .mission-todos .trow .cb.done{background:var(--green);border-color:var(--green);color:#fff}
 .mission-todos .trow .ttext{font-size:12px;line-height:1.35;flex:1;min-width:0}
 .mission-todos .trow .ttext.done{text-decoration:line-through;opacity:.4}
@@ -702,7 +702,7 @@ a{color:var(--g-accent);text-decoration:none}
 /* NN section */
 .nn-section{margin-top:8px;padding-top:8px;border-top:1px solid var(--line)}
 .nn-section .nn-row{display:flex;align-items:center;gap:7px;padding:3px 6px;font-size:11px;color:var(--muted)}
-.nn-section .nn-row .cb{width:12px;height:12px;border-radius:3px;border:1.5px solid var(--border);flex-shrink:0;display:grid;place-items:center;font-size:7px;cursor:pointer;transition:all.12s}
+.nn-section .nn-row .cb{width:12px;height:12px;border-radius:3px;border:1.5px solid var(--border);flex-shrink:0;display:grid;place-items:center;font-size:7px;cursor:pointer;transition:all .12s}
 .nn-section .nn-row .cb.done{background:var(--accent);border-color:var(--accent);color:#fff}
 .nn-section .nn-row .nnlab{flex:1}
 .nn-section .nn-row .nnlab.done{text-decoration:line-through;opacity:.4}
@@ -1281,10 +1281,10 @@ const AGENT_CHANNELS={
   approvals:[]
 };
 
-function switchChannel(ch){
+function switchChannel(ch, evt){
   currentChannel=ch;
   document.querySelectorAll('#aiTeam .tree-row').forEach(r=>r.style.fontWeight='400');
-  event.target.style.fontWeight='600';
+  if(evt && evt.target) evt.target.style.fontWeight='600';
   renderAITeam();
 }
 
@@ -1299,7 +1299,7 @@ async function renderAITeam(){
     // Fetch agent status from :1707
     let agents=[];
     try{
-      const r=await fetch('http://127.0.0.1:1707/api/tasks');
+      const r=await fetch('/agents/api/tasks');
       const d=await r.json();
       if(d.tasks){
         // Get unique agent types from tasks
@@ -1965,7 +1965,7 @@ const pages={
       </style>
     </div>`
 ,
-  aiTeam:`\n    <div style="display:flex;flex-direction:column;height:100%;overflow:hidden">\n      <div style="padding:8px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-shrink:0">\n        <h3 style="margin:0;font-size:15px">🤖 AI Team</h3>\n        <span style="font-size:11px;color:var(--muted)" id="agentCount\">0 agents</span>\n        <button class="btn alt" onclick="renderAI Team()" style="margin-left:auto;font-size:10px;padding:4px 10px">↻ Refresh</button>\n      </div>\n      <div style="display:flex;flex:1;min-height:0">\n        <!-- Channel sidebar -->\n        <div style="width:140px;border-right:1px solid var(--border);overflow-y:auto;flex-shrink:0;padding:4px;display:flex;flex-direction:column;gap:2px">\n          <div class="tree-row" style="font-weight:600;color:var(--text);padding:6px 8px;font-size:11px" onclick="switchChannel('all')">📡 All Activity</div>\n          <div class="tree-row" style="padding:6px 8px;font-size:11px" onclick="switchChannel('exec')">🫡 Executive</div>\n          <div class="tree-row" style="padding:6px 8px;font-size:11px" onclick="switchChannel('dev')">⚙️ Development</div>\n          <div class="tree-row" style="padding:6px 8px;font-size:11px" onclick="switchChannel('content')">🎬 Content</div>\n          <div class="tree-row" style="padding:6px 8px;font-size:11px" onclick="switchChannel('research')">🔬 Research</div>\n          <div class="tree-row" style="padding:6px 8px;font-size:11px" onclick="switchChannel('ops')">📋 Operations</div>\n          <div class="tree-row" style="padding:6px 8px;font-size:11px" onclick="switchChannel('approvals')">✅ Approvals</div>\n        </div>\n        <!-- Main chat area -->\n        <div style="flex:1;display:flex;flex-direction:column;min-width:0">\n          <div id="aiTeamLog" style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;min-height:0">\n            <div style="text-align:center;padding:40px;color:var(--dim);font-size:13px">Loading team activity...</div>\n          </div>\n        </div>\n        <!-- Agent status sidebar -->\n        <div style="width:160px;border-left:1px solid var(--border);overflow-y:auto;flex-shrink:0;padding:4px;display:flex;flex-direction:column;gap:2px">\n          <div style="font-size:9px;color:var(--dim);text-transform:uppercase;padding:4px 8px;letter-spacing:1px">Agents Online</div>\n          <div id="agentStatusList"></div>\n        </div>\n      </div>\n    </div>`
+  aiTeam:`\n    <div style="display:flex;flex-direction:column;height:100%;overflow:hidden">\n      <div style="padding:8px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-shrink:0">\n        <h3 style="margin:0;font-size:15px">🤖 AI Team</h3>\n        <span style="font-size:11px;color:var(--muted)" id="agentCount\">0 agents</span>\n        <button class="btn alt" onclick="renderAI Team()" style="margin-left:auto;font-size:10px;padding:4px 10px">↻ Refresh</button>\n      </div>\n      <div style="display:flex;flex:1;min-height:0">\n        <!-- Channel sidebar -->\n        <div style="width:140px;border-right:1px solid var(--border);overflow-y:auto;flex-shrink:0;padding:4px;display:flex;flex-direction:column;gap:2px">\n          <div class="tree-row" style="font-weight:600;color:var(--text);padding:6px 8px;font-size:11px" onclick="switchChannel('all',event)">📡 All Activity</div>\n          <div class="tree-row" style="padding:6px 8px;font-size:11px" onclick="switchChannel('exec',event)">🫡 Executive</div>\n          <div class="tree-row" style="padding:6px 8px;font-size:11px" onclick="switchChannel('dev',event)">⚙️ Development</div>\n          <div class="tree-row" style="padding:6px 8px;font-size:11px" onclick="switchChannel('content',event)">🎬 Content</div>\n          <div class="tree-row" style="padding:6px 8px;font-size:11px" onclick="switchChannel('research',event)">🔬 Research</div>\n          <div class="tree-row" style="padding:6px 8px;font-size:11px" onclick="switchChannel('ops',event)">📋 Operations</div>\n          <div class="tree-row" style="padding:6px 8px;font-size:11px" onclick="switchChannel('approvals',event)">✅ Approvals</div>\n        </div>\n        <!-- Main chat area -->\n        <div style="flex:1;display:flex;flex-direction:column;min-width:0">\n          <div id="aiTeamLog" style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;min-height:0">\n            <div style="text-align:center;padding:40px;color:var(--dim);font-size:13px">Loading team activity...</div>\n          </div>\n        </div>\n        <!-- Agent status sidebar -->\n        <div style="width:160px;border-left:1px solid var(--border);overflow-y:auto;flex-shrink:0;padding:4px;display:flex;flex-direction:column;gap:2px">\n          <div style="font-size:9px;color:var(--dim);text-transform:uppercase;padding:4px 8px;letter-spacing:1px">Agents Online</div>\n          <div id="agentStatusList"></div>\n        </div>\n      </div>\n    </div>`
     <div style="padding:8px;display:flex;flex-direction:column;height:100%">
       <div class="card" style="flex-shrink:0;display:flex;gap:8px;align-items:center;margin-bottom:12px">
         <h3 style="margin:0;font-size:15px">✅ Approvals</h3>
@@ -6520,11 +6520,16 @@ async function load(skipPageRender){
             return (bLast?.at||'').localeCompare(aLast?.at||'');
           });
           activeThread = threads[0].id;
+        } else {
+          // No threads exist — create a fresh one for current page
+          activeThread = 'thread_'+Date.now();
         }
       }
     }
   }catch(e){
     document.title='Dashboard offline';
+    // Even on error, ensure we have a valid activeThread so renderChat doesn't fail
+    if(!activeThread) activeThread = 'thread_'+Date.now();
     return;
   }
   navButtons();
@@ -6544,15 +6549,21 @@ async function load(skipPageRender){
     else if(activePage==='skills'){renderSkills();}
     else if(activePage==='studio'){}
     else if(activePage==='docs'){renderDocs();}
+    else if(activePage==='goals'){renderGoals();}
+    else if(activePage==='secrets'){renderSecrets();}
+    else if(activePage==='approvals'){renderApprovals();}
+    else if(activePage==='aiTeam'){renderAITeam();}
+    else if(activePage==='code'){renderCodePage();}
+    else if(activePage==='leads'){renderLeads();}
+    else if(activePage==='workspace'){checkOpenCodeStatus();}
   }
 }
 
 // ─── INIT ─────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded',()=>{
   try {
-  navButtons();
-  renderPage('chat');
   load();
+  renderPage('chat');
   checkOpenCodeStatus();
   setupChatPaste();
   // Periodically check OpenCode status
