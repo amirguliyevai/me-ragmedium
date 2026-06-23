@@ -95,6 +95,16 @@ async function handleAPI(req, res, parts, body) {
     });
   }
 
+  // GET /api/health - Health check (alias for /api/status)
+  if (resource === 'health' && req.method === 'GET') {
+    try {
+      await q('SELECT 1');
+      return json(res, { status: 'ok', db: 'connected', uptime: process.uptime(), port: PORT });
+    } catch (e) {
+      return json(res, { status: 'error', db: 'disconnected', error: e.message }, 503);
+    }
+  }
+
   // GET /api/status - Health check
   if (resource === 'status' && req.method === 'GET') {
     try {
