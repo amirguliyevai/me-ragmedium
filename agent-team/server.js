@@ -286,6 +286,280 @@ async function handleAPI(req, res, parts, body) {
     return json(res, { ok: true });
   }
 
+
+  // ─── DASHBOARD STATE (aggregated) ───
+  if (resource === 'state' && req.method === 'GET') {
+    const [agents, tasksByStatus, goals, recentThreads, divisions] = await Promise.all([
+      q('SELECT COUNT(*)::int as total, COUNT(*) FILTER (WHERE is_active)::int as active FROM team.agents'),
+      q("SELECT status, COUNT(*)::int as count FROM team.tasks GROUP BY status"),
+      q("SELECT COUNT(*)::int as total, COUNT(*) FILTER (WHERE status IN ('planned','running'))::int as active FROM team.goals"),
+      q('SELECT id, title, updated_at FROM team.threads ORDER BY updated_at DESC LIMIT 5'),
+      q('SELECT division, COUNT(*)::int as count FROM team.agents GROUP BY division ORDER BY count DESC')
+    ]);
+    const taskCounts = {};
+    tasksByStatus.forEach(r => taskCounts[r.status] = r.count);
+    return json(res, {
+      agents: agents[0], taskCounts, goals: goals[0],
+      recentThreads, divisions,
+      uptime: process.uptime()
+    });
+  }
+
+  // ─── GOALS ───
+  if (resource === 'goals' && req.method === 'GET') {
+    if (id) {
+      const goal = await q('SELECT * FROM team.goals WHERE id = $1', [id]);
+      if (!goal.length) return error(res, 'Goal not found', 404);
+      return json(res, { goal: goal[0] });
+    }
+    const goals = await q('SELECT * FROM team.goals ORDER BY created_at DESC');
+    return json(res, goals);
+  }
+
+  if (resource === 'goals' && req.method === 'POST') {
+    const { title, description, priority = 3, owner_agent_id } = body;
+    if (!title) return error(res, 'title required');
+    const goal = await q(
+      'INSERT INTO team.goals (title, description, priority, owner_agent_id) VALUES ($1,$2,$3,$4) RETURNING *',
+      [title, description, priority, owner_agent_id || null]
+    );
+    return json(res, goal[0], 201);
+  }
+
+  if (resource === 'goals' && id && action === 'start' && req.method === 'POST') {
+    const goal = await q("UPDATE team.goals SET status = 'running', updated_at = NOW() WHERE id = $1 RETURNING *", [id]);
+    if (!goal.length) return error(res, 'Goal not found', 404);
+    return json(res, { ok: true, goal: goal[0] });
+  }
+
+  if (resource === 'goals' && req.method === 'DELETE') {
+    const { id: goalId } = body;
+    if (goalId) { await q('DELETE FROM team.goals WHERE id = $1', [goalId]); }
+    return json(res, { ok: true });
+  }
+
+  // ─── SECRETS ───
+  if (resource === 'secrets' && req.method === 'GET') {
+    const secrets = await q('SELECT id, project, key, notes, type, created_at, updated_at FROM team.secrets ORDER BY project, key');
+    return json(res, secrets);
+  }
+
+  if (resource === 'secrets' && req.method === 'POST') {
+    const { project, key, value, notes = '', type = 'api-key' } = body;
+    if (!project || !key) return error(res, 'project and key required');
+    const encoded = Buffer.from(value || '').toString('base64');
+    const secret = await q(
+      'INSERT INTO team.secrets (project, key, value_encrypted, notes, type) VALUES ($1,$2,$3,$4,$5) RETURNING id, project, key, notes, type',
+      [project, key, encoded, notes, type]
+    );
+    return json(res, secret[0], 201);
+  }
+
+  if (resource === 'secrets' && id && req.method === 'PATCH') {
+    const { project, key, value, notes, type } = body;
+    const updates = [];
+    const params = [];
+    let idx = 0;
+    if (project) { idx++; updates.push('project = ' + idx); params.push(project); }
+    if (key) { idx++; updates.push('key = ' + idx); params.push(key); }
+    if (value) { idx++; updates.push('value_encrypted = ' + idx); params.push(Buffer.from(value).toString('base64')); }
+    if (notes !== undefined) { idx++; updates.push('notes = ' + idx); params.push(notes); }
+    if (type) { idx++; updates.push('type = ' + idx); params.push(type); }
+    if (!updates.length) return error(res, 'No fields to update');
+    idx++; updates.push('updated_at = ' + idx); params.push(new Date());
+    params.push(id);
+    const r = await q('UPDATE team.secrets SET ' + updates.join(', ') + ' WHERE id = ' + params.length + ' RETURNING id, project, key, notes, type', params);
+    if (!r.length) return error(res, 'Secret not found', 404);
+    return json(res, r[0]);
+  }
+
+  if (resource === 'secrets' && id && req.method === 'DELETE') {
+    await q('DELETE FROM team.secrets WHERE id = $1', [id]);
+    return json(res, { ok: true });
+  }
+
+  if (resource === 'secrets' && action === 'decrypt' && req.method === 'POST') {
+    const { id: secretId } = body;
+    const secret = await q('SELECT value_encrypted FROM team.secrets WHERE id = $1', [secretId]);
+    if (!secret.length) return error(res, 'Secret not found', 404);
+    const value = Buffer.from(secret[0].value_encrypted, 'base64').toString('utf8');
+    return json(res, { value });
+  }
+
+  // ─── THREADS ───
+  if (resource === 'threads' && req.method === 'GET') {
+    const threads = await q('SELECT * FROM team.threads ORDER BY is_pinned DESC, updated_at DESC LIMIT 50');
+    return json(res, threads);
+  }
+
+  if (resource === 'threads' && req.method === 'POST') {
+    const { id, title, messages = [], context = {} } = body;
+    const thread = await q(
+      'INSERT INTO team.threads (id, title, messages, context) VALUES ($1,$2,$3,$4) ON CONFLICT (id) DO UPDATE SET title=$2, updated_at=NOW() RETURNING *',
+      [id || require('crypto').randomUUID(), title, JSON.stringify(messages), JSON.stringify(context)]
+    );
+    return json(res, thread[0], 201);
+  }
+
+  if (resource === 'threads' && id && req.method === 'DELETE') {
+    await q('DELETE FROM team.threads WHERE id = $1', [id]);
+    return json(res, { ok: true });
+  }
+
+  if (resource === 'threads' && id && action === 'pin' && req.method === 'POST') {
+    const r = await q('UPDATE team.threads SET is_pinned = NOT is_pinned WHERE id = $1 RETURNING *', [id]);
+    if (!r.length) return error(res, 'Thread not found', 404);
+    return json(res, r[0]);
+  }
+
+  if (resource === 'threads' && id && action === 'messages' && req.method === 'POST') {
+    const { message } = body;
+    const r = await q(
+      "UPDATE team.threads SET messages = messages || $2::jsonb, updated_at = NOW() WHERE id = $1 RETURNING *",
+      [id, JSON.stringify([message])]
+    );
+    if (!r.length) return error(res, 'Thread not found', 404);
+    return json(res, r[0]);
+  }
+
+  // ─── APPROVALS ───
+  if (resource === 'approvals' && req.method === 'GET') {
+    const approvals = await q('SELECT a.*, t.title as task_title FROM team.approvals a LEFT JOIN team.tasks t ON a.task_id = t.id ORDER BY a.created_at DESC LIMIT 50');
+    return json(res, approvals);
+  }
+
+  if (resource === 'approvals' && id && action === 'approve' && req.method === 'POST') {
+    const r = await q("UPDATE team.approvals SET status = 'approved', decided_at = NOW() WHERE id = $1 RETURNING *", [id]);
+    if (!r.length) return error(res, 'Approval not found', 404);
+    return json(res, r[0]);
+  }
+
+  if (resource === 'approvals' && id && action === 'decline' && req.method === 'POST') {
+    const r = await q("UPDATE team.approvals SET status = 'declined', decided_at = NOW() WHERE id = $1 RETURNING *", [id]);
+    if (!r.length) return error(res, 'Approval not found', 404);
+    return json(res, r[0]);
+  }
+
+  // ─── COMMANDS ───
+  if (resource === 'commands' && req.method === 'POST') {
+    const { text, threadId, send = false, modes = {} } = body;
+    const cmd = await q(
+      "INSERT INTO team.notifications (type, title, message) VALUES ('command', $1, $2) RETURNING *",
+      [text?.substring(0, 100) || '', JSON.stringify({ text, threadId, send, modes })]
+    );
+    return json(res, { ok: true, id: cmd[0].id }, 201);
+  }
+
+  // ─── SKILLS ───
+  if (resource === 'skills' && req.method === 'GET') {
+    const skills = await q('SELECT * FROM team.skills ORDER BY category, name');
+    return json(res, skills.length ? skills : [
+      { id: '1', name: 'web_search', description: 'Web search', category: 'research', is_active: true },
+      { id: '2', name: 'web_fetch', description: 'Fetch web pages', category: 'research', is_active: true },
+      { id: '3', name: 'exec', description: 'Execute commands', category: 'development', is_active: true },
+      { id: '4', name: 'write', description: 'Write files', category: 'development', is_active: true },
+      { id: '5', name: 'edit', description: 'Edit files', category: 'development', is_active: true },
+      { id: '6', name: 'image_generate', description: 'Generate images', category: 'creative', is_active: true },
+      { id: '7', name: 'dns', description: 'DNS lookups', category: 'lead_generation', is_active: true },
+      { id: '8', name: 'playwright', description: 'Browser automation', category: 'lead_generation', is_active: true },
+    ]);
+  }
+
+  // ─── VAULT ───
+  if (resource === 'vault' && req.method === 'GET') {
+    const entries = await q('SELECT id, title, content, source, tags, metadata, created_at FROM team.vault ORDER BY updated_at DESC LIMIT 50');
+    return json(res, entries);
+  }
+
+  if (resource === 'vault' && req.method === 'POST') {
+    const { title, content, source, tags = [], metadata = {} } = body;
+    if (!title) return error(res, 'title required');
+    const entry = await q(
+      'INSERT INTO team.vault (title, content, source, tags, metadata) VALUES ($1,$2,$3,$4,$5) RETURNING id, title, source, tags',
+      [title, content, source, tags, JSON.stringify(metadata)]
+    );
+    return json(res, entry[0], 201);
+  }
+
+  if (resource === 'vault' && action === 'graph' && req.method === 'GET') {
+    const entries = await q('SELECT id, title, source, tags FROM team.vault ORDER BY updated_at DESC LIMIT 30');
+    const nodes = entries.map(e => ({ id: e.id, title: e.title, source: e.source, tags: e.tags }));
+    const links = [];
+    for (let i = 0; i < entries.length; i++) {
+      for (let j = i + 1; j < entries.length; j++) {
+        const shared = entries[i].tags?.filter(t => entries[j].tags?.includes(t)) || [];
+        if (shared.length) links.push({ source: entries[i].id, target: entries[j].id, shared });
+      }
+    }
+    return json(res, { nodes, links });
+  }
+
+  if (resource === 'vault' && action === 'rag-search' && req.method === 'POST') {
+    const { query } = body;
+    const results = await q(
+      "SELECT id, title, content, source, tags FROM team.vault WHERE title ILIKE $1 OR content ILIKE $1 OR $1 = ANY(tags) ORDER BY updated_at DESC LIMIT 10",
+      ['%' + query + '%']
+    );
+    return json(res, results);
+  }
+
+  // ─── NOTIFICATIONS ───
+  if (resource === 'notifications' && id === 'vapid-key' && req.method === 'GET') {
+    return json(res, { vapidKey: 'BFxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx' });
+  }
+
+  // ─── OPENCODE STATUS ───
+  if (resource === 'opencode' && id === 'status' && req.method === 'GET') {
+    return json(res, { status: 'idle', lastRun: null });
+  }
+
+  // ─── GALLERY ───
+  if (resource === 'gallery' && req.method === 'GET') {
+    const artifacts = await q('SELECT a.id, a.file_name, a.file_type, a.created_at, t.title as task_title FROM team.artifacts a LEFT JOIN team.tasks t ON a.task_id = t.id WHERE a.file_type LIKE 'image/%' ORDER BY a.created_at DESC LIMIT 30');
+    return json(res, artifacts);
+  }
+
+  // ─── CHECKIN ───
+  if (resource === 'checkin' && req.method === 'POST') {
+    const { agent_id, date, status = 'present', notes = '' } = body;
+    const checkin = await q('INSERT INTO team.checkins (agent_id, date, status, notes) VALUES ($1,$2,$3,$4) RETURNING *', [agent_id, date, status, notes]);
+    return json(res, checkin[0], 201);
+  }
+
+  // ─── EMAIL ───
+  if (resource === 'email' && id === 'check' && req.method === 'POST') {
+    return json(res, { ok: true, checked: new Date().toISOString(), newEmails: 0 });
+  }
+
+  // ─── BRAIN (AI state) ───
+  if (resource === 'brain' && req.method === 'GET') {
+    const [goals, activeGoals, recentRuns] = await Promise.all([
+      q('SELECT * FROM team.goals ORDER BY updated_at DESC LIMIT 10'),
+      q("SELECT COUNT(*)::int as count FROM team.goals WHERE status IN ('planned','running','verifying')"),
+      q('SELECT * FROM team.agent_runs ORDER BY started_at DESC LIMIT 5')
+    ]);
+    return json(res, {
+      goals, activeGoals: activeGoals[0]?.count || 0, recentRuns,
+      thinking: false, lastUpdate: new Date().toISOString()
+    });
+  }
+
+  // ─── TRACE STREAM (SSE) ───
+  if (resource === 'trace-stream' && req.method === 'GET') {
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+      'Access-Control-Allow-Origin': '*'
+    });
+    res.write('retry: 3000\n\n');
+    res.write('data: ' + JSON.stringify({ type: 'connected', ts: Date.now() }) + '\n\n');
+    const interval = setInterval(() => { res.write(': keepalive\n\n'); }, 15000);
+    req.on('close', () => clearInterval(interval));
+    return;
+  }
+
+
   return error(res, 'Not found', 404);
 }
 
