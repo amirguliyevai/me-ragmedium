@@ -515,7 +515,7 @@ async function handleAPI(req, res, parts, body) {
 
   // ─── GALLERY ───
   if (resource === 'gallery' && req.method === 'GET') {
-    const artifacts = await q('SELECT a.id, a.file_name, a.file_type, a.created_at, t.title as task_title FROM team.artifacts a LEFT JOIN team.tasks t ON a.task_id = t.id WHERE a.file_type LIKE 'image/%' ORDER BY a.created_at DESC LIMIT 30');
+    const artifacts = await q(`SELECT a.id, a.name as file_name, a.content_type as file_type, a.created_at, t.title as task_title FROM team.artifacts a LEFT JOIN team.tasks t ON a.task_id = t.id WHERE a.content_type LIKE 'image/%' ORDER BY a.created_at DESC LIMIT 30`);
     return json(res, artifacts);
   }
 
