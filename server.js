@@ -850,16 +850,16 @@ async function route(req,res){
     } catch(e) {}
   }
 
-  // ─── Jarvis proxy (port 1708 → /jarvis-proxy/) ───
+  // ─── Jarvis proxy (port 1707 → /jarvis-proxy/) ───
   if(u.pathname.startsWith('/jarvis-proxy')||u.pathname==='/jarvis-proxy'){
     const jarvisPath = u.pathname === '/jarvis-proxy' ? '/' : u.pathname.replace(/^\/jarvis-proxy/, '');
     try {
       const http = require('http');
       const proxyReq = http.request({
-        hostname: '127.0.0.1', port: 1708,
+        hostname: '127.0.0.1', port: 1707,
         path: jarvisPath || '/',
         method: req.method,
-        headers: { ...req.headers, host: '127.0.0.1:1708', 'accept-encoding': 'identity' }
+        headers: { ...req.headers, host: '127.0.0.1:1707', 'accept-encoding': 'identity' }
       }, (proxyRes) => {
         const outHeaders = {...proxyRes.headers};
         delete outHeaders['content-encoding'];
