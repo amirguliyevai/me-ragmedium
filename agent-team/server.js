@@ -570,6 +570,22 @@ async function handleAPI(req, res, parts, body) {
   }
 
 
+  // POST /api/tasks/cleanup - Cancel stale tasks
+  if (resource === 'tasks' && action === 'cleanup' && req.method === 'POST') {
+    const { status, title_pattern, older_than_hours = 24 } = body || {};
+    let whereClause = "status IN ('in_progress', 'failed', 'cancelled')";
+    const params = [older_than_hours * 3600 * 1000];
+    if (title_pattern) {
+      params.push(title_pattern);
+      whereClause += ` AND title LIKE $${params.length}`;
+    }
+    const r = await q(
+      `UPDATE team.tasks SET status = 'cancelled', completed_at = NOW(), error = 'Auto-cancelled by cleanup' WHERE ${whereClause} AND created_at < NOW() - INTERVAL '1 millisecond' * $${params.length - 1} RETURNING id`,
+      params
+    );
+    return json(res, { ok: true, cancelled: r.length });
+  }
+
   return error(res, 'Not found', 404);
 }
 
