@@ -537,6 +537,7 @@ a{color:var(--g-accent);text-decoration:none}
 /* Settings popup */
 .settingsPop{display:none;position:fixed;bottom:64px;right:12px;z-index:212;background:var(--g-surface);backdrop-filter:var(--g-blur);-webkit-backdrop-filter:var(--g-blur);border:1px solid var(--g-glass-border);border-radius:var(--g-radius-lg);padding:14px;min-width:180px;box-shadow:var(--g-shadow);max-height:70dvh;overflow-y:auto}
 .settingsPop.open{display:grid;gap:4px}
+#modelPop.settingsPop.open{display:block}
 .settingsPop button{border:0;background:transparent;color:var(--text);padding:8px 12px;border-radius:var(--radius);cursor:pointer;text-align:left;font-size:13px}
 .settingsPop button:hover{background:var(--soft)}
 
@@ -2046,8 +2047,7 @@ function renderPage(id){
   if(id==='todo')renderTodos();
   if(id==='board')renderBoard();
   if(id==='projects')renderProjects();
-  if(id==='calendar'){renderTimetableConfig();generateTimetableForDate(selectedDate||todayKey())}
-  if(id==='calendar')renderCalendar();
+  if(id==='calendar'){renderTimetableConfig();renderCalendar();generateTimetableForDate(selectedDate||todayKey())};
   if(id==='chat'){_lastActiveThread=null;if(typeof renderChat==='function')renderChat();}
   if(id==='content'){switchContentTab('board');renderContentBoard();}
   if(id==='skills')renderSkills();
