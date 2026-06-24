@@ -307,12 +307,22 @@ function backupState(s,label){
     for(let i=20;i<files.length;i++) fs.unlinkSync(path.join(bakDir,files[i]));
   } catch(e){}
 }
+// ─── State cache (invalidated on write) ───
+let _stateCache = null;
+let _stateCacheMtime = 0;
+const STATE_CACHE_TTL = 2000; // ms — short TTL for freshness without disk thrash
 function readState(){
   try {
+    const mtime = fs.statSync(DATA).mtimeMs;
+    if (_stateCache && mtime === _stateCacheMtime) return _stateCache;
     const parsed=JSON.parse(fs.readFileSync(DATA,'utf8'));
-    return normalizeState(parsed);
+    const s = normalizeState(parsed);
+    _stateCache = s;
+    _stateCacheMtime = mtime;
+    return s;
   } catch(e){
     console.error('[state] read error:',e.message);
+    if (_stateCache) return _stateCache; // serve stale on error
     // Try restoring from latest backup before falling back to fresh default
     try {
       const bakDir=path.join(path.dirname(DATA),'backups');
@@ -328,7 +338,7 @@ function readState(){
     const s=defaultState(); writeState(s); return s;
   }
 }
-function writeState(s){ s.updatedAt=nowISO(); fs.mkdirSync(path.dirname(DATA),{recursive:true}); fs.writeFileSync(DATA, JSON.stringify(normalizeState(s),null,2)); backupState(s,'write'); }
+function writeState(s){ s.updatedAt=nowISO(); const ns=normalizeState(s); fs.mkdirSync(path.dirname(DATA),{recursive:true}); fs.writeFileSync(DATA, JSON.stringify(ns,null,2)); _stateCache=ns; try { _stateCacheMtime=fs.statSync(DATA).mtimeMs; } catch(e){} backupState(s,'write'); }
 function activity(s,type,text,meta={}){ s.ops.activity.unshift({ id:id('act'), type, text:clip(text,280), meta, at:nowISO() }); s.ops.activity=s.ops.activity.slice(0,400); }
 function body(req){ return new Promise((res,rej)=>{ let b=''; req.on('data',c=>{ b+=c; if(b.length>8e6){ req.destroy(); rej(new Error('too_large')); }}); req.on('end',()=>{ try{ res(b?JSON.parse(b):{}); }catch(e){ rej(e); }}); }); }
 function send(res,code,data,type='application/json'){ const out=type==='application/json'?JSON.stringify(data):data; res.writeHead(code,{'content-type':`${type}; charset=utf-8`,'cache-control':'no-store','access-control-allow-origin':'*','access-control-allow-methods':'GET,POST,PUT,PATCH,DELETE,OPTIONS','access-control-allow-headers':'content-type'}); res.end(out); }
@@ -1070,6 +1080,53 @@ async function route(req,res){
     if(req.method==='POST'||req.method==='PUT'||req.method==='PATCH') req.pipe(proxyReq);
     else proxyReq.end();
     return;
+  }
+  // ─── MarkItDown file converter proxy (must be before SPA fallback) ───
+  if(u.pathname==='/convert/api/convert'&&req.method==='POST'){
+    const b=await body(req);
+    if(!b.file&&!b.url) return send(res,400,{error:'file or url required'});
+    const tmpDir = '/tmp/convert-' + Date.now() + '-' + crypto.randomBytes(4).toString('hex');
+    const PYTHON = process.env.MARKITDOWN_PYTHON || '/home/admin/.hermes/hermes-agent/venv/bin/python3';
+    try {
+      fs.mkdirSync(tmpDir, { recursive: true });
+      let inputFile;
+      if(b.url) {
+        inputFile = tmpDir + '/downloaded';
+        const https = require('https');
+        const http = require('http');
+        const mod = b.url.startsWith('https') ? https : http;
+        await new Promise((resolve, reject) => {
+          mod.get(b.url, { headers: { 'User-Agent': 'Mozilla/5.0' } }, (res) => {
+            if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+              return mod.get(res.headers.location, { headers: { 'User-Agent': 'Mozilla/5.0' } }, (res2) => {
+                const file = fs.createWriteStream(inputFile);
+                res2.pipe(file);
+                file.on('finish', () => { file.close(); resolve(); });
+              }).on('error', reject);
+            }
+            const file = fs.createWriteStream(inputFile);
+            res.pipe(file);
+            file.on('finish', () => { file.close(); resolve(); });
+          }).on('error', reject);
+        });
+      } else {
+        const buf = Buffer.from(b.buffer, b.encoding||'base64');
+        inputFile = tmpDir + '/' + (b.filename || 'document');
+        fs.writeFileSync(inputFile, buf);
+      }
+      const { execFile } = require('child_process');
+      const result = await new Promise((resolve, reject) => {
+        execFile(PYTHON, ['-m', 'markitdown', inputFile], { timeout: 60000 }, (err, stdout, stderr) => {
+          if (err) reject(new Error(stderr || err.message));
+          else resolve({ text_content: stdout, title: b.filename || b.url || 'document', metadata: {} });
+        });
+      });
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+      return send(res,200,{ok:true,text_content:result.text_content||'',title:result.title||'',metadata:result.metadata||{}});
+    } catch(e) {
+      try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch(e2){}
+      return send(res,500,{error:'conversion_failed',detail:e.message});
+    }
   }
   if(u.pathname==='/'||u.pathname==='/index.html'||!u.pathname.startsWith('/api/')){ res.setHeader('Cache-Control','no-cache,no-store,must-revalidate'); return send(res,200,fs.readFileSync(path.join(ROOT,'index.html'),'utf8'),'text/html'); }
   if(u.pathname==='/api/state'&&req.method==='GET') return send(res,200,readState());
@@ -1825,6 +1882,9 @@ async function route(req,res){
     fs.writeFileSync(dir+'/'+msg.id+'.json',JSON.stringify(msg,null,2));
     return send(res,200,{ok:true,message:msg});
   }
+
+  // ─── Nonnegotiables GET ───
+  if(u.pathname==='/api/nonnegotiables'&&req.method==='GET'){ const s=readState(); const date=u.searchParams.get('date')||todayKey(); return send(res,200,{ok:true,date,nonnegotiables:s.ops.nonnegotiables||defaultNonnegotiables(),done:s.metrics.nonnegotiables[date]||{}}); }
 
   return send(res,404,{error:'not_found'});
 }
