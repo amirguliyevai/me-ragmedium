@@ -1,0 +1,222 @@
+"""
+Gemini AI Integration — Content generation, explanations, and personalized prompts.
+Provides the AI tutor's "brain" via Google's Gemini API.
+"""
+
+from __future__ import annotations
+
+import json
+import os
+from dataclasses import dataclass
+from typing import Any, Optional
+
+
+@dataclass
+class TutorPrompt:
+    """Structured prompt for the AI tutor."""
+    system: str
+    context: dict[str, Any]
+    activity: dict[str, Any]
+    instruction: str
+
+
+class GeminiTutor:
+    """
+    Interface to Google's Gemini AI for the Grademy tutor.
+    Handles:
+    - Content generation (questions, flashcards, quizzes)
+    - Explanation generation (wrong answers)
+    - Progressive hints
+    - Personalized prompt building
+    """
+
+    def __init__(self, config: dict[str, Any]):
+        self.config = config
+        self.model = config.get("model", "gemini-2.0-flash")
+        self.temperature = config.get("temperature", 0.7)
+        self.max_tokens = config.get("max_tokens", 1024)
+        self.safety_level = config.get("safety_level", "moderate")
+        self._api_key = os.environ.get("GEMINI_API_KEY", "")
+        self._initialized = bool(self._api_key)
+
+    def is_available(self) -> bool:
+        """Check if the Gemini API is configured."""
+        return self._initialized
+
+    def explain(self, activity: Any, context: dict[str, Any]) -> dict[str, Any]:
+        """
+        Generate an explanation for a wrong answer.
+        Returns structured explanation with examples.
+        """
+        prompt_data = self._build_explanation_prompt(activity, context)
+        full_text = prompt_data.system + "\n\n" + prompt_data.instruction
+
+        if self._initialized:
+            response = self._call_api(full_text)
+        else:
+            response = self._mock_explanation(activity, context)
+
+        return {
+            "explanation": response.get("text", ""),
+            "examples": response.get("examples", []),
+            "related_topics": response.get("related_topics", []),
+            "confidence": 0.85,
+        }
+
+    def hint(self, activity: Any, context: dict[str, Any]) -> str:
+        """Generate a progressive hint for the current activity."""
+        prompt_data = self._build_hint_prompt(activity, context)
+        full_text = prompt_data.system + "\n\n" + prompt_data.instruction
+
+        if self._initialized:
+            response = self._call_api(full_text)
+            return response.get("text", "Think about the key concept here...")
+        else:
+            return self._mock_hint(activity, context)
+
+    def generate_quiz(
+        self, topic: str, context: dict[str, Any], count: int = 5
+    ) -> list[dict[str, Any]]:
+        """Generate a quiz for a given topic."""
+        prompt_data = self._build_quiz_prompt(topic, context, count)
+        full_text = prompt_data.system + "\n\n" + prompt_data.instruction
+
+        if self._initialized:
+            response = self._call_api(full_text)
+            return response.get("questions", [])
+        else:
+            return self._mock_quiz(topic, count)
+
+    def generate_flashcards(
+        self, topic: str, context: dict[str, Any], count: int = 10
+    ) -> list[dict[str, str]]:
+        """Generate flashcards for a topic."""
+        if self._initialized:
+            prompt_text = f"Generate {count} flashcards for '{topic}'. Return JSON array with 'front' and 'back' fields."
+            response = self._call_api(prompt_text)
+            return response.get("flashcards", [])
+        else:
+            return self._mock_flashcards(topic, count)
+
+    # ── Prompt Builders ─────────────────────────────────────────────────────
+
+    def _build_explanation_prompt(
+        self, activity: Any, context: dict[str, Any]
+    ) -> TutorPrompt:
+        topic = getattr(activity, "topic", "unknown")
+        difficulty = getattr(activity, "difficulty", 0.5)
+        student_name = context.get("student_name", "Student")
+        weak_topics = context.get("weak_topics", [])
+
+        system = (
+            f"You are a warm, encouraging AI tutor for {student_name}. "
+            f"Explain concepts clearly with examples. Use a friendly tone. "
+            f"Student's weak topics: {', '.join(weak_topics) if weak_topics else 'none identified'}."
+        )
+
+        return TutorPrompt(
+            system=system,
+            context=context,
+            activity={
+                "topic": topic,
+                "difficulty": difficulty,
+                "type": activity.type.value if hasattr(activity.type, "value") else str(activity.type),
+            },
+            instruction=(
+                f"The student got a question wrong about '{topic}'. "
+                f"Explain why their answer was incorrect, provide the correct answer, "
+                f"and give 2-3 examples to help them understand. "
+                f"Keep it concise (under 200 words)."
+            ),
+        )
+
+    def _build_hint_prompt(
+        self, activity: Any, context: dict[str, Any]
+    ) -> TutorPrompt:
+        topic = getattr(activity, "topic", "unknown")
+
+        return TutorPrompt(
+            system=f"You are a helpful tutor. Give progressive hints for {context.get('student_name', 'the student')}.",
+            context=context,
+            activity={"topic": topic},
+            instruction=(
+                f"Give a hint for this question about '{topic}'. "
+                f"Don't reveal the answer — just nudge them in the right direction. "
+                f"Keep it to 1-2 sentences."
+            ),
+        )
+
+    def _build_quiz_prompt(
+        self, topic: str, context: dict[str, Any], count: int
+    ) -> TutorPrompt:
+        return TutorPrompt(
+            system=f"You are a quiz generator for {context.get('student_name', 'a student')}.",
+            context=context,
+            activity={"topic": topic},
+            instruction=(
+                f"Generate {count} multiple-choice questions about '{topic}'. "
+                f"Return a JSON array with 'question', 'options' (array of 4), "
+                f"'correct_index' (0-3), and 'explanation' fields."
+            ),
+        )
+
+    # ── API Call ────────────────────────────────────────────────────────────
+
+    def _call_api(self, prompt_text: str) -> dict[str, Any]:
+        """
+        Call the Gemini API. In production, this uses the actual API.
+        For now, returns a placeholder.
+        """
+        # TODO: Implement actual Gemini API call
+        # import google.generativeai as genai
+        # model = genai.GenerativeModel(self.model)
+        # response = model.generate_content(prompt_text)
+        return {"text": "[Gemini API response would appear here]", "examples": []}
+
+    # ── Mock Responses (for development without API key) ────────────────────
+
+    def _mock_explanation(
+        self, activity: Any, context: dict[str, Any]
+    ) -> dict[str, Any]:
+        topic = getattr(activity, "topic", "this topic")
+        return {
+            "text": (
+                f"Let me help you understand {topic}! The key concept here is that "
+                f"each step builds on the previous one. Think of it like building blocks — "
+                f"once you understand the foundation, the rest becomes much clearer."
+            ),
+            "examples": [
+                f"Example 1: Consider a simple case of {topic}...",
+                f"Example 2: Now let's look at a more complex scenario...",
+            ],
+            "related_topics": [topic],
+        }
+
+    def _mock_hint(self, activity: Any, context: dict[str, Any]) -> str:
+        topic = getattr(activity, "topic", "this")
+        return f"Think about the core principle of {topic}. What happens when you apply it step by step?"
+
+    def _mock_quiz(self, topic: str, count: int) -> list[dict[str, Any]]:
+        return [
+            {
+                "question": f"Which of the following best describes {topic}?",
+                "options": [
+                    f"Option A related to {topic}",
+                    f"Option B related to {topic}",
+                    f"Option C related to {topic}",
+                    f"Option D related to {topic}",
+                ],
+                "correct_index": 0,
+                "explanation": f"Option A is correct because it captures the essence of {topic}.",
+            }
+            for _ in range(count)
+        ]
+
+    def _mock_flashcards(self, topic: str, count: int) -> list[dict[str, str]]:
+        cards = []
+        for i in range(count):
+            cards.append({
+                "front": f"Question {i+1} about {topic}",
+                "back": f"Answer {i+1} for {topic}",
+            })
+        return cards

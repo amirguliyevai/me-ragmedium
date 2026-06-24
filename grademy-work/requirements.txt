@@ -1,0 +1,10 @@
+# Grademy Study Session Engine — Dependencies
+# Install: pip install -r requirements.txt
+
+# Core (no external deps needed for engine — pure Python 3.11+)
+# Optional for Gemini API:
+# google-generativeai>=0.8.0
+
+# Dev dependencies
+pytest>=8.0
+pytest-cov>=5.0
