@@ -7,7 +7,7 @@ const fs = require('fs');
 const { Pool } = require('pg');
 
 const PORT = 1707;
-const pool = new Pool({ host: 'localhost', port: 5434, user: 'postgres', password: '61b73daf4c51b1b5c22cfac30476f067bce943a177e819c42fca9a1545339dc8', database: 'postgres', max: 10 });
+const pool = new Pool({ host: 'localhost', port: 5432, user: 'postgres', password: '61b73daf4c51b1b5c22cfac30476f067bce943a177e819c42fca9a1545339dc8', database: 'postgres', max: 10 });
 
 // ─── Agent SOUL files directory ───
 const SOUL_DIR = path.join(__dirname, 'agent-souls');
@@ -166,8 +166,11 @@ async function handleAPI(req, res, parts, body) {
     if (id) {
       let agent;
       const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+      const isInt = /^\d+$/.test(id);
       if (isUuid) {
         agent = await q('SELECT * FROM team.agents WHERE id = $1', [id]);
+      } else if (isInt) {
+        agent = await q('SELECT * FROM team.agents WHERE id = $1::int', [id]);
       }
       if (!agent || !agent.length) {
         agent = await q('SELECT * FROM team.agents WHERE name = $1', [id]);
