@@ -87,7 +87,7 @@ async function handleAPI(req, res, parts, body) {
           t.path || ' → ' || a.name
         FROM team.agents a JOIN tree t ON a.parent_agent_id = t.id
       ) SELECT id, name, title, level, division, parent_agent_id, is_active, depth FROM tree ORDER BY path`),
-      q("SELECT id::text as id, title, status, agent_type, priority, created_at FROM team.tasks ORDER BY created_at DESC LIMIT 10"),
+      q("SELECT t.id::text as id, t.title, t.status, t.agent_type, t.priority, t.created_at, a.division as agent_division FROM team.tasks t LEFT JOIN team.agents a ON t.assigned_agent_id = a.id ORDER BY t.created_at DESC LIMIT 10"),
       q(`SELECT division, COUNT(*)::int as agents, COUNT(*) FILTER (WHERE is_active)::int as active
          FROM team.agents GROUP BY division ORDER BY agents DESC`)
     ]);
@@ -212,7 +212,7 @@ async function handleAPI(req, res, parts, body) {
     params.push(parseInt(limit, 10)); params.push(parseInt(offset, 10));
 
     const tasks = await q(`
-      SELECT t.*, a.name as agent_name
+      SELECT t.*, a.name as agent_name, a.division as agent_division
       FROM team.tasks t LEFT JOIN team.agents a ON t.assigned_agent_id = a.id
       WHERE ${where} ORDER BY t.priority ASC, t.created_at DESC LIMIT $${params.length-1} OFFSET $${params.length}`, params);
 
