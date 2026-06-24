@@ -7727,7 +7727,8 @@ async function renderAgentKanban(){
   
   try {
     const res = await fetch('http://localhost:1707/api/tasks');
-    const tasks = await res.json();
+    const data = await res.json();
+    const tasks = Array.isArray(data) ? data : (data.tasks || []);
     
     // Clear columns
     document.querySelectorAll('.kanban-items').forEach(el => { el.innerHTML = ''; });
