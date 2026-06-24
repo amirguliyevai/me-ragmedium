@@ -1,6 +1,6 @@
 {
   "test": true,
-  "updatedAt": "2026-06-24T09:25:24.585Z",
+  "updatedAt": "2026-06-24T18:32:06.650Z",
   "todos": {
     "2026-06-20": [
       {
@@ -315,11 +315,7 @@
     "focusSessions": [],
     "weight": [],
     "nonnegotiables": {},
-    "dailyCheckin": {
-      "2026-06-24": {
-        "mood": "good"
-      }
-    }
+    "dailyCheckin": {}
   },
   "chat": [],
   "ops": {
@@ -349,41 +345,270 @@
     ],
     "activity": [
       {
-        "id": "act_9e44444f33e5",
-        "type": "thread-message",
-        "text": "🫡 Johnny — Full chain test. Kaneki relayed thi…: [object Object]",
+        "id": "act_2be3e53ac448",
+        "type": "conversation",
+        "text": "New/updated chat: Chat chat 1",
         "meta": {
-          "threadId": "johnny-dm"
+          "id": "thread_1782325926487",
+          "context": {
+            "businessIds": [],
+            "page": "chat",
+            "skillIds": []
+          }
         },
-        "at": "2026-06-24T09:25:22.548Z"
+        "at": "2026-06-24T18:32:06.650Z"
       },
       {
-        "id": "act_dcad6b00ce69",
-        "type": "content-post",
-        "text": "Updated content item: test",
+        "id": "act_85ac9119a13f",
+        "type": "conversation",
+        "text": "New/updated chat: Chat chat 1",
         "meta": {
-          "id": "test",
-          "status": "idea"
+          "id": "thread_1782325917781",
+          "context": {
+            "businessIds": [],
+            "page": "chat",
+            "skillIds": []
+          }
         },
-        "at": "2026-06-24T07:40:08.095Z"
+        "at": "2026-06-24T18:31:57.961Z"
       },
       {
-        "id": "act_7c721e28f3d6",
-        "type": "thread-message",
-        "text": "General Brain: test",
+        "id": "act_189dbdab403b",
+        "type": "conversation",
+        "text": "New/updated chat: Chat chat 1",
         "meta": {
-          "threadId": "general"
+          "id": "thread_1782325902796",
+          "context": {
+            "businessIds": [],
+            "page": "chat",
+            "skillIds": []
+          }
         },
-        "at": "2026-06-24T07:40:08.048Z"
+        "at": "2026-06-24T18:31:42.966Z"
       },
       {
-        "id": "act_c397f6dcb65f",
-        "type": "command",
-        "text": "test",
+        "id": "act_ce8c89b63350",
+        "type": "conversation",
+        "text": "New/updated chat: Chat chat 1",
         "meta": {
-          "threadId": "general"
+          "id": "thread_1782324465596",
+          "context": {
+            "businessIds": [],
+            "page": "chat",
+            "skillIds": []
+          }
         },
-        "at": "2026-06-24T07:40:08.047Z"
+        "at": "2026-06-24T18:07:45.606Z"
+      },
+      {
+        "id": "act_1c3e67bc4ccc",
+        "type": "conversation",
+        "text": "New/updated chat: Chat chat 1",
+        "meta": {
+          "id": "thread_1782323435696",
+          "context": {
+            "businessIds": [],
+            "page": "chat",
+            "skillIds": []
+          }
+        },
+        "at": "2026-06-24T17:50:35.701Z"
+      },
+      {
+        "id": "act_a086b28c3801",
+        "type": "conversation",
+        "text": "New/updated chat: Chat chat 1",
+        "meta": {
+          "id": "thread_1782323189415",
+          "context": {
+            "businessIds": [],
+            "page": "chat",
+            "skillIds": []
+          }
+        },
+        "at": "2026-06-24T17:46:29.420Z"
+      },
+      {
+        "id": "act_695d9f2cfec0",
+        "type": "conversation",
+        "text": "New/updated chat: Chat chat 1",
+        "meta": {
+          "id": "thread_1782323161926",
+          "context": {
+            "businessIds": [],
+            "page": "chat",
+            "skillIds": []
+          }
+        },
+        "at": "2026-06-24T17:46:01.933Z"
+      },
+      {
+        "id": "act_48998bb45d51",
+        "type": "conversation",
+        "text": "New/updated chat: Chat chat 1",
+        "meta": {
+          "id": "thread_1782323130065",
+          "context": {
+            "businessIds": [],
+            "page": "chat",
+            "skillIds": []
+          }
+        },
+        "at": "2026-06-24T17:45:30.072Z"
+      },
+      {
+        "id": "act_165aa10c8177",
+        "type": "conversation",
+        "text": "New/updated chat: Chat chat 1",
+        "meta": {
+          "id": "thread_1782323082867",
+          "context": {
+            "businessIds": [],
+            "page": "chat",
+            "skillIds": []
+          }
+        },
+        "at": "2026-06-24T17:44:42.871Z"
+      },
+      {
+        "id": "act_f51715e325db",
+        "type": "conversation",
+        "text": "New/updated chat: Chat chat 1",
+        "meta": {
+          "id": "thread_1782323054955",
+          "context": {
+            "businessIds": [],
+            "page": "chat",
+            "skillIds": []
+          }
+        },
+        "at": "2026-06-24T17:44:14.959Z"
+      },
+      {
+        "id": "act_1edb6e396488",
+        "type": "conversation",
+        "text": "New/updated chat: Chat chat 1",
+        "meta": {
+          "id": "thread_1782323028012",
+          "context": {
+            "businessIds": [],
+            "page": "chat",
+            "skillIds": []
+          }
+        },
+        "at": "2026-06-24T17:43:48.023Z"
+      },
+      {
+        "id": "act_0c0e0aaf6acd",
+        "type": "conversation",
+        "text": "New/updated chat: Chat chat 1",
+        "meta": {
+          "id": "thread_1782322910301",
+          "context": {
+            "businessIds": [],
+            "page": "chat",
+            "skillIds": []
+          }
+        },
+        "at": "2026-06-24T17:41:50.305Z"
+      },
+      {
+        "id": "act_415494c63098",
+        "type": "conversation",
+        "text": "New/updated chat: Chat chat 1",
+        "meta": {
+          "id": "thread_1782322883088",
+          "context": {
+            "businessIds": [],
+            "page": "chat",
+            "skillIds": []
+          }
+        },
+        "at": "2026-06-24T17:41:23.101Z"
+      },
+      {
+        "id": "act_a037b7384600",
+        "type": "conversation",
+        "text": "New/updated chat: Chat chat 1",
+        "meta": {
+          "id": "thread_1782320143712",
+          "context": {
+            "businessIds": [],
+            "page": "chat",
+            "skillIds": []
+          }
+        },
+        "at": "2026-06-24T16:55:43.339Z"
+      },
+      {
+        "id": "act_6539ec4f7675",
+        "type": "conversation",
+        "text": "New/updated chat: Chat chat 1",
+        "meta": {
+          "id": "thread_1782319830347",
+          "context": {
+            "businessIds": [],
+            "page": "chat",
+            "skillIds": []
+          }
+        },
+        "at": "2026-06-24T16:50:30.352Z"
+      },
+      {
+        "id": "act_942bbc09ad57",
+        "type": "conversation",
+        "text": "New/updated chat: Chat chat 1",
+        "meta": {
+          "id": "thread_1782319713146",
+          "context": {
+            "businessIds": [],
+            "page": "chat",
+            "skillIds": []
+          }
+        },
+        "at": "2026-06-24T16:48:33.150Z"
+      },
+      {
+        "id": "act_29c3881feabe",
+        "type": "conversation",
+        "text": "New/updated chat: Chat chat 1",
+        "meta": {
+          "id": "thread_1782319674628",
+          "context": {
+            "businessIds": [],
+            "page": "chat",
+            "skillIds": []
+          }
+        },
+        "at": "2026-06-24T16:47:54.641Z"
+      },
+      {
+        "id": "act_44c71962e8da",
+        "type": "conversation",
+        "text": "New/updated chat: Chat chat 1",
+        "meta": {
+          "id": "thread_1782319606847",
+          "context": {
+            "businessIds": [],
+            "page": "chat",
+            "skillIds": []
+          }
+        },
+        "at": "2026-06-24T16:46:46.860Z"
+      },
+      {
+        "id": "act_671e4b6c4ab5",
+        "type": "conversation",
+        "text": "New/updated chat: Chat chat 1",
+        "meta": {
+          "id": "thread_1782319563896",
+          "context": {
+            "businessIds": [],
+            "page": "chat",
+            "skillIds": []
+          }
+        },
+        "at": "2026-06-24T16:46:03.921Z"
       },
       {
         "id": "act_d232da1a4dae",
@@ -2901,8 +3126,324 @@
     }
   ],
   "brain": {
-    "activeThread": "johnny-dm",
+    "activeThread": "thread_1782325926487",
     "threads": [
+      {
+        "icon": "💬",
+        "tags": [],
+        "context": {
+          "businessIds": [],
+          "page": "chat",
+          "skillIds": []
+        },
+        "messages": [],
+        "scope": "Focused conversation",
+        "id": "thread_1782325926487",
+        "title": "Chat chat 1",
+        "sessionKey": "agent:main:dashboard-chat-mqseu6m2-5e7f",
+        "createdAt": "2026-06-24T18:32:06.650Z",
+        "updatedAt": "2026-06-24T18:32:06.650Z"
+      },
+      {
+        "icon": "💬",
+        "tags": [],
+        "context": {
+          "businessIds": [],
+          "page": "chat",
+          "skillIds": []
+        },
+        "messages": [],
+        "scope": "Focused conversation",
+        "id": "thread_1782325917781",
+        "title": "Chat chat 1",
+        "sessionKey": "agent:main:dashboard-chat-mqsetzwo-2cd0",
+        "createdAt": "2026-06-24T18:31:57.960Z",
+        "updatedAt": "2026-06-24T18:31:57.960Z"
+      },
+      {
+        "icon": "💬",
+        "tags": [],
+        "context": {
+          "businessIds": [],
+          "page": "chat",
+          "skillIds": []
+        },
+        "messages": [],
+        "scope": "Focused conversation",
+        "id": "thread_1782325902796",
+        "title": "Chat chat 1",
+        "sessionKey": "agent:main:dashboard-chat-mqsetoc5-67a7",
+        "createdAt": "2026-06-24T18:31:42.966Z",
+        "updatedAt": "2026-06-24T18:31:42.966Z"
+      },
+      {
+        "icon": "💬",
+        "tags": [],
+        "context": {
+          "businessIds": [],
+          "page": "chat",
+          "skillIds": []
+        },
+        "messages": [],
+        "scope": "Focused conversation",
+        "id": "thread_1782324465596",
+        "title": "Chat chat 1",
+        "sessionKey": "agent:main:dashboard-chat-mqsdyv9g-7886",
+        "createdAt": "2026-06-24T18:07:45.604Z",
+        "updatedAt": "2026-06-24T18:07:45.605Z"
+      },
+      {
+        "icon": "💬",
+        "tags": [],
+        "context": {
+          "businessIds": [],
+          "page": "chat",
+          "skillIds": []
+        },
+        "messages": [],
+        "scope": "Focused conversation",
+        "id": "thread_1782323435696",
+        "title": "Chat chat 1",
+        "sessionKey": "agent:main:dashboard-chat-mqsdcsl1-7476",
+        "createdAt": "2026-06-24T17:50:35.701Z",
+        "updatedAt": "2026-06-24T17:50:35.701Z"
+      },
+      {
+        "icon": "💬",
+        "tags": [],
+        "context": {
+          "businessIds": [],
+          "page": "chat",
+          "skillIds": []
+        },
+        "messages": [],
+        "scope": "Focused conversation",
+        "id": "thread_1782323189415",
+        "title": "Chat chat 1",
+        "sessionKey": "agent:main:dashboard-chat-mqsd7ijv-926f",
+        "createdAt": "2026-06-24T17:46:29.419Z",
+        "updatedAt": "2026-06-24T17:46:29.420Z"
+      },
+      {
+        "icon": "💬",
+        "tags": [],
+        "context": {
+          "businessIds": [],
+          "page": "chat",
+          "skillIds": []
+        },
+        "messages": [],
+        "scope": "Focused conversation",
+        "id": "thread_1782323161926",
+        "title": "Chat chat 1",
+        "sessionKey": "agent:main:dashboard-chat-mqsd6xcc-b05c",
+        "createdAt": "2026-06-24T17:46:01.933Z",
+        "updatedAt": "2026-06-24T17:46:01.933Z"
+      },
+      {
+        "icon": "💬",
+        "tags": [],
+        "context": {
+          "businessIds": [],
+          "page": "chat",
+          "skillIds": []
+        },
+        "messages": [],
+        "scope": "Focused conversation",
+        "id": "thread_1782323130065",
+        "title": "Chat chat 1",
+        "sessionKey": "agent:main:dashboard-chat-mqsd68rc-19ca",
+        "createdAt": "2026-06-24T17:45:30.072Z",
+        "updatedAt": "2026-06-24T17:45:30.072Z"
+      },
+      {
+        "icon": "💬",
+        "tags": [],
+        "context": {
+          "businessIds": [],
+          "page": "chat",
+          "skillIds": []
+        },
+        "messages": [],
+        "scope": "Focused conversation",
+        "id": "thread_1782323082867",
+        "title": "Chat chat 1",
+        "sessionKey": "agent:main:dashboard-chat-mqsd58c7-2f51",
+        "createdAt": "2026-06-24T17:44:42.871Z",
+        "updatedAt": "2026-06-24T17:44:42.871Z"
+      },
+      {
+        "icon": "💬",
+        "tags": [],
+        "context": {
+          "businessIds": [],
+          "page": "chat",
+          "skillIds": []
+        },
+        "messages": [],
+        "scope": "Focused conversation",
+        "id": "thread_1782323054955",
+        "title": "Chat chat 1",
+        "sessionKey": "agent:main:dashboard-chat-mqsd4msu-7556",
+        "createdAt": "2026-06-24T17:44:14.958Z",
+        "updatedAt": "2026-06-24T17:44:14.958Z"
+      },
+      {
+        "icon": "💬",
+        "tags": [],
+        "context": {
+          "businessIds": [],
+          "page": "chat",
+          "skillIds": []
+        },
+        "messages": [],
+        "scope": "Focused conversation",
+        "id": "thread_1782323028012",
+        "title": "Chat chat 1",
+        "sessionKey": "agent:main:dashboard-chat-mqsd420m-8d6a",
+        "createdAt": "2026-06-24T17:43:48.023Z",
+        "updatedAt": "2026-06-24T17:43:48.023Z"
+      },
+      {
+        "icon": "💬",
+        "tags": [],
+        "context": {
+          "businessIds": [],
+          "page": "chat",
+          "skillIds": []
+        },
+        "messages": [],
+        "scope": "Focused conversation",
+        "id": "thread_1782322910301",
+        "title": "Chat chat 1",
+        "sessionKey": "agent:main:dashboard-chat-mqsd1j6p-1ec1",
+        "createdAt": "2026-06-24T17:41:50.305Z",
+        "updatedAt": "2026-06-24T17:41:50.305Z"
+      },
+      {
+        "icon": "💬",
+        "tags": [],
+        "context": {
+          "businessIds": [],
+          "page": "chat",
+          "skillIds": []
+        },
+        "messages": [],
+        "scope": "Focused conversation",
+        "id": "thread_1782322883088",
+        "title": "Chat chat 1",
+        "sessionKey": "agent:main:dashboard-chat-mqsd0y71-86dd",
+        "createdAt": "2026-06-24T17:41:23.101Z",
+        "updatedAt": "2026-06-24T17:41:23.101Z"
+      },
+      {
+        "icon": "💬",
+        "tags": [],
+        "context": {
+          "businessIds": [],
+          "page": "chat",
+          "skillIds": []
+        },
+        "messages": [],
+        "scope": "Focused conversation",
+        "id": "thread_1782320143712",
+        "title": "Chat chat 1",
+        "sessionKey": "agent:main:dashboard-chat-mqsbe86j-ae95",
+        "createdAt": "2026-06-24T16:55:43.339Z",
+        "updatedAt": "2026-06-24T16:55:43.339Z"
+      },
+      {
+        "icon": "💬",
+        "tags": [],
+        "context": {
+          "businessIds": [],
+          "page": "chat",
+          "skillIds": []
+        },
+        "messages": [],
+        "scope": "Focused conversation",
+        "id": "thread_1782319830347",
+        "title": "Chat chat 1",
+        "sessionKey": "agent:main:dashboard-chat-mqsb7iog-6206",
+        "createdAt": "2026-06-24T16:50:30.352Z",
+        "updatedAt": "2026-06-24T16:50:30.352Z"
+      },
+      {
+        "icon": "💬",
+        "tags": [],
+        "context": {
+          "businessIds": [],
+          "page": "chat",
+          "skillIds": []
+        },
+        "messages": [],
+        "scope": "Focused conversation",
+        "id": "thread_1782319713146",
+        "title": "Chat chat 1",
+        "sessionKey": "agent:main:dashboard-chat-mqsb508u-c063",
+        "createdAt": "2026-06-24T16:48:33.150Z",
+        "updatedAt": "2026-06-24T16:48:33.150Z"
+      },
+      {
+        "icon": "💬",
+        "tags": [],
+        "context": {
+          "businessIds": [],
+          "page": "chat",
+          "skillIds": []
+        },
+        "messages": [],
+        "scope": "Focused conversation",
+        "id": "thread_1782319674628",
+        "title": "Chat chat 1",
+        "sessionKey": "agent:main:dashboard-chat-mqsb46j4-c69c",
+        "createdAt": "2026-06-24T16:47:54.641Z",
+        "updatedAt": "2026-06-24T16:47:54.641Z"
+      },
+      {
+        "icon": "💬",
+        "tags": [],
+        "context": {
+          "businessIds": [],
+          "page": "chat",
+          "skillIds": []
+        },
+        "messages": [],
+        "scope": "Focused conversation",
+        "id": "thread_1782319606847",
+        "title": "Chat chat 1",
+        "sessionKey": "agent:main:dashboard-chat-mqsb2q8c-dfb1",
+        "createdAt": "2026-06-24T16:46:46.860Z",
+        "updatedAt": "2026-06-24T16:46:46.860Z"
+      },
+      {
+        "icon": "💬",
+        "tags": [],
+        "context": {
+          "businessIds": [],
+          "page": "chat",
+          "skillIds": []
+        },
+        "messages": [],
+        "scope": "Focused conversation",
+        "id": "thread_1782319563896",
+        "title": "Chat chat 1",
+        "sessionKey": "agent:main:dashboard-chat-mqsb1t3d-1a91",
+        "createdAt": "2026-06-24T16:46:03.921Z",
+        "updatedAt": "2026-06-24T16:46:03.921Z"
+      },
+      {
+        "id": "thread_1782313535804",
+        "title": "Chat chat 23",
+        "messages": [],
+        "context": {
+          "businessIds": [],
+          "page": "chat",
+          "skillIds": []
+        },
+        "tags": [],
+        "sessionKey": "agent:main:dashboard-thread_1782313535804"
+      },
       {
         "id": "johnny-dm",
         "title": "🫡 Johnny — Full chain test. Kaneki relayed thi…",
@@ -2926,22 +3467,6 @@
             "role": "assistant",
             "text": "⚠️ The AI encountered a temporary connection issue and has been asked to retry. Please wait a moment and try again.",
             "at": "2026-06-23T13:55:42.223Z",
-            "threadId": "johnny-dm",
-            "isError": true
-          },
-          {
-            "id": "msg_b780eb419f20",
-            "role": "user",
-            "text": "[object Object]",
-            "at": "2026-06-24T09:25:22.548Z",
-            "surface": "dashboard",
-            "threadId": "johnny-dm"
-          },
-          {
-            "id": "msg_324e17a2eb69",
-            "role": "assistant",
-            "text": "⚠️ The request took too long and timed out. The AI has been asked to retry. If this keeps happening, try a shorter or simpler request.",
-            "at": "2026-06-24T09:25:24.585Z",
             "threadId": "johnny-dm",
             "isError": true
           }
@@ -3787,22 +4312,6 @@
             "at": "2026-06-24T00:42:33.418Z",
             "threadId": "general",
             "isError": true
-          },
-          {
-            "id": "msg_d5bf0d4c8b29",
-            "role": "user",
-            "text": "test",
-            "at": "2026-06-24T07:40:08.048Z",
-            "surface": "dashboard",
-            "threadId": "general"
-          },
-          {
-            "id": "msg_b33e8af698b9",
-            "role": "assistant",
-            "text": "⚠️ The request took too long and timed out. The AI has been asked to retry. If this keeps happening, try a shorter or simpler request.",
-            "at": "2026-06-24T07:40:10.084Z",
-            "threadId": "general",
-            "isError": true
           }
         ]
       },
@@ -4115,15 +4624,6 @@
       "preferMornings": true
     },
     "commands": [
-      {
-        "id": "cmd_47ad237726b9",
-        "text": "test",
-        "threadId": "general",
-        "status": "queued",
-        "target": "assistant",
-        "createdAt": "2026-06-24T07:40:08.047Z",
-        "tags": []
-      },
       {
         "id": "cmd_7177a3f1db90",
         "text": "test command",
@@ -4644,16 +5144,6 @@
       ],
       "posts": [
         {
-          "status": "idea",
-          "type": "post",
-          "impressions": 0,
-          "engagement": 0,
-          "title": "test",
-          "id": "test",
-          "createdAt": "2026-06-24T07:40:08.095Z",
-          "updatedAt": "2026-06-24T07:40:08.095Z"
-        },
-        {
           "id": "post_ragx_case",
           "title": "Proof-before-pitch: outreach system lesson",
           "platform": "LinkedIn",
@@ -4782,12 +5272,9 @@
         "Behind-the-scenes ops"
       ],
       "metrics": {
-        "connectedAccounts": 0,
-        "totalAccounts": 3,
         "impressions30d": 0,
         "posts30d": 0,
-        "scheduled": 0,
-        "ideas": 3
+        "connectedAccounts": 0
       }
     },
     "goals": [],

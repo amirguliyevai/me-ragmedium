@@ -1,6 +1,6 @@
 {
   "test": true,
-  "updatedAt": "2026-06-24T15:05:35.662Z",
+  "updatedAt": "2026-06-24T17:43:48.023Z",
   "todos": {
     "2026-06-20": [
       {
@@ -344,6 +344,132 @@
       }
     ],
     "activity": [
+      {
+        "id": "act_1edb6e396488",
+        "type": "conversation",
+        "text": "New/updated chat: Chat chat 1",
+        "meta": {
+          "id": "thread_1782323028012",
+          "context": {
+            "businessIds": [],
+            "page": "chat",
+            "skillIds": []
+          }
+        },
+        "at": "2026-06-24T17:43:48.023Z"
+      },
+      {
+        "id": "act_0c0e0aaf6acd",
+        "type": "conversation",
+        "text": "New/updated chat: Chat chat 1",
+        "meta": {
+          "id": "thread_1782322910301",
+          "context": {
+            "businessIds": [],
+            "page": "chat",
+            "skillIds": []
+          }
+        },
+        "at": "2026-06-24T17:41:50.305Z"
+      },
+      {
+        "id": "act_415494c63098",
+        "type": "conversation",
+        "text": "New/updated chat: Chat chat 1",
+        "meta": {
+          "id": "thread_1782322883088",
+          "context": {
+            "businessIds": [],
+            "page": "chat",
+            "skillIds": []
+          }
+        },
+        "at": "2026-06-24T17:41:23.101Z"
+      },
+      {
+        "id": "act_a037b7384600",
+        "type": "conversation",
+        "text": "New/updated chat: Chat chat 1",
+        "meta": {
+          "id": "thread_1782320143712",
+          "context": {
+            "businessIds": [],
+            "page": "chat",
+            "skillIds": []
+          }
+        },
+        "at": "2026-06-24T16:55:43.339Z"
+      },
+      {
+        "id": "act_6539ec4f7675",
+        "type": "conversation",
+        "text": "New/updated chat: Chat chat 1",
+        "meta": {
+          "id": "thread_1782319830347",
+          "context": {
+            "businessIds": [],
+            "page": "chat",
+            "skillIds": []
+          }
+        },
+        "at": "2026-06-24T16:50:30.352Z"
+      },
+      {
+        "id": "act_942bbc09ad57",
+        "type": "conversation",
+        "text": "New/updated chat: Chat chat 1",
+        "meta": {
+          "id": "thread_1782319713146",
+          "context": {
+            "businessIds": [],
+            "page": "chat",
+            "skillIds": []
+          }
+        },
+        "at": "2026-06-24T16:48:33.150Z"
+      },
+      {
+        "id": "act_29c3881feabe",
+        "type": "conversation",
+        "text": "New/updated chat: Chat chat 1",
+        "meta": {
+          "id": "thread_1782319674628",
+          "context": {
+            "businessIds": [],
+            "page": "chat",
+            "skillIds": []
+          }
+        },
+        "at": "2026-06-24T16:47:54.641Z"
+      },
+      {
+        "id": "act_44c71962e8da",
+        "type": "conversation",
+        "text": "New/updated chat: Chat chat 1",
+        "meta": {
+          "id": "thread_1782319606847",
+          "context": {
+            "businessIds": [],
+            "page": "chat",
+            "skillIds": []
+          }
+        },
+        "at": "2026-06-24T16:46:46.860Z"
+      },
+      {
+        "id": "act_671e4b6c4ab5",
+        "type": "conversation",
+        "text": "New/updated chat: Chat chat 1",
+        "meta": {
+          "id": "thread_1782319563896",
+          "context": {
+            "businessIds": [],
+            "page": "chat",
+            "skillIds": []
+          }
+        },
+        "at": "2026-06-24T16:46:03.921Z"
+      },
       {
         "id": "act_d232da1a4dae",
         "type": "task",
@@ -2860,8 +2986,152 @@
     }
   ],
   "brain": {
-    "activeThread": "general",
+    "activeThread": "thread_1782323028012",
     "threads": [
+      {
+        "icon": "💬",
+        "tags": [],
+        "context": {
+          "businessIds": [],
+          "page": "chat",
+          "skillIds": []
+        },
+        "messages": [],
+        "scope": "Focused conversation",
+        "id": "thread_1782323028012",
+        "title": "Chat chat 1",
+        "sessionKey": "agent:main:dashboard-chat-mqsd420m-8d6a",
+        "createdAt": "2026-06-24T17:43:48.023Z",
+        "updatedAt": "2026-06-24T17:43:48.023Z"
+      },
+      {
+        "icon": "💬",
+        "tags": [],
+        "context": {
+          "businessIds": [],
+          "page": "chat",
+          "skillIds": []
+        },
+        "messages": [],
+        "scope": "Focused conversation",
+        "id": "thread_1782322910301",
+        "title": "Chat chat 1",
+        "sessionKey": "agent:main:dashboard-chat-mqsd1j6p-1ec1",
+        "createdAt": "2026-06-24T17:41:50.305Z",
+        "updatedAt": "2026-06-24T17:41:50.305Z"
+      },
+      {
+        "icon": "💬",
+        "tags": [],
+        "context": {
+          "businessIds": [],
+          "page": "chat",
+          "skillIds": []
+        },
+        "messages": [],
+        "scope": "Focused conversation",
+        "id": "thread_1782322883088",
+        "title": "Chat chat 1",
+        "sessionKey": "agent:main:dashboard-chat-mqsd0y71-86dd",
+        "createdAt": "2026-06-24T17:41:23.101Z",
+        "updatedAt": "2026-06-24T17:41:23.101Z"
+      },
+      {
+        "icon": "💬",
+        "tags": [],
+        "context": {
+          "businessIds": [],
+          "page": "chat",
+          "skillIds": []
+        },
+        "messages": [],
+        "scope": "Focused conversation",
+        "id": "thread_1782320143712",
+        "title": "Chat chat 1",
+        "sessionKey": "agent:main:dashboard-chat-mqsbe86j-ae95",
+        "createdAt": "2026-06-24T16:55:43.339Z",
+        "updatedAt": "2026-06-24T16:55:43.339Z"
+      },
+      {
+        "icon": "💬",
+        "tags": [],
+        "context": {
+          "businessIds": [],
+          "page": "chat",
+          "skillIds": []
+        },
+        "messages": [],
+        "scope": "Focused conversation",
+        "id": "thread_1782319830347",
+        "title": "Chat chat 1",
+        "sessionKey": "agent:main:dashboard-chat-mqsb7iog-6206",
+        "createdAt": "2026-06-24T16:50:30.352Z",
+        "updatedAt": "2026-06-24T16:50:30.352Z"
+      },
+      {
+        "icon": "💬",
+        "tags": [],
+        "context": {
+          "businessIds": [],
+          "page": "chat",
+          "skillIds": []
+        },
+        "messages": [],
+        "scope": "Focused conversation",
+        "id": "thread_1782319713146",
+        "title": "Chat chat 1",
+        "sessionKey": "agent:main:dashboard-chat-mqsb508u-c063",
+        "createdAt": "2026-06-24T16:48:33.150Z",
+        "updatedAt": "2026-06-24T16:48:33.150Z"
+      },
+      {
+        "icon": "💬",
+        "tags": [],
+        "context": {
+          "businessIds": [],
+          "page": "chat",
+          "skillIds": []
+        },
+        "messages": [],
+        "scope": "Focused conversation",
+        "id": "thread_1782319674628",
+        "title": "Chat chat 1",
+        "sessionKey": "agent:main:dashboard-chat-mqsb46j4-c69c",
+        "createdAt": "2026-06-24T16:47:54.641Z",
+        "updatedAt": "2026-06-24T16:47:54.641Z"
+      },
+      {
+        "icon": "💬",
+        "tags": [],
+        "context": {
+          "businessIds": [],
+          "page": "chat",
+          "skillIds": []
+        },
+        "messages": [],
+        "scope": "Focused conversation",
+        "id": "thread_1782319606847",
+        "title": "Chat chat 1",
+        "sessionKey": "agent:main:dashboard-chat-mqsb2q8c-dfb1",
+        "createdAt": "2026-06-24T16:46:46.860Z",
+        "updatedAt": "2026-06-24T16:46:46.860Z"
+      },
+      {
+        "icon": "💬",
+        "tags": [],
+        "context": {
+          "businessIds": [],
+          "page": "chat",
+          "skillIds": []
+        },
+        "messages": [],
+        "scope": "Focused conversation",
+        "id": "thread_1782319563896",
+        "title": "Chat chat 1",
+        "sessionKey": "agent:main:dashboard-chat-mqsb1t3d-1a91",
+        "createdAt": "2026-06-24T16:46:03.921Z",
+        "updatedAt": "2026-06-24T16:46:03.921Z"
+      },
       {
         "id": "thread_1782313535804",
         "title": "Chat chat 23",

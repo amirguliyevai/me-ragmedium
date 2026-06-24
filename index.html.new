@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en" class="dark"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>RAGMEDIUM — Command Center</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#06040e;--sidebar:#0a0818;--surface:#0f0d1e;--surface-hover:#16142e;--border:#1e1a3a;--border2:rgba(130,80,255,0.18);--text:#d4d0ec;--muted:#6b6490;--accent:#8250ff;--accent-hover:#9a6fff;--cyan:#00e5ff;--cyan-dim:rgba(0,229,255,0.15);--green:#00ff88;--green-dim:rgba(0,255,136,0.12);--orange:#ff8c00;--orange-dim:rgba(255,140,0,0.12);--red:#ff3366;--red-dim:rgba(255,51,102,0.12);--pink:#ff44aa;--yellow:#ffd700;--glow-purple:0 0 20px rgba(130,80,255,0.3);--radius:8px;--radius-lg:12px;--radius-xl:16px;--font:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;--font-mono:'JetBrains Mono','SF Mono','Fira Code',monospace;--sidebar-w:260px;--rail-w:52px;--topbar-h:44px;font-family:var(--font);font-size:13px;line-height:1.5;color:var(--text)}
+:root.light{--bg:#f8f6ff;--sidebar:#fff;--surface:#fff;--surface-hover:#f3f0ff;--border:#e0dcf0;--border2:rgba(100,60,200,0.15);--text:#1a1630;--muted:#6b6490;--accent:#6a35e0;--accent-hover:#7c4dff;--glow-purple:0 0 20px rgba(106,53,224,0.15)}
+html{height:100%}body{background:var(--bg);color:var(--text);height:100vh;height:100dvh;overflow:hidden;display:flex;flex-direction:column;-webkit-font-smoothing:antialiased}
+::-webkit-scrollbar{width:6px;height:6px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}::-webkit-scrollbar-thumb:hover{background:var(--muted)}*{scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.topbar{height:var(--topbar-h);flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:0 16px;background:var(--sidebar);border-bottom:1px solid var(--border);position:relative;z-index:50}
+.topbar-left,.topbar-right{display:flex;align-items:center;gap:8px}
+.topbar-logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:14px;letter-spacing:.02em}
+.topbar-logo-icon{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,var(--accent),var(--cyan));display:flex;align-items:center;justify-content:center;box-shadow:var(--glow-purple)}
+.topbar-logo-icon svg{width:16px;height:16px;fill:#fff}
+.topbar-title{color:var(--text)}.topbar-title span{color:var(--accent)}
+.topbar-btn{width:32px;height:32px;border-radius:8px;border:none;background:transparent;color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.topbar-btn:hover{background:var(--surface-hover);color:var(--text)}
+.topbar-status{display:flex;align-items:center;gap:6px;padding:4px 10px;border-radius:20px;font-size:11px;background:var(--green-dim);color:var(--green);font-weight:500}
+.topbar-status-dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:pulse-dot 2s infinite}
+@keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:.5}}
+.layout{display:flex;flex:1;min-height:0;overflow:hidden}
+.rail{display:none;width:var(--rail-w);flex-shrink:0;flex-direction:column;align-items:center;gap:4px;padding:8px 0;background:var(--sidebar);border-right:1px solid var(--border)}
+.rail-btn{width:38px;height:38px;border-radius:10px;border:none;background:transparent;color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;position:relative;transition:all .2s}
+.rail-btn:hover{color:var(--text);background:var(--surface-hover)}
+.rail-btn.active{color:var(--accent);background:rgba(130,80,255,0.12)}
+.rail-btn.active::before{content:'';position:absolute;left:-8px;top:50%;transform:translateY(-50%);width:3px;height:18px;background:var(--accent);border-radius:0 3px 3px 0;box-shadow:0 0 8px var(--accent)}
+.rail-btn svg{width:20px;height:20px}
+.rail-spacer{flex:1}
+.rail-tooltip{position:absolute;left:calc(100% + 12px);top:50%;transform:translateY(-50%);background:var(--surface);color:var(--text);padding:5px 10px;border-radius:6px;font-size:11px;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .15s;border:1px solid var(--border);z-index:100}
+.rail-btn:hover .rail-tooltip{opacity:1}
+@media(min-width:768px){.rail{display:flex}.sidebar-nav{display:none!important}.sidebar{width:var(--sidebar-w)}}
+.sidebar{background:var(--sidebar);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow:hidden;transition:width .3s cubic-bezier(.22,1,.36,1)}
+.sidebar-header{padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;min-height:49px}
+.sidebar-header h3{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.sidebar-nav{flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:2px}
+.sidebar-nav-btn{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--radius);border:none;background:transparent;color:var(--muted);cursor:pointer;font-size:12.5px;font-weight:500;transition:all .15s;width:100%;text-align:left;font-family:var(--font)}
+.sidebar-nav-btn:hover{background:var(--surface-hover);color:var(--text)}
+.sidebar-nav-btn.active{background:rgba(130,80,255,.1);color:var(--accent)}
+.sidebar-nav-btn svg{width:18px;height:18px;flex-shrink:0}
+.sidebar-nav-btn .badge{margin-left:auto;background:var(--accent);color:#fff;font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600}
+.sidebar-nav-btn .badge.cyan{background:var(--cyan);color:#000}
+.sidebar-nav-btn .badge.orange{background:var(--orange);color:#000}
+.sidebar-section{padding:16px 14px 6px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);opacity:.6}
+.main{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden;position:relative}
+.panel{position:absolute;inset:0;display:none;flex-direction:column;overflow:hidden}
+.panel.active{display:flex}
+.panel-header{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;background:rgba(10,8,24,.6);backdrop-filter:blur(10px)}
+.panel-title{font-size:15px;font-weight:600;display:flex;align-items:center;gap:10px}
+.panel-title-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:rgba(130,80,255,.12);color:var(--accent)}
+.panel-title-icon svg{width:16px;height:16px}
+.panel-actions{display:flex;gap:6px}
+.panel-body{flex:1;overflow-y:auto;padding:20px}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:20px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;transition:all .2s}
+.stat-card:hover{border-color:var(--border2);transform:translateY(-1px)}
+.stat-label{font-size:11px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em}
+.stat-value{font-size:22px;font-weight:700;font-family:var(--font-mono)}
+.stat-change{font-size:11px;margin-top:4px}.stat-change.up{color:var(--green)}.stat-change.down{color:var(--red)}
+.card-cyan{color:var(--cyan)}.card-green{color:var(--green)}.card-orange{color:var(--orange)}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;font-family:var(--font)}
+.btn:hover{border-color:var(--border2);background:var(--surface-hover)}
+.btn-primary{background:linear-gradient(135deg,var(--accent),#6a35e0);border-color:transparent;color:#fff;box-shadow:var(--glow-purple)}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 0 30px rgba(130,80,255,.4)}
+.btn-sm{padding:5px 10px;font-size:11px}
+.btn svg{width:14px;height:14px}
+.tag{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:500}
+.tag-purple{background:rgba(130,80,255,.15);color:var(--accent)}
+.tag-cyan{background:var(--cyan-dim);color:var(--cyan)}
+.tag-green{background:var(--green-dim);color:var(--green)}
+.tag-orange{background:var(--orange-dim);color:var(--orange)}
+.tag-red{background:var(--red-dim);color:var(--red)}
+.feed{display:flex;flex-direction:column;gap:12px}
+.feed-item{display:flex;gap:12px;padding:12px;border-radius:var(--radius);border:1px solid var(--border);transition:all .15s}
+.feed-item:hover{border-color:var(--border2)}
+.feed-avatar{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#fff;flex-shrink:0}
+.feed-content{flex:1;min-width:0}
+.feed-header{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.feed-name{font-weight:600;font-size:12.5px}
+.feed-time{font-size:11px;color:var(--muted);margin-left:auto}
+.feed-text{font-size:12px;color:var(--muted);line-height:1.5}
+.kanban{display:flex;gap:14px;overflow-x:auto;padding-bottom:12px}
+.kanban-col{min-width:240px;flex:1;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px}
+.kanban-col-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.kanban-col-title{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+.kanban-col-count{font-size:10px;background:var(--border);padding:2px 8px;border-radius:10px}
+.kanban-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;margin-bottom:8px;cursor:grab;transition:all .15s}
+.kanban-card:hover{border-color:var(--border2);transform:translateY(-1px)}
+.kanban-card-title{font-size:12.5px;font-weight:500;margin-bottom:6px}
+.kanban-card-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.kanban-card-tag{font-size:10px;padding:2px 6px;border-radius:4px;background:rgba(130,80,255,.12);color:var(--accent)}
+.kanban-card-tag.high{background:var(--red-dim);color:var(--red)}
+.kanban-card-tag.medium{background:var(--orange-dim);color:var(--orange)}
+.memory-search{width:100%;padding:10px 14px;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:13px;margin-bottom:16px;font-family:var(--font)}
+.memory-search:focus{outline:none;border-color:var(--accent)}
+.memory-list{display:flex;flex-direction:column;gap:10px}
+.memory-item{padding:14px;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface)}
+.memory-item:hover{border-color:var(--border2)}
+.memory-item-header{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.memory-item-icon{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;background:rgba(130,80,255,.12);font-size:12px}
+.memory-item-title{font-size:12.5px;font-weight:600}
+.memory-item-time{font-size:10px;color:var(--muted);margin-left:auto}
+.memory-item-text{font-size:12px;color:var(--muted);line-height:1.6}
+.gateway-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+.gateway-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px}
+.gateway-card-header{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.gateway-status-dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 10px var(--green);animation:pulse-dot 2s infinite}
+.gateway-status-dot.warn{background:var(--orange);box-shadow:0 0 10px var(--orange)}
+.gateway-card-title{font-size:12.5px;font-weight:600}
+.gateway-card-value{font-size:20px;font-weight:700;font-family:var(--font-mono);margin:4px 0}
+.gateway-card-sub{font-size:11px;color:var(--muted)}
+.progress{height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+.progress-bar{height:100%;border-radius:3px;transition:width .5s}
+.progress-bar.purple{background:linear-gradient(90deg,var(--accent),var(--cyan))}
+.progress-bar.cyan{background:var(--cyan)}
+.chat-panel{display:flex;flex-direction:column;height:100%}
+.chat-messages{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:16px}
+.chat-msg{display:flex;gap:12px;max-width:800px}
+.chat-msg-avatar{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0}
+.chat-msg-body{flex:1}
+.chat-msg-name{font-size:12px;font-weight:600;margin-bottom:4px}
+.chat-msg-text{font-size:13px;line-height:1.6}
+.composer{flex-shrink:0;padding:12px 20px;background:var(--sidebar);border-top:1px solid var(--border)}
+.composer-box{display:flex;align-items:flex-end;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-xl);padding:10px 16px;transition:border-color .15s,box-shadow .15s}
+.composer-box:focus-within{border-color:var(--accent);box-shadow:var(--glow-purple)}
+.composer-input{flex:1;background:transparent;border:none;outline:none;color:var(--text);font-size:13px;font-family:var(--font);resize:none;min-height:24px;max-height:120px;line-height:1.5}
+.composer-input::placeholder{color:var(--muted)}
+.composer-btn{width:36px;height:36px;border-radius:10px;border:none;background:transparent;color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0}
+.composer-btn:hover{background:var(--surface-hover);color:var(--text)}
+.composer-btn.send{background:linear-gradient(135deg,var(--accent),#6a35e0);color:#fff;box-shadow:var(--glow-purple)}
+.composer-btn svg{width:18px;height:18px}
+.tabs{display:flex;gap:4px;padding:0 20px;border-bottom:1px solid var(--border);flex-shrink:0;background:rgba(10,8,24,.4)}
+.tab{padding:10px 16px;border:none;background:transparent;color:var(--muted);font-size:12px;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;font-family:var(--font)}
+.tab:hover{color:var(--text)}.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.team-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}
+.team-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;text-align:center;transition:all .2s}
+.team-avatar{width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#fff;margin:0 auto 12px}
+.team-name{font-size:13px;font-weight:600;margin-bottom:4px}.team-role{font-size:11px;color:var(--muted);margin-bottom:10px}
+.team-status{display:inline-flex;align-items:center;gap:5px;font-size:11px;padding:3px 10px;border-radius:20px}
+.team-status.online{background:var(--green-dim);color:var(--green)}
+.team-status.away{background:var(--orange-dim);color:var(--orange)}
+.empire-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px}
+.empire-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;transition:all .2s}
+.empire-card:hover{border-color:var(--border2)}
+.empire-card-cover{height:100px;background:linear-gradient(135deg,rgba(130,80,255,.2),rgba(0,229,255,.1));display:flex;align-items:center;justify-content:center;font-size:28px}
+.empire-card-body{padding:14px}.empire-card-title{font-size:13px;font-weight:600;margin-bottom:6px}
+.empire-card-meta{font-size:11px;color:var(--muted);display:flex;gap:10px;align-items:center}
+.brain-container{position:relative;flex:1;overflow:hidden}
+.brain-canvas{width:100%;height:100%;display:block}
+#galaxy-container{position:absolute;inset:0;z-index:0}
+.boardCols{display:flex;gap:10px;overflow-x:auto;padding-bottom:12px}
+.boardCol{min-width:200px;flex:1;background:rgba(15,13,30,0.6);border:1px solid var(--border);border-radius:12px;padding:8px;display:flex;flex-direction:column}
+.boardCard{padding:8px 10px;background:rgba(22,20,46,0.8);border:1px solid var(--border);border-radius:8px;margin-bottom:6px;cursor:pointer;border-left:3px solid var(--accent)}
+.boardCard:hover{border-color:var(--accent)}
+@media(max-width:767px){
+  .sidebar{position:fixed;left:0;top:var(--topbar-h);bottom:0;width:85vw;max-width:320px;z-index:100;transform:translateX(-100%);transition:transform .3s cubic-bezier(.22,1,.36,1);display:flex}
+  .sidebar.open{transform:translateX(0)}
+  .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99}
+  .sidebar-overlay.active{display:block}
+  .stats-grid{grid-template-columns:1fr 1fr}.team-grid{grid-template-columns:1fr 1fr}.empire-grid{grid-template-columns:1fr}
+}
+@media(max-width:480px){.stats-grid{grid-template-columns:1fr}.team-grid{grid-template-columns:1fr}}
+.text-muted{color:var(--muted)}.text-sm{font-size:11px}.mt-2{margin-top:8px}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-left">
+    <button class="topbar-btn" id="menuBtn" onclick="toggleMobileSidebar()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+    <div class="topbar-logo"><div class="topbar-logo-icon"><svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg></div><div class="topbar-title">RAG<span>MEDIUM</span></div></div>
+  </div>
+  <div class="topbar-right">
+    <div class="topbar-status"><div class="topbar-status-dot"></div>Gateway Online</div>
+    <button class="topbar-btn" onclick="toggleTheme()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></button>
+    <button class="topbar-btn" onclick="switchPanel('gateway')"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06-.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+  </div>
+</header>
+<div class="layout">
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleMobileSidebar()"></div>
+  <nav class="rail" id="rail">
+    <button class="rail-btn active" data-panel="galaxy" onclick="switchPanel('galaxy')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/><line x1="2" y1="12" x2="22" y2="12"/></svg><span class="rail-tooltip">Galaxy</span></button>
+    <button class="rail-btn" data-panel="chat" onclick="switchPanel('chat')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span class="rail-tooltip">Chat</span></button>
+    <button class="rail-btn" data-panel="content" onclick="switchPanel('content')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg><span class="rail-tooltip">Content</span></button>
+    <button class="rail-btn" data-panel="agents" onclick="switchPanel('agents')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg><span class="rail-tooltip">Agents</span></button>
+    <button class="rail-btn" data-panel="brain" onclick="switchPanel('brain')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2z"/></svg><span class="rail-tooltip">Brain</span></button>
+    <button class="rail-btn" data-panel="memory" onclick="switchPanel('memory')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg><span class="rail-tooltip">Memory</span></button>
+    <button class="rail-btn" data-panel="tasks" onclick="switchPanel('tasks')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span class="rail-tooltip">Tasks</span></button>
+    <button class="rail-btn" data-panel="gateway" onclick="switchPanel('gateway')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/></svg><span class="rail-tooltip">Gateway</span></button>
+    <div class="rail-spacer"></div>
+    <button class="rail-btn" data-panel="team" onclick="switchPanel('team')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><span class="rail-tooltip">Team</span></button>
+    <button class="rail-btn" data-panel="analytics" onclick="switchPanel('analytics')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg><span class="rail-tooltip">Analytics</span></button>
+  </nav>
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header"><h3>Navigation</h3><button class="topbar-btn" onclick="toggleMobileSidebar()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+    <div class="sidebar-nav">
+      <button class="sidebar-nav-btn active" data-panel="galaxy" onclick="switchPanel('galaxy')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/><line x1="2" y1="12" x2="22" y2="12"/></svg>Galaxy</button>
+      <button class="sidebar-nav-btn" data-panel="chat" onclick="switchPanel('chat')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Chat</button>
+      <button class="sidebar-nav-btn" data-panel="content" onclick="switchPanel('content')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>Content</button>
+      <button class="sidebar-nav-btn" data-panel="agents" onclick="switchPanel('agents')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Agents</button>
+      <button class="sidebar-nav-btn" data-panel="brain" onclick="switchPanel('brain')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2z"/></svg>Brain</button>
+      <div class="sidebar-section">Intelligence</div>
+      <button class="sidebar-nav-btn" data-panel="memory" onclick="switchPanel('memory')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>Memory <span class="badge cyan">2.4k</span></button>
+      <button class="sidebar-nav-btn" data-panel="tasks" onclick="switchPanel('tasks')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Tasks <span class="badge orange">7</span></button>
+      <button class="sidebar-nav-btn" data-panel="gateway" onclick="switchPanel('gateway')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/></svg>Gateway</button>
+      <div class="sidebar-section">Operations</div>
+      <button class="sidebar-nav-btn" data-panel="team" onclick="switchPanel('team')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Team</button>
+      <button class="sidebar-nav-btn" data-panel="analytics" onclick="switchPanel('analytics')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>Analytics</button>
+      <button class="sidebar-nav-btn" data-panel="slack" onclick="switchPanel('slack')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>Slack</button>
+      <button class="sidebar-nav-btn" data-panel="vault" onclick="switchPanel('vault')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Vault</button>
+    </div>
+  </aside>
+  <main class="main" id="mainContent">
+
+    <div class="panel active" id="panel-galaxy">
+      <div id="galaxy-container"></div>
+      <div class="panel-header" style="position:absolute;top:0;left:0;right:0;background:rgba(6,4,14,.85)"><div class="panel-title"><div class="panel-title-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></div>Galaxy View</div><div class="panel-actions"><button class="btn btn-sm" onclick="resetGalaxyCamera()">Reset</button><button class="btn btn-sm" onclick="toggleGalaxyRotation()">Rotate</button></div></div>
+      <div style="position:absolute;bottom:20px;left:20px;background:rgba(6,4,14,.85);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 18px;backdrop-filter:blur(10px);max-width:280px"><div style="font-size:12px;font-weight:600;margin-bottom:6px;color:var(--accent)">Entity Network</div><div style="font-size:11px;color:var(--muted);line-height:1.5">16 entities across 5 levels. Drag to rotate, scroll to zoom</div><div style="display:flex;gap:8px;margin-top:10px"><span class="tag tag-purple">12 Active</span><span class="tag tag-cyan">4 Pending</span></div></div>
+    </div>
+
+    <div class="panel" id="panel-chat">
+      <div class="chat-panel">
+        <div class="panel-header"><div class="panel-title"><div class="panel-title-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>Universal Chat</div><div class="panel-actions"><button class="btn btn-sm" id="voiceBtn" onclick="toggleVoice()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg> Voice</button><button class="btn btn-sm" id="callBtn" onclick="toggleCall()">📞 Call</button></div></div>
+        <div class="chat-messages" id="chatMessages">
+          <div class="chat-msg"><div class="chat-msg-avatar" style="background:linear-gradient(135deg,var(--accent),var(--cyan))">AM</div><div class="chat-msg-body"><div class="chat-msg-name">Amir</div><div class="chat-msg-text">What's the status of the content empire pipeline?</div></div></div>
+          <div class="chat-msg"><div class="chat-msg-avatar" style="background:linear-gradient(135deg,var(--green),var(--cyan))">AI</div><div class="chat-msg-body"><div class="chat-msg-name">RAGMEDIUM Assistant</div><div class="chat-msg-text">Content pipeline status:<br><br>• <b>5 articles</b> in draft<br>• <b>3 pieces</b> scheduled<br>• <b>2 videos</b> in post-production<br>• <b>1 podcast</b> queued<br><br>How would you like me to prioritize these?</div></div></div>
+        </div>
+        <div class="composer"><div class="composer-box"><button class="composer-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></button><textarea class="composer-input" placeholder="Ask anything..." rows="1" id="composerInput"></textarea><button class="composer-btn send" onclick="sendChat()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button></div></div>
+      </div>
+    </div>
+
+    <div class="panel" id="panel-content">
+      <div class="panel-header"><div class="panel-title"><div class="panel-title-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></div>Content Empire</div><div class="panel-actions"><button class="btn btn-sm btn-primary" onclick="addNewContent()">+ New Content</button></div></div>
+      <div class="tabs"><button class="tab active" onclick="switchContentTab('board')">Board</button><button class="tab" onclick="switchContentTab('ideas')">Ideas</button><button class="tab" onclick="switchContentTab('empire')">Empire</button></div>
+      <div class="panel-body" id="contentBody"></div>
+    </div>
+
+    <div class="panel" id="panel-agents">
+      <div class="panel-header"><div class="panel-title"><div class="panel-title-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></div>Agent Management</div><div class="panel-actions"><button class="btn btn-sm" onclick="switchAgentView('kanban')">Kanban</button><button class="btn btn-sm" onclick="switchAgentView('tree')">Tree</button><button class="btn btn-sm" onclick="switchAgentView('list')">List</button></div></div>
+      <div class="panel-body" id="agentsBody"></div>
+    </div>
+
+    <div class="panel" id="panel-brain">
+      <div class="panel-header"><div class="panel-title"><div class="panel-title-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2z"/></svg></div>Brain Dashboard</div><div class="panel-actions"><button class="btn btn-sm" onclick="initBrain()">Refresh</button></div></div>
+      <div class="panel-body" style="padding:0"><div class="brain-container"><canvas class="brain-canvas" id="brainCanvas"></canvas></div></div>
+    </div>
+
+    <div class="panel" id="panel-memory">
+      <div class="panel-header"><div class="panel-title"><div class="panel-title-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg></div>Elite Memory System</div><div class="panel-actions"><button class="btn btn-sm btn-primary">+ Add Memory</button></div></div>
+      <div class="panel-body"><input type="text" class="memory-search" placeholder="Search memories (RAG-powered semantic search)..."><div class="memory-list"><div class="memory-item"><div class="memory-item-header"><div class="memory-item-icon">👤</div><div class="memory-item-title">Amir's Preferences</div><div class="memory-item-time">Always</div></div><div class="memory-item-text">Prefers concise updates. Likes data-driven reports. Wants proactive notifications. Timezone: EST. Focus: content empire growth, agent automation, RAG optimization.</div></div><div class="memory-item"><div class="memory-item-header"><div class="memory-item-icon">🏢</div><div class="memory-item-title">Company Strategy</div><div class="memory-item-time">Q3 2026</div></div><div class="memory-item-text">Primary goal: Scale content empire to 500 pieces/month. Secondary: Launch RAG-powered outreach via RagX. Tertiary: Build automated agent pipeline.</div></div><div class="memory-item"><div class="memory-item-header"><div class="memory-item-icon">🎯</div><div class="memory-item-title">Active Projects</div><div class="memory-item-time">Today</div></div><div class="memory-item-text">1. Content Empire scaling (74% publish rate). 2. Lamatree referrals (12 new leads today). 3. RAGX outreach automation. 4. Podcast launch tomorrow. 5. AI agent kanban system.</div></div></div></div>
+    </div>
+
+    <div class="panel" id="panel-tasks">
+      <div class="panel-header"><div class="panel-title"><div class="panel-title-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>AI Task Management</div><div class="panel-actions"><button class="btn btn-sm btn-primary">+ New Task</button></div></div>
+      <div class="panel-body"><div class="stats-grid"><div class="stat-card"><div class="stat-label">Open Tasks</div><div class="stat-value">12</div></div><div class="stat-card"><div class="stat-label">In Progress</div><div class="stat-value card-cyan">5</div></div><div class="stat-card"><div class="stat-label">Done Today</div><div class="stat-value card-green">8</div></div><div class="stat-card"><div class="stat-label">AI-Assigned</div><div class="stat-value card-orange">7</div></div></div><div class="feed" style="margin-top:20px"><div class="feed-item"><div class="feed-avatar" style="background:var(--accent)">CB</div><div class="feed-content"><div class="feed-header"><span class="feed-name">ContentBot</span><span class="feed-time">2m ago</span></div><div class="feed-text">Completed: SEO optimization for "AI Content Trends" — 14 keywords ranked</div></div></div><div class="feed-item"><div class="feed-avatar" style="background:var(--cyan);color:#000">SA</div><div class="feed-content"><div class="feed-header"><span class="feed-name">SocialAI</span><span class="feed-time">15m ago</span></div><div class="feed-text">New task: Schedule 5 social posts for tomorrow's content batch</div></div></div><div class="feed-item"><div class="feed-avatar" style="background:var(--green)">WB</div><div class="feed-content"><div class="feed-header"><span class="feed-name">WriterBot</span><span class="feed-time">1h ago</span></div><div class="feed-text">Draft complete: Monthly newsletter — 2,847 words, awaiting review</div></div></div></div></div>
+    </div>
+
+    <div class="panel" id="panel-gateway">
+      <div class="panel-header"><div class="panel-title"><div class="panel-title-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/></svg></div>Gateway Status</div><div class="panel-actions"><button class="btn btn-sm">Restart</button></div></div>
+      <div class="panel-body"><div class="gateway-grid"><div class="gateway-card"><div class="gateway-card-header"><div class="gateway-status-dot"></div><div class="gateway-card-title">OpenClaw Gateway</div></div><div class="gateway-card-value">v2.4.1</div><div class="gateway-card-sub">Running • Uptime: 14d</div></div><div class="gateway-card"><div class="gateway-card-header"><div class="gateway-status-dot"></div><div class="gateway-card-title">Context Window</div></div><div class="gateway-card-value">78%</div><div class="gateway-card-sub">99.8k / 128k tokens</div><div class="progress mt-2"><div class="progress-bar purple" style="width:78%"></div></div></div><div class="gateway-card"><div class="gateway-card-header"><div class="gateway-status-dot"></div><div class="gateway-card-title">Active Agents</div></div><div class="gateway-card-value">12</div><div class="gateway-card-sub">3 idle, 7 working, 2 reviewing</div></div><div class="gateway-card"><div class="gateway-card-header"><div class="gateway-status-dot warn"></div><div class="gateway-card-title">Rate Limits</div></div><div class="gateway-card-value">2.1k</div><div class="gateway-card-sub">API calls remaining (15k limit)</div><div class="progress mt-2"><div class="progress-bar cyan" style="width:86%"></div></div></div><div class="gateway-card"><div class="gateway-card-header"><div class="gateway-status-dot"></div><div class="gateway-card-title">Knowledge Base</div></div><div class="gateway-card-value">847</div><div class="gateway-card-sub">Documents indexed • 2.4k RAG entries</div></div><div class="gateway-card"><div class="gateway-card-header"><div class="gateway-status-dot"></div><div class="gateway-card-title">Available Tools</div></div><div class="gateway-card-value">34</div><div class="gateway-card-sub">Skills, APIs, integrations active</div></div></div></div>
+    </div>
+
+    <div class="panel" id="panel-team">
+      <div class="panel-header"><div class="panel-title"><div class="panel-title-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg></div>Team View</div><div class="panel-actions"><button class="btn btn-sm btn-primary">Invite Member</button></div></div>
+      <div class="panel-body"><div class="team-grid"><div class="team-card"><div class="team-avatar" style="background:linear-gradient(135deg,var(--accent),var(--cyan))">AM</div><div class="team-name">Amir</div><div class="team-role">Commander</div><div class="team-status online">● Online</div></div><div class="team-card"><div class="team-avatar" style="background:var(--green)">CB</div><div class="team-name">ContentBot</div><div class="team-role">Content Agent</div><div class="team-status online">● Working</div></div><div class="team-card"><div class="team-avatar" style="background:var(--cyan)">SA</div><div class="team-name">SocialAI</div><div class="team-role">Social Agent</div><div class="team-status online">● Working</div></div><div class="team-card"><div class="team-avatar" style="background:var(--orange)">WB</div><div class="team-name">WriterBot</div><div class="team-role">Writing Agent</div><div class="team-status away">● Idle</div></div><div class="team-card"><div class="team-avatar" style="background:var(--pink)">LA</div><div class="team-name">Lamatree</div><div class="team-role">Referral System</div><div class="team-status online">● Active</div></div><div class="team-card"><div class="team-avatar" style="background:var(--yellow);color:#000">RG</div><div class="team-name">RagX</div><div class="team-role">Outreach AI</div><div class="team-status busy">● Rate Limited</div></div></div></div>
+    </div>
+
+    <div class="panel" id="panel-analytics">
+      <div class="panel-header"><div class="panel-title"><div class="panel-title-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg></div>Usage Analytics</div><div class="panel-actions"><button class="btn btn-sm">This Week</button><button class="btn btn-sm">Export</button></div></div>
+      <div class="panel-body"><div class="stats-grid"><div class="stat-card"><div class="stat-label">Total Tokens</div><div class="stat-value">2.4M</div><div class="stat-change up">+18% vs last week</div></div><div class="stat-card"><div class="stat-label">API Cost</div><div class="stat-value card-cyan">$847</div><div class="stat-change down">-5% vs last week</div></div><div class="stat-card"><div class="stat-label">Requests</div><div class="stat-value card-green">12.8k</div><div class="stat-change up">+22% vs last week</div></div><div class="stat-card"><div class="stat-label">Avg Latency</div><div class="stat-value card-orange">1.2s</div><div class="stat-change down">-0.3s improvement</div></div></div></div>
+    </div>
+
+    <div class="panel" id="panel-slack">
+      <div class="panel-header"><div class="panel-title"><div class="panel-title-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>Slack Activity</div><div class="panel-actions"><button class="btn btn-sm">View Channel</button></div></div>
+      <div class="panel-body" id="slackBody"></div>
+    </div>
+
+    <div class="panel" id="panel-vault">
+      <div class="panel-header"><div class="panel-title"><div class="panel-title-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>Vault</div><div class="panel-actions"><button class="btn btn-sm btn-primary">+ Add Item</button></div></div>
+      <div class="panel-body" style="padding:0"><div class="brain-container" style="position:relative"><canvas class="brain-canvas" id="vaultCanvas" style="width:100%;height:100%"></canvas></div></div>
+    </div>
+
+    <div class="panel" id="panel-settings">
+      <div class="panel-header"><div class="panel-title"><div class="panel-title-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06-.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div>Settings</div></div>
+      <div class="panel-body"><div style="display:grid;grid-template-columns:1fr 1fr;gap:16px"><div class="card"><div style="font-size:13px;font-weight:600;margin-bottom:12px">Theme</div><div style="display:flex;gap:8px"><button class="btn btn-sm btn-primary" onclick="setTheme('dark')">Dark</button><button class="btn btn-sm" onclick="setTheme('light')">Light</button></div></div><div class="card"><div style="font-size:13px;font-weight:600;margin-bottom:12px">Gateway</div><div style="font-size:12px;color:var(--muted);line-height:1.8"><div>URL: <span style="color:var(--text);font-family:var(--font-mono)">me.ragmedium.com/api</span></div><div>Model: <span style="color:var(--text)">claude-sonnet-4</span></div><div>Tokens: <span style="color:var(--text)">128,000</span></div></div></div></div></div>
+    </div>
+
+  </main>
+</div>
+<script>
+// ═══════════════════════════════════════════════════════════════
+// RAGMEDIUM Command Center — Combined Working Code
+// Ported from old dashboard + new cyberpunk UI shell
+// ═══════════════════════════════════════════════════════════════
+
+function switchPanel(name){
+  document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active')});
+  var t=document.getElementById('panel-'+name);
+  if(t)t.classList.add('active');
+  document.querySelectorAll('.rail-btn').forEach(function(b){b.classList.toggle('active',b.dataset.panel===name)});
+  document.querySelectorAll('.sidebar-nav-btn').forEach(function(b){b.classList.toggle('active',b.dataset.panel===name)});
+  closeMobileSidebar();
+  if(name==='brain')initBrain();
+  if(name==='galaxy')initGalaxy();
+  if(name==='vault')initVault();
+  if(name==='content')initContent();
+  if(name==='agents')initAgents();
+  if(name==='slack')initSlack();
+}
+function toggleMobileSidebar(){
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebarOverlay').classList.toggle('active');
+}
+function closeMobileSidebar(){
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebarOverlay').classList.remove('active');
+}
+function toggleTheme(){
+  document.documentElement.classList.toggle('dark');
+  document.documentElement.classList.toggle('light');
+}
+function setTheme(t){
+  if(t==='dark'){document.documentElement.classList.add('dark');document.documentElement.classList.remove('light')}
+  else{document.documentElement.classList.add('light');document.documentElement.classList.remove('dark')}
+}
+function sendChat(){
+  var input=document.getElementById('composerInput');
+  var msgs=document.getElementById('chatMessages');
+  if(!input||!input.value.trim())return;
+  var text=input.value.trim();
+  input.value='';
+  var div=document.createElement('div');
+  div.className='chat-msg';
+  div.innerHTML='<div class="chat-msg-avatar" style="background:linear-gradient(135deg,var(--accent),var(--cyan))">AM</div><div class="chat-msg-body"><div class="chat-msg-name">Amir</div><div class="chat-msg-text">'+text.replace(/</g,'&lt;')+'</div></div>';
+  msgs.appendChild(div);
+  setTimeout(function(){
+    var ai=document.createElement('div');
+    ai.className='chat-msg';
+    ai.innerHTML='<div class="chat-msg-avatar" style="background:linear-gradient(135deg,var(--green),var(--cyan))">AI</div><div class="chat-msg-body"><div class="chat-msg-name">RAGMEDIUM Assistant</div><div class="chat-msg-text">Processing your request...</div></div>';
+    msgs.appendChild(ai);
+    msgs.scrollTop=msgs.scrollHeight;
+  },500);
+  msgs.scrollTop=msgs.scrollHeight;
+}
+
+// ══════════ GALAXY 3D — Real three.js scene ══════════
+var galaxyInit=false,galaxyRot=true;
+function initGalaxy(){
+  if(galaxyInit)return;
+  galaxyInit=true;
+  var container=document.getElementById('galaxy-container');
+  if(!container)return;
+  var scene=new THREE.Scene();
+  var camera=new THREE.PerspectiveCamera(60,container.clientWidth/container.clientHeight,0.5,2000);
+  camera.position.set(0,120,250);
+  var renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
+  renderer.setSize(container.clientWidth,container.clientHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+  container.appendChild(renderer.domElement);
+  var starGeo=new THREE.BufferGeometry();
+  var sv=[];
+  for(var i=0;i<4000;i++){var r=300+Math.random()*500;var t=Math.random()*Math.PI*2;var p=Math.acos(2*Math.random()-1);sv.push(r*Math.sin(p)*Math.cos(t),r*Math.sin(p)*Math.sin(t),r*Math.cos(p))}
+  starGeo.setAttribute('position',new THREE.Float32BufferAttribute(sv,3));
+  scene.add(new THREE.Points(starGeo,new THREE.PointsMaterial({color:0xffffff,size:0.4,transparent:true,opacity:0.6})));
+  var sphereMat=new THREE.MeshBasicMaterial({color:0x8250ff,wireframe:true,transparent:true,opacity:0.04});
+  scene.add(new THREE.Mesh(new THREE.SphereGeometry(140,20,14),sphereMat));
+  scene.add(new THREE.Mesh(new THREE.SphereGeometry(80,16,12),sphereMat.clone()));
+  scene.add(new THREE.Mesh(new THREE.SphereGeometry(50,12,10),sphereMat.clone()));
+  var COLORS={amir:0xffaa00,mindset:0xaabbcc,ventures:0x00cccc,'content-empire':0xff44ff,lamatree:0x44ff88,grademy:0xaa44ff,lamabroker:0xff8800,pripitch:0xff3344,'great-dami':0xffd700,rema:0x44dd66,lamatrader:0xffdd00,ragmedium:0x00eeff,ragx:0x44aaff,syneticx:0x8844cc,unitas:0x4488ff,waterspring:0x44ddff};
+  var entities=[{id:'amir',r:0,size:10,color:'amir'},{id:'mindset',r:35,size:6,color:'mindset'},{id:'ventures',r:35,size:6,color:'ventures'},{id:'content-empire',r:65,size:7,color:'content-empire'},{id:'lamatree',r:65,size:7,color:'lamatree'},{id:'grademy',r:65,size:7,color:'grademy'},{id:'lamabroker',r:95,size:8,color:'lamabroker'},{id:'pripitch',r:95,size:8,color:'pripitch'},{id:'great-dami',r:95,size:8,color:'great-dami'},{id:'rema',r:95,size:8,color:'rema'},{id:'lamatrader',r:130,size:10,color:'lamatrader'},{id:'ragmedium',r:130,size:10,color:'ragmedium'},{id:'ragx',r:130,size:10,color:'ragx'},{id:'syneticx',r:130,size:9,color:'syneticx'},{id:'unitas',r:130,size:9,color:'unitas'},{id:'waterspring',r:130,size:9,color:'waterspring'}];
+  var nodeGroup=new THREE.Group();
+  scene.add(nodeGroup);
+  entities.forEach(function(e,i){
+    var color=COLORS[e.color]||0xffffff;
+    var geo=new THREE.SphereGeometry(e.size,16,12);
+    var mat=new THREE.MeshPhongMaterial({color:color,emissive:color,emissiveIntensity:0.4,transparent:true,opacity:0.85});
+    var mesh=new THREE.Mesh(geo,mat);
+    if(e.r>0){
+      var gr=(1+Math.sqrt(5))/2;
+      var theta=2*Math.PI*i/gr;
+      var phi=Math.acos(1-2*(i+0.5)/entities.length);
+      mesh.position.set(e.r*Math.sin(phi)*Math.cos(theta),e.r*Math.sin(phi)*Math.sin(theta),e.r*Math.cos(phi));
+    }
+    nodeGroup.add(mesh);
+  });
+  var centerGlow=new THREE.Mesh(new THREE.SphereGeometry(14,24,18),new THREE.MeshBasicMaterial({color:0xffaa00,transparent:true,opacity:0.3}));
+  scene.add(centerGlow);
+  scene.add(new THREE.AmbientLight(0x1a1a3e,0.8));
+  var pl=new THREE.PointLight(0x8250ff,300,400);pl.position.set(0,0,0);scene.add(pl);
+  scene.add(new THREE.DirectionalLight(0x4488ff,0.4));
+  var isDragging=false,prevMouse={x:0,y:0},rotVel={x:0,y:0};
+  container.addEventListener('mousedown',function(e){isDragging=true;prevMouse={x:e.clientX,y:e.clientY}});
+  container.addEventListener('mousemove',function(e){
+    if(!isDragging)return;
+    rotVel.x=(e.clientY-prevMouse.y)*0.002;
+    rotVel.y=(e.clientX-prevMouse.x)*0.002;
+    prevMouse={x:e.clientX,y:e.clientY};
+  });
+  container.addEventListener('mouseup',function(){isDragging=false});
+  container.addEventListener('mouseleave',function(){isDragging=false});
+  function animate(){
+    requestAnimationFrame(animate);
+    if(galaxyRot&&!isDragging)nodeGroup.rotation.y+=0.001;
+    if(!isDragging){nodeGroup.rotation.x+=rotVel.x;nodeGroup.rotation.y+=rotVel.y;rotVel.x*=0.95;rotVel.y*=0.95}
+    centerGlow.scale.setScalar(1+Math.sin(Date.now()*0.002)*0.1);
+    renderer.render(scene,camera);
+  }
+  animate();
+  window.addEventListener('resize',function(){
+    camera.aspect=container.clientWidth/container.clientHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(container.clientWidth,container.clientHeight);
+  });
+}
+function resetGalaxyCamera(){galaxyRot=true}
+function toggleGalaxyRotation(){galaxyRot=!galaxyRot}
+
+// ══════════ BRAIN DASHBOARD — Canvas knowledge graph ══════════
+function initBrain(){
+  var canvas=document.getElementById('brainCanvas');
+  if(!canvas)return;
+  var container=canvas.parentElement;
+  canvas.width=container.clientWidth;
+  canvas.height=container.clientHeight;
+  var ctx=canvas.getContext('2d');
+  var nodes=[];
+  for(var i=0;i<40;i++){
+    nodes.push({x:Math.random()*canvas.width,y:Math.random()*canvas.height,vx:(Math.random()-0.5)*0.5,vy:(Math.random()-0.5)*0.5,r:3+Math.random()*5,color:['#8250ff','#00e5ff','#00ff88','#ff8c00','#ff44aa'][Math.floor(Math.random()*5)]});
+  }
+  function draw(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    nodes.forEach(function(n){n.x+=n.vx;n.y+=n.vy;if(n.x<0||n.x>canvas.width)n.vx*=-1;if(n.y<0||n.y>canvas.height)n.vy*=-1});
+    for(var i=0;i<nodes.length;i++){
+      for(var j=i+1;j<nodes.length;j++){
+        var dx=nodes[i].x-nodes[j].x,dy=nodes[i].y-nodes[j].y,dist=Math.sqrt(dx*dx+dy*dy);
+        if(dist<150){ctx.beginPath();ctx.moveTo(nodes[i].x,nodes[i].y);ctx.lineTo(nodes[j].x,nodes[j].y);ctx.strokeStyle='rgba(130,80,255,'+(0.15*(1-dist/150))+')';ctx.lineWidth=0.5;ctx.stroke()}
+      }
+    }
+    nodes.forEach(function(n){ctx.beginPath();ctx.arc(n.x,n.y,n.r,0,Math.PI*2);ctx.fillStyle=n.color;ctx.fill()});
+    requestAnimationFrame(draw);
+  }
+  draw();
+}
+
+// ══════════ CONTENT EMPIRE ══════════
+var contentTab='board';
+function switchContentTab(tab){
+  contentTab=tab;
+  var tabs=document.querySelectorAll('#panel-content .tab');
+  tabs.forEach(function(t){t.classList.toggle('active',t.textContent.toLowerCase()===tab)});
+  renderContent();
+}
+function initContent(){renderContent()}
+function renderContent(){
+  var body=document.getElementById('contentBody');
+  if(!body)return;
+  if(contentTab==='board')renderContentBoard(body);
+  else if(contentTab==='ideas')renderContentIdeas(body);
+  else if(contentTab==='empire')renderContentEmpire(body);
+}
+function renderContentBoard(body){
+  var posts=[
+    {id:'1',title:'AI Content Trends Report',platform:'LinkedIn',type:'insight',status:'idea'},
+    {id:'2',title:'RAG Tutorial Series',platform:'YouTube',type:'video',status:'drafted'},
+    {id:'3',title:'Startup Stories Ep.5',platform:'Podcast',type:'audio',status:'posted'},
+    {id:'4',title:'Q3 Strategy Thread',platform:'X',type:'thread',status:'drafted'},
+    {id:'5',title:'Monthly Newsletter',platform:'Email',type:'email',status:'idea'},
+    {id:'6',title:'SEO Optimization Guide',platform:'Blog',type:'article',status:'posted'},
+    {id:'7',title:'Social Media Automation',platform:'Instagram',type:'reel',status:'idea'},
+    {id:'8',title:'Competitor Analysis',platform:'LinkedIn',type:'report',status:'drafted'}
+  ];
+  var stages=[{key:'idea',label:'💡 Idea'},{key:'drafted',label:'✏️ Drafting'},{key:'editing',label:'🎬 Editing'},{key:'posted',label:'✅ Posted'}];
+  var h='<div class="boardCols">';
+  stages.forEach(function(st){
+    var cards=posts.filter(function(p){return p.status===st.key});
+    h+='<div class="boardCol"><div class="kanban-col-header"><span class="kanban-col-title">'+st.label+'</span><span class="kanban-col-count">'+cards.length+'</span></div>';
+    cards.forEach(function(p){
+      h+='<div class="boardCard"><div style="font-size:12px;font-weight:600;color:var(--text)">'+p.title+'</div><div style="font-size:10px;color:var(--muted);margin-top:3px">'+p.platform+' · '+p.type+'</div></div>';
+    });
+    h+='</div>';
+  });
+  h+='</div>';
+  body.innerHTML=h;
+}
+function renderContentIdeas(body){
+  var ideas=[
+    {title:'10x Content Pipeline',desc:'Automate content creation with AI agents',priority:'high'},
+    {title:'RAG-Powered Outreach',desc:'Personalized campaigns at scale',priority:'high'},
+    {title:'Video-First Strategy',desc:'Short-form video for all platforms',priority:'medium'},
+    {title:'Community Building',desc:'Discord + newsletter engagement',priority:'medium'},
+    {title:'SEO Domination',desc:'Top 10 rankings for key terms',priority:'low'}
+  ];
+  var h='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div style="font-size:12px;color:var(--muted)">'+ideas.length+' ideas ready for execution</div><button class="btn btn-sm btn-primary">+ New Idea</button></div>';
+  ideas.forEach(function(idea){
+    var pc={high:'var(--red)',medium:'var(--orange)',low:'var(--muted)'};
+    h+='<div class="card" style="padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px">'+
+      '<div style="width:8px;height:8px;border-radius:50%;background:'+pc[idea.priority]+';flex-shrink:0"></div>'+
+      '<div style="flex:1"><div style="font-size:13px;font-weight:600">'+idea.title+'</div>'+
+      '<div style="font-size:11px;color:var(--muted);margin-top:2px">'+idea.desc+'</div></div>'+
+      '<span class="tag" style="border-color:'+pc[idea.priority]+';color:'+pc[idea.priority]+'">'+idea.priority+'</span></div>';
+  });
+  body.innerHTML=h;
+}
+function renderContentEmpire(body){
+  var stats=[
+    {label:'Total Pieces',value:'248',color:'var(--text)'},
+    {label:'Published',value:'186',color:'var(--green)'},
+    {label:'In Pipeline',value:'47',color:'var(--cyan)'},
+    {label:'Engagement Rate',value:'4.2%',color:'var(--accent)'},
+    {label:'Monthly Reach',value:'124K',color:'var(--orange)'}
+  ];
+  var h='<div class="stats-grid">';
+  stats.forEach(function(s){
+    h+='<div class="stat-card"><div class="stat-label">'+s.label+'</div><div class="stat-value" style="color:'+s.color+'">'+s.value+'</div></div>';
+  });
+  h+='</div>';
+  h+='<div style="font-size:12px;font-weight:600;color:var(--muted);margin:16px 0 8px">Top Performing Content</div>'+
+    '<div class="feed">'+
+    '<div class="feed-item"><div class="feed-avatar" style="background:var(--accent)">AI</div><div class="feed-content"><div class="feed-text"><b>AI Content Trends</b> — 12.4K impressions, 847 clicks</div></div></div>'+
+    '<div class="feed-item"><div class="feed-avatar" style="background:var(--green)">RG</div><div class="feed-content"><div class="feed-text"><b>RAG Tutorial Ep.3</b> — 8.2K views, 94% retention</div></div></div>'+
+    '<div class="feed-item"><div class="feed-avatar" style="background:var(--cyan)">SC</div><div class="feed-content"><div class="feed-text"><b>Startup Stories</b> — 5.6K listens, 4.8★ rating</div></div></div>'+
+    '</div>';
+  body.innerHTML=h;
+}
+function addNewContent(){var t=prompt('Content title:');if(t)alert('Content "'+t+'" added to pipeline!')}
+
+// ══════════ AGENTS ══════════
+var agentView='kanban';
+function switchAgentView(view){agentView=view;renderAgents()}
+function initAgents(){renderAgents()}
+function renderAgents(){
+  var body=document.getElementById('agentsBody');
+  if(!body)return;
+  if(agentView==='kanban'){
+    body.innerHTML=
+      '<div class="kanban">'+
+      '<div class="kanban-col"><div class="kanban-col-header"><span class="kanban-col-title">To Do</span><span class="kanban-col-count">3</span></div>'+
+        '<div class="kanban-card"><div class="kanban-card-title">Research competitor strategies</div><span class="kanban-card-tag high">High</span></div>'+
+        '<div class="kanban-card"><div class="kanban-card-title">Generate Q3 content calendar</div><span class="kanban-card-tag medium">Med</span></div>'+
+      '</div>'+
+      '<div class="kanban-col"><div class="kanban-col-header"><span class="kanban-col-title">In Progress</span><span class="kanban-col-count">2</span></div>'+
+        '<div class="kanban-card"><div class="kanban-card-title">SEO optimization top 20</div><span class="kanban-card-tag high">High</span></div>'+
+        '<div class="kanban-card"><div class="kanban-card-title">Social media automation</div><span class="kanban-card-tag medium">Med</span></div>'+
+      '</div>'+
+      '<div class="kanban-col"><div class="kanban-col-header"><span class="kanban-col-title">Review</span><span class="kanban-col-count">1</span></div>'+
+        '<div class="kanban-card"><div class="kanban-card-title">Monthly newsletter draft</div><span class="kanban-card-tag medium">Med</span></div>'+
+      '</div>'+
+      '<div class="kanban-col"><div class="kanban-col-header"><span class="kanban-col-title">Done</span><span class="kanban-col-count">5</span></div>'+
+        '<div class="kanban-card"><div class="kanban-card-title" style="text-decoration:line-through;opacity:0.6">Competitor analysis</div><span style="font-size:9px;color:var(--muted)">Jun 22</span></div>'+
+        '<div class="kanban-card"><div class="kanban-card-title" style="text-decoration:line-through;opacity:0.6">AI trends blog post</div><span style="font-size:9px;color:var(--muted)">Jun 20</span></div>'+
+      '</div>'+
+      '</div>';
+  } else if(agentView==='tree'){
+    body.innerHTML='<div style="font-family:var(--font-mono);font-size:12px;line-height:1.8">'+
+      '<div style="color:var(--accent)">📁 Amir Command</div>'+
+      '<div style="padding-left:16px">├── 🤖 ContentBot <span style="color:var(--green)">● Active</span></div>'+
+      '<div style="padding-left:32px">│   ├── 📝 SEO optimization</div>'+
+      '<div style="padding-left:32px">│   └── 📊 Analytics report</div>'+
+      '<div style="padding-left:16px">├── 🤖 SocialAI <span style="color:var(--green)">● Active</span></div>'+
+      '<div style="padding-left:32px">│   ├── 📱 Schedule posts</div>'+
+      '<div style="padding-left:32px">│   └── 💬 Engagement monitoring</div>'+
+      '<div style="padding-left:16px">├── 🤖 WriterBot <span style="color:var(--amber)">● Idle</span></div>'+
+      '<div style="padding-left:32px">│   └── 📄 Newsletter draft</div>'+
+      '<div style="padding-left:16px">└── 🤖 RagX <span style="color:var(--cyan)">● Working</span></div>'+
+      '<div style="padding-left:32px">    ├── 📧 Outreach campaign</div>'+
+      '<div style="padding-left:32px">    └── 🔗 Lead scoring</div>'+
+      '</div>';
+  } else {
+    body.innerHTML='<div class="feed">'+
+      '<div class="feed-item"><div class="feed-avatar" style="background:var(--accent)">CB</div><div class="feed-content"><div class="feed-header"><span class="feed-name">ContentBot</span></div><div class="feed-text">Status: <span style="color:var(--green)">Active</span> · Tasks: 2 · Last: 2m ago</div></div></div>'+
+      '<div class="feed-item"><div class="feed-avatar" style="background:var(--cyan)">SA</div><div class="feed-content"><div class="feed-header"><span class="feed-name">SocialAI</span></div><div class="feed-text">Status: <span style="color:var(--green)">Active</span> · Tasks: 2 · Last: 15m ago</div></div></div>'+
+      '<div class="feed-item"><div class="feed-avatar" style="background:var(--green)">WB</div><div class="feed-content"><div class="feed-header"><span class="feed-name">WriterBot</span></div><div class="feed-text">Status: <span style="color:var(--amber)">Idle</span> · Tasks: 1 · Last: 1h ago</div></div></div>'+
+      '<div class="feed-item"><div class="feed-avatar" style="background:var(--orange)">RX</div><div class="feed-content"><div class="feed-header"><span class="feed-name">RagX</span></div><div class="feed-text">Status: <span style="color:var(--cyan)">Working</span> · Tasks: 2 · Last: 5m ago</div></div></div>'+
+      '</div>';
+  }
+}
+
+// ══════════ SLACK ══════════
+function initSlack(){
+  var body=document.getElementById('slackBody');
+  if(!body)return;
+  body.innerHTML='<div class="feed">'+
+    '<div class="feed-item"><div class="feed-avatar" style="background:#4a154b">JD</div><div class="feed-content"><div class="feed-header"><span class="feed-name">John (Design)</span><span class="feed-time">10:42 AM</span></div><div class="feed-text">Pushed new banner designs for review</div></div></div>'+
+    '<div class="feed-item"><div class="feed-avatar" style="background:#2d6a4f">MK</div><div class="feed-content"><div class="feed-header"><span class="feed-name">Maria (Marketing)</span><span class="feed-time">10:15 AM</span></div><div class="feed-text">Content calendar ready for approval</div></div></div>'+
+    '<div class="feed-item"><div class="feed-avatar" style="background:#e65100">AK</div><div class="feed-content"><div class="feed-header"><span class="feed-name">Alex (Dev)</span><span class="feed-time">9:48 AM</span></div><div class="feed-text">RAGX webhook deployed to staging ✅</div></div></div>'+
+    '<div class="feed-item"><div class="feed-avatar" style="background:#007a5a">AI</div><div class="feed-content"><div class="feed-header"><span class="feed-name">Amir</span><span class="feed-time">9:30 AM</span></div><div class="feed-text">New content pipeline automated — 3 articles queued</div></div></div>'+
+    '</div>';
+}
+
+// ══════════ VAULT — 3D Knowledge Graph ══════════
+var vaultAnim=null,vaultNodes=[],vaultEdges=[];
+function initVault(){
+  var canvas=document.getElementById('vaultCanvas');
+  if(!canvas)return;
+  var container=canvas.parentElement;
+  canvas.width=container.clientWidth||600;
+  canvas.height=container.clientHeight||400;
+  var ctx=canvas.getContext('2d');
+  if(vaultAnim)cancelAnimationFrame(vaultAnim);
+  vaultNodes=[];vaultEdges=[];
+  var types=['chat','business','document','account','post'];
+  var colors={chat:'#58a6ff',business:'#e06c75',document:'#98c379',account:'#c678dd',post:'#d19a66'};
+  for(var i=0;i<25;i++){
+    vaultNodes.push({
+      x:Math.random()*canvas.width,
+      y:Math.random()*canvas.height,
+      vx:(Math.random()-0.5)*1.5,
+      vy:(Math.random()-0.5)*1.5,
+      r:5+Math.random()*8,
+      type:types[Math.floor(Math.random()*types.length)],
+      label:['RAGX','Content','Agent','Memory','Project','Business','Chat','Doc','Post','Task'][i%10]
+    });
+  }
+  for(var i=0;i<30;i++){
+    var s=Math.floor(Math.random()*vaultNodes.length);
+    var t=Math.floor(Math.random()*vaultNodes.length);
+    if(s!==t)vaultEdges.push({source:s,target:t});
+  }
+  function draw(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    vaultNodes.forEach(function(n){n.x+=n.vx;n.y+=n.vy;if(n.x<0||n.x>canvas.width)n.vx*=-1;if(n.y<0||n.y>canvas.height)n.vy*=-1});
+    ctx.strokeStyle='rgba(88,166,255,0.15)';ctx.lineWidth=1;ctx.beginPath();
+    vaultEdges.forEach(function(e){
+      if(vaultNodes[e.source]&&vaultNodes[e.target]){
+        ctx.moveTo(vaultNodes[e.source].x,vaultNodes[e.source].y);
+        ctx.lineTo(vaultNodes[e.target].x,vaultNodes[e.target].y);
+      }
+    });
+    ctx.stroke();
+    vaultNodes.forEach(function(n){
+      ctx.beginPath();ctx.arc(n.x,n.y,n.r,0,Math.PI*2);
+      ctx.fillStyle=colors[n.type]||'#8b949e';ctx.fill();
+      ctx.fillStyle='rgba(230,237,243,0.7)';ctx.font='9px system-ui';ctx.textAlign='center';
+      ctx.fillText(n.label,n.x,n.y+n.r+12);
+    });
+    vaultAnim=requestAnimationFrame(draw);
+  }
+  draw();
+}
+
+// ══════════ VOICE CHAT — Web Speech API ══════════
+var voiceListening=false,recognition=null;
+function toggleVoice(){
+  var btn=document.getElementById('voiceBtn');
+  if(!btn)return;
+  if(voiceListening){
+    if(recognition)recognition.stop();
+    voiceListening=false;
+    btn.classList.remove('active');
+    return;
+  }
+  var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){alert('Speech recognition not supported');return}
+  recognition=new SR();
+  recognition.continuous=true;
+  recognition.interimResults=true;
+  recognition.lang='en-US';
+  recognition.onresult=function(e){
+    var transcript='';
+    for(var i=e.resultIndex;i<e.results.length;i++)transcript+=e.results[i][0].transcript;
+    var inp=document.getElementById('composerInput');
+    if(inp)inp.value=transcript;
+    if(e.results[e.results.length-1].isFinal){sendChat();voiceListening=false;btn.classList.remove('active')}
+  };
+  recognition.onerror=function(){voiceListening=false;btn.classList.remove('active')};
+  recognition.start();
+  voiceListening=true;
+  btn.classList.add('active');
+}
+
+// ══════════ AI CALLING — Audio processing ══════════
+var callingActive=false,callAudioCtx=null;
+function toggleCall(){
+  var btn=document.getElementById('callBtn');
+  if(!btn)return;
+  if(callingActive){
+    if(callAudioCtx){callAudioCtx.close();callAudioCtx=null}
+    callingActive=false;
+    btn.classList.remove('active');
+    return;
+  }
+  try{
+    callAudioCtx=new (window.AudioContext||window.webkitAudioContext)();
+    var osc=callAudioCtx.createOscillator();
+    var gain=callAudioCtx.createGain();
+    osc.connect(gain);gain.connect(callAudioCtx.destination);
+    osc.frequency.value=440;gain.gain.value=0.01;osc.start();
+    callingActive=true;
+    btn.classList.add('active');
+    setTimeout(function(){
+      if(callAudioCtx){osc.stop();callAudioCtx.close();callAudioCtx=null}
+      callingActive=false;btn.classList.remove('active');
+    },30000);
+  }catch(e){alert('Audio not supported: '+e.message)}
+}
+
+// ══════════ KEYBOARD SHORTCUTS ══════════
+document.addEventListener('keydown',function(e){
+  if(e.key==='k'&&(e.metaKey||e.ctrlKey)){e.preventDefault();var inp=document.getElementById('composerInput');if(inp)inp.focus()}
+  if(e.key==='Escape')closeMobileSidebar();
+});
+document.addEventListener('DOMContentLoaded',function(){
+  setTimeout(function(){initContent();initAgents();initSlack()},200);
+});
+
+</script>
+</body>
+</html>
