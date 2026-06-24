@@ -1016,6 +1016,24 @@ async function route(req,res){
   }
 
   // ─── Agent Team Command Center proxy (port 1707) ───
+  // ─── Kanban proxy: forward /api/tasks and /agents/api/tasks to port 1707 ───
+  // Must be BEFORE the generic /agents proxy (line ~1021) to avoid path mismatch
+  const isTasksPath = u.pathname==='/api/tasks' || u.pathname==='/agents/api/tasks' || u.pathname.startsWith('/api/tasks/');
+  if(isTasksPath){
+    const target = u.pathname.replace(/^\/agents/, '') + (u.search||'');
+    const proxyReq = http.request({
+      hostname: '127.0.0.1', port: 1707, path: target,
+      method: req.method, headers: { ...req.headers, host: '127.0.0.1:1707' }
+    }, (proxyRes) => {
+      const outHeaders = {...proxyRes.headers};
+      res.writeHead(proxyRes.statusCode, outHeaders);
+      proxyRes.pipe(res);
+    });
+    proxyReq.on('error', () => { if(!res.headersSent) send(res,502,{error:'kanban_unreachable'}); });
+    if(req.method==='POST'||req.method==='PUT'||req.method==='PATCH') req.pipe(proxyReq);
+    else proxyReq.end();
+    return;
+  }
   if(u.pathname.startsWith('/agents')){
     const target = u.pathname + (u.search||'');
     const proxyReq = http.request({
@@ -1070,22 +1088,6 @@ async function route(req,res){
       return send(res,200,{ok:true,...log,_cronJobs:cronJobs});
     }catch(e){ return send(res,200,{ok:true,outputs:{},status:{}}); }
   }
-  // ─── Kanban proxy: forward /api/tasks to port 1707 ───
-  if(u.pathname==='/api/tasks'){
-    const target = '/api/tasks' + (u.search||'');
-    const proxyReq = http.request({
-      hostname: '127.0.0.1', port: 1707, path: target,
-      method: req.method, headers: { ...req.headers, host: '127.0.0.1:1707' }
-    }, (proxyRes) => {
-      const outHeaders = {...proxyRes.headers};
-      res.writeHead(proxyRes.statusCode, outHeaders);
-      proxyRes.pipe(res);
-    });
-    proxyReq.on('error', () => { if(!res.headersSent) send(res,502,{error:'kanban_unreachable'}); });
-    if(req.method==='POST'||req.method==='PUT'||req.method==='PATCH') req.pipe(proxyReq);
-    else proxyReq.end();
-    return;
-  }
   // ─── MarkItDown file converter proxy (must be before SPA fallback) ───
   if(u.pathname==='/convert/api/convert'&&req.method==='POST'){
     const b=await body(req);
@@ -1133,7 +1135,7 @@ async function route(req,res){
       return send(res,500,{error:'conversion_failed',detail:e.message});
     }
   }
-  if(u.pathname==='/'||u.pathname==='/index.html'||!u.pathname.startsWith('/api/')){ res.setHeader('Cache-Control','no-cache,no-store,must-revalidate'); return send(res,200,fs.readFileSync(path.join(ROOT,'index.html'),'utf8'),'text/html'); }
+  if(u.pathname==='/'||u.pathname==='/index.html'||(!u.pathname.startsWith('/api/')&&!u.pathname.startsWith('/agents/api/'))){ res.setHeader('Cache-Control','no-cache,no-store,must-revalidate'); return send(res,200,fs.readFileSync(path.join(ROOT,'index.html'),'utf8'),'text/html'); }
   if(u.pathname==='/api/state'&&req.method==='GET') return send(res,200,readState());
   if(u.pathname==='/api/state'&&(req.method==='POST'||req.method==='PUT')){ const b=await body(req); writeState(b); return send(res,200,{ok:true,state:normalizeState(b)}); }
   if(u.pathname==='/api/brain'&&req.method==='GET'){ const s=readState(); s.brain.content.metrics=contentMetrics(s.brain.content); return send(res,200,{ok:true,brain:s.brain,businesses:s.businesses,projects:s.businesses,crm:s.crm,integrations:s.integrations,brief:generateBrief(s)}); }

@@ -6691,7 +6691,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     var main=document.getElementById('appMain');
     if(main)main.style.display='block';
     navButtons();
-    renderPage('home');
+    renderPage('chat');
     checkOpenCodeStatus();
     setupChatPaste();
     initNotifications();
@@ -7802,7 +7802,7 @@ async function renderAgentKanban(){
   document.querySelectorAll('.kanban-items').forEach(el => { el.innerHTML = '<div class="kb-empty">Loading…</div>'; });
   
   try {
-    const res = await fetch('http://localhost:1707/api/tasks');
+    const res = await fetch('/api/tasks?limit=200');
     const data = await res.json();
     const tasks = Array.isArray(data) ? data : (data.tasks || []);
     
