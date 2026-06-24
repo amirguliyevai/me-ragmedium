@@ -190,12 +190,13 @@ async function handleAPI(req, res, parts, body) {
 
   // GET /api/tasks - Task board
   if (resource === 'tasks' && req.method === 'GET') {
-    const { status, agent, limit = 50, offset = 0 } = body?.query || {};
+    const query = body?.query || {};
+    const { status, agent, limit = '50', offset = '0' } = query;
     let where = '1=1';
     const params = [];
     if (status) { params.push(status); where += ` AND t.status = $${params.length}`; }
     if (agent) { params.push(agent); where += ` AND t.assigned_agent_id = $${params.length}`; }
-    params.push(limit); params.push(offset);
+    params.push(parseInt(limit, 10)); params.push(parseInt(offset, 10));
 
     const tasks = await q(`
       SELECT t.*, a.name as agent_name
@@ -253,7 +254,8 @@ async function handleAPI(req, res, parts, body) {
 
   // GET /api/logs - Recent logs
   if (resource === 'logs' && req.method === 'GET') {
-    const taskId = body?.query?.task_id;
+    const query = body?.query || {};
+    const taskId = query.task_id;
     if (taskId) {
       const logs = await q('SELECT * FROM team.task_logs WHERE task_id = $1 ORDER BY created_at DESC', [taskId]);
       return json(res, logs);
@@ -273,7 +275,32 @@ async function handleAPI(req, res, parts, body) {
 
   // GET /api/knowledge - Knowledge base
   if (resource === 'knowledge' && req.method === 'GET') {
-    const rows = await q('SELECT * FROM team.knowledge ORDER BY updated_at DESC LIMIT 50');
+    const rows = await q('SELECT id, title, content, source, tags, updated_at, created_at FROM team.knowledge ORDER BY updated_at DESC LIMIT 50');
+    return json(res, rows);
+  }
+
+  // POST /api/knowledge - Add knowledge entry
+  if (resource === 'knowledge' && req.method === 'POST') {
+    const { title, content, source, tags = [] } = body;
+    if (!title) return error(res, 'title required');
+    const entry = await q(
+      'INSERT INTO team.knowledge (title, content, source, tags) VALUES ($1,$2,$3,$4) RETURNING id, title, source, tags, updated_at',
+      [title, content, source, tags]
+    );
+    return json(res, entry[0], 201);
+  }
+
+  // GET /api/knowledge/search - Search knowledge
+  if (resource === 'knowledge' && id === 'search' && req.method === 'GET') {
+    const query = body?.query || {};
+    const { q: searchQuery, limit = '10' } = query;
+    if (!searchQuery) return error(res, 'query (q) parameter required');
+    const rows = await q(
+      `SELECT id, title, content, source, tags, updated_at FROM team.knowledge
+       WHERE title ILIKE $1 OR content ILIKE $1 OR $2 = ANY(tags)
+       ORDER BY updated_at DESC LIMIT $3`,
+      [`%${searchQuery}%`, searchQuery, parseInt(limit, 10)]
+    );
     return json(res, rows);
   }
 
@@ -518,7 +545,7 @@ async function handleAPI(req, res, parts, body) {
 
   // ─── NOTIFICATIONS ───
   if (resource === 'notifications' && id === 'vapid-key' && req.method === 'GET') {
-    return json(res, { vapidKey: 'BFxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx' });
+    return json(res, { vapidKey: 'BAUK7hBjvWTKYquv-rOOM07SIeew7YBjsNBaE5rrnTbqIakacOBgOiT9JDqbLzgRv4jkT4WWgeQSRT_dXJSiBM8' });
   }
 
   // ─── OPENCODE STATUS ───
@@ -605,7 +632,7 @@ async function runDispatcher() {
       OR t.dependency_task_ids = '{}'
       OR NOT EXISTS (
         SELECT 1 FROM unnest(t.dependency_task_ids) dep_id
-        LEFT JOIN team.tasks dt ON dt.id = dep_id::uuid
+        LEFT JOIN team.tasks dt ON dt.id = dep_id
         WHERE dt.status IS DISTINCT FROM 'done'
       )
     )
