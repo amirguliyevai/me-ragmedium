@@ -641,11 +641,12 @@ async function runDispatcher() {
   `);
 
   for (const task of pending) {
-    // Find matching agent
+    // Find matching agent — match by agent_type first, then fall back to title/name
     const agents = await q(
-      `SELECT id, name, title FROM team.agents WHERE is_active = true AND (title ILIKE $1 OR name ILIKE $1)
+      `SELECT id, name, title FROM team.agents WHERE is_active = true
+       AND (agent_type = $1 OR title ILIKE $2 OR name ILIKE $2)
        ORDER BY level DESC LIMIT 1`,
-      [`%${task.agent_type}%`]
+      [task.agent_type, `%${task.agent_type}%`]
     );
 
     if (!agents.length) {
@@ -695,6 +696,7 @@ async function runDispatcher() {
       status = $3,
       error = 'Timed out after 30 min',
       assigned_agent_id = NULL,
+      started_at = NULL,
       completed_at = CASE WHEN $4 THEN NOW() ELSE NULL END
       WHERE id = $1`, [task.id, nextRetry, isExhausted ? 'failed' : 'pending', isExhausted]);
 
