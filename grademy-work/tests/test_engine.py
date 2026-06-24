@@ -197,14 +197,16 @@ class TestPersonalization:
             cognitive_load=ActivityLoad(0.2, 1.0, 0.1, 0.3, 3),
             content={},
         )
-        # Correct response
-        response = SessionResponse(
-            activity_id="a1", student_id="s1",
-            is_correct=True, response_time_ms=5000,
-            confidence=0.9,
-        )
-        p.record_response(student, response, activity)
+        # Multiple correct responses to push score above strong threshold
+        for _ in range(8):
+            response = SessionResponse(
+                activity_id="a1", student_id="s1",
+                is_correct=True, response_time_ms=5000,
+                confidence=0.9,
+            )
+            p.record_response(student, response, activity)
         assert "biology" in profile.strong_topics
+        assert profile.topic_scores["biology"] > 0.7
 
     def test_build_tutor_context(self):
         p = PersonalizationEngine({})

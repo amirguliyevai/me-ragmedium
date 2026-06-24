@@ -74,6 +74,7 @@ class SpacedRepetitionEngine:
     - Confidence-weighted quality
     - Forgetting curve retention prediction
     - Interleaving-aware scheduling
+    - Personalized interval blending via forgetting curve
     """
 
     def __init__(self, config: dict[str, Any]):
@@ -86,9 +87,15 @@ class SpacedRepetitionEngine:
         self.target_retention = config.get("target_retention", 0.9)
         self.confidence_weight = config.get("confidence_weight", 0.3)
         self.fatigue_threshold_hours = config.get("fatigue_threshold_hours", 2)
+        self.personalization_blend = config.get("personalization_blend", True)
         self._items: dict[str, dict[str, SRItem]] = {}  # student_id -> topic -> item
+        self._forgetting_curve: Any = None  # Set externally via bind_forgetting_curve()
 
-    def init_student(self, student_id: str) -> None:
+    def bind_forgetting_curve(self, forgetting_curve: Any) -> None:
+        """Bind a PersonalizedForgettingCurve instance for interval blending."""
+        self._forgetting_curve = forgetting_curve
+
+    def init_student(self, student_id: str) -> None:  # noqa: E303
         if student_id not in self._items:
             self._items[student_id] = {}
 
@@ -160,6 +167,18 @@ class SpacedRepetitionEngine:
         # Cap interval
         max_hours = self.max_interval_days * 24
         item.interval_hours = max(self.min_interval_hours, min(max_hours, item.interval_hours))
+
+        # Blend with personalized forgetting curve if available
+        if self._forgetting_curve and self.personalization_blend:
+            try:
+                blended = self._forgetting_curve.blend_interval(
+                    student_id=student_id,
+                    sm2_interval_hours=item.interval_hours,
+                    target_retention=self.target_retention,
+                )
+                item.interval_hours = max(self.min_interval_hours, min(max_hours, blended))
+            except Exception:
+                pass  # Fall back to SM-2 interval on any error
 
         # Update timestamps
         now = datetime.utcnow()

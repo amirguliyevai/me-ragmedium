@@ -216,14 +216,107 @@ class GeminiTutor:
 
     def _call_api(self, prompt_text: str) -> dict[str, Any]:
         """
-        Call the Gemini API. In production, this uses the actual API.
-        For now, returns a placeholder.
+        Call the Gemini API. Uses the Google Generative AI SDK if available,
+        falls back to direct HTTP REST call, then to mock on failure.
         """
-        # TODO: Implement actual Gemini API call
-        # import google.generativeai as genai
-        # model = genai.GenerativeModel(self.model)
-        # response = model.generate_content(prompt_text)
+        # Try the official SDK first
+        try:
+            import google.generativeai as genai
+            client = genai.GenerativeModel(self.model)
+            response = client.generate_content(
+                prompt_text,
+                generation_config=genai.GenerationConfig(
+                    temperature=self.temperature,
+                    max_output_tokens=self.max_tokens,
+                ),
+            )
+            text = response.text if hasattr(response, "text") else str(response)
+            return self._parse_response(text)
+        except ImportError:
+            pass  # SDK not available; try direct HTTP
+        except Exception as e:
+            # SDK error (quota, network, etc.) — fall through to HTTP or mock
+            pass
+
+        # Direct HTTP REST fallback
+        if self._api_key:
+            try:
+                import urllib.request
+                import urllib.error
+
+                url = (
+                    f"https://generativelanguage.googleapis.com/v1beta/models/"
+                    f"{self.model}:generateContent?key={self._api_key}"
+                )
+                payload = json.dumps({
+                    "contents": [{"parts": [{"text": prompt_text}]}],
+                    "generationConfig": {
+                        "temperature": self.temperature,
+                        "maxOutputTokens": self.max_tokens,
+                    },
+                }).encode("utf-8")
+
+                req = urllib.request.Request(
+                    url,
+                    data=payload,
+                    headers={"Content-Type": "application/json"},
+                )
+                with urllib.request.urlopen(req, timeout=30) as resp:
+                    data = json.loads(resp.read().decode("utf-8"))
+
+                # Parse Gemini response structure
+                candidates = data.get("candidates", [])
+                if candidates:
+                    content = candidates[0].get("content", {})
+                    parts = content.get("parts", [])
+                    text = "".join(p.get("text", "") for p in parts)
+                    if text:
+                        return self._parse_response(text)
+
+                # If we couldn't parse the response, return raw
+                return {"text": str(data), "examples": []}
+
+            except (urllib.error.URLError, urllib.error.HTTPError, json.JSONDecodeError, KeyError):
+                pass  # Network error or unexpected format; fall to mock
+
+        # Final fallback — mock for development
         return {"text": "[Gemini API response would appear here]", "examples": []}
+
+    @staticmethod
+    def _parse_response(raw_text: str) -> dict[str, Any]:
+        """Parse a Gemini text response into structured content."""
+        result: dict[str, Any] = {"text": raw_text, "examples": [], "related_topics": []}
+
+        # Try to extract JSON blocks from the response
+        import re
+        json_block_match = re.search(r"```json\s*(.*?)\s*```", raw_text, re.DOTALL)
+        if json_block_match:
+            try:
+                parsed = json.loads(json_block_match.group(1))
+                if isinstance(parsed, dict):
+                    if "text" in parsed:
+                        result["text"] = parsed["text"]
+                    if "examples" in parsed and isinstance(parsed["examples"], list):
+                        result["examples"] = parsed["examples"]
+                    if "related_topics" in parsed and isinstance(parsed["related_topics"], list):
+                        result["related_topics"] = parsed["related_topics"]
+                    if "question" in parsed:
+                        # Looks like a quiz question — wrap in array
+                        result["questions"] = [parsed]
+            except json.JSONDecodeError:
+                pass
+
+        # Also check if top-level text looks like a JSON array of questions
+        stripped = raw_text.strip()
+        if stripped.startswith("[") and "question" in stripped:
+            try:
+                questions = json.loads(stripped)
+                if isinstance(questions, list) and all("question" in q for q in questions):
+                    result["questions"] = questions
+            except (json.JSONDecodeError, TypeError):
+                pass
+
+        return result
 
     # ── Mock Responses (for development without API key) ────────────────────
 

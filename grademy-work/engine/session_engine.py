@@ -66,6 +66,8 @@ class StudySessionEngine:
         self.quality_predictor = SessionQualityPredictor(self.config.get("quality_predictor", {}))
         self.gamification = GamificationEngine(self.config.get("gamification", {}))
         self.mode_selector = ModeSelectionOptimizer(self.config.get("mode_selector", {}))
+        # Bind forgetting curve to SR engine for personalized interval blending
+        self.sr_engine.bind_forgetting_curve(self.forgetting_curve)
         self._active_sessions: dict[str, StudySession] = {}
         self._student_store: dict[str, Student] = {}
 
@@ -341,6 +343,9 @@ class StudySessionEngine:
             profile.last_session_at = datetime.utcnow().isoformat()
             profile.total_study_time_hours += result["duration_minutes"] / 60
 
+        # Generate encouraging session copy (per DESIGN.md tone)
+        result["summary"] = self._build_session_summary(session, result, gamification_result)
+
         # Clean up
         del self._active_sessions[session_id]
 
@@ -401,6 +406,63 @@ class StudySessionEngine:
         return self.gamification.get_state(student_id)
 
     # ── Private Helpers ─────────────────────────────────────────────────────
+
+    def _build_session_summary(
+        self,
+        session: StudySession,
+        report: dict[str, Any],
+        gamification: dict[str, Any],
+    ) -> str:
+        """
+        Generate a warm, encouraging session summary in the Grademy voice.
+        Follows DESIGN.md: friendly, soft, never dashboard-like.
+        """
+        student = self._student_store[session.student_id]
+        name = student.name
+        accuracy = report["accuracy"]
+        duration = report["duration_minutes"]
+        quality = report["quality_score"]
+
+        # Opening: celebrate the effort
+        parts = []
+
+        # Accuracy-based tone
+        if accuracy >= 0.9:
+            parts.append(f"Excellent work, {name}! 🌟")
+            parts.append(f"You nailed {accuracy:.0%} of your questions this session.")
+        elif accuracy >= 0.75:
+            parts.append(f"Great session, {name}! ✨")
+            parts.append(f"You got {accuracy:.0%} correct — solid progress.")
+        elif accuracy >= 0.5:
+            parts.append(f"Good effort, {name}! 💪")
+            parts.append(f"You're building understanding — {accuracy:.0%} correct this time.")
+        else:
+            parts.append(f"Thanks for working through that, {name}. 🌱")
+            parts.append("Every attempt is progress — let's keep building.")
+
+        # Duration context
+        if duration < 5:
+            parts.append("Quick but effective — short sessions add up!")
+        elif duration > 25:
+            parts.append(f"{duration:.0f} minutes of focused study — that's real dedication.")
+
+        # Streak / gamification
+        streak = gamification.get("current_streak", 0)
+        if streak >= 3:
+            parts.append(f"You're on a {streak}-day streak! Keep it going.")
+        if gamification.get("leveled_up"):
+            parts.append(f"🎉 You just reached level {gamification['level']}!")
+        if gamification.get("daily_goal_met"):
+            parts.append("Daily goal complete — you're crushing it.")
+
+        # Quality insight
+        if quality >= 80:
+            parts.append("This was a high-quality session — your focus really paid off.")
+        elif quality < 50:
+            parts.append("Shorter or more focused sessions might help you feel sharper next time.")
+
+        # Join with warm spacing
+        return " ".join(parts)
 
     def _generate_id(self, *parts: str) -> str:
         raw = "|".join(parts) + "|" + datetime.utcnow().isoformat()

@@ -43,6 +43,7 @@ class LearningProfile:
     preferred_activity_types: list[str] = field(default_factory=list)
     weak_topics: list[str] = field(default_factory=list)
     strong_topics: list[str] = field(default_factory=list)
+    topic_scores: dict[str, float] = field(default_factory=dict)  # topic -> mastery score (0-1)
     avg_session_minutes: int = 25
     preferred_difficulty: float = 0.5
     streak_days: int = 0

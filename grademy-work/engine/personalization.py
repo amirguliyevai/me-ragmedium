@@ -27,6 +27,7 @@ class LearningProfile:
     preferred_activity_types: list[str] = field(default_factory=list)
     weak_topics: list[str] = field(default_factory=list)
     strong_topics: list[str] = field(default_factory=list)
+    topic_scores: dict[str, float] = field(default_factory=dict)  # topic -> mastery score (0-1)
     avg_session_minutes: int = 25
     preferred_difficulty: float = 0.5
     streak_days: int = 0
@@ -198,17 +199,35 @@ class PersonalizationEngine:
             return None
         return sum(1 for r in recent if r["is_correct"]) / len(recent)
 
+    def get_topic_mastery(self, student_id: str, topic: str) -> float:
+        """Get the mastery score for a topic (0.0 = unknown/struggling, 1.0 = mastered)."""
+        profile = self._profiles.get(student_id)
+        if not profile:
+            return 0.5
+        return profile.topic_scores.get(topic, 0.5)
+
     def suggest_topic(self, student_id: str) -> str:
-        """Suggest the next topic to study based on weaknesses and due reviews."""
+        """Suggest the next topic to study based on mastery scores and due reviews."""
         profile = self._profiles.get(student_id)
         if not profile:
             return "general"
 
-        # Prioritize weak topics
+        # Find the lowest-scoring topic (weakest) that isn't firmly mastered
+        candidates = sorted(
+            profile.topic_scores.items(),
+            key=lambda x: x[1],  # lowest score first
+        )
+        for topic, score in candidates:
+            if score < 0.7:  # Not yet mastered
+                return topic
+
+        # If everything is mastered, pick the lowest-scoring one for review
+        if candidates:
+            return candidates[0][0]
+
+        # Fallback to weak_topics list (backwards compatibility)
         if profile.weak_topics:
             return profile.weak_topics[0]
-
-        # Otherwise cycle through strong topics or use a default
         if profile.strong_topics:
             return profile.strong_topics[0]
 
@@ -240,17 +259,45 @@ class PersonalizationEngine:
     def _update_topic_strength(
         self, profile: LearningProfile, topic: str, is_correct: bool
     ) -> None:
-        """Move topics between weak/strong lists based on performance."""
-        if is_correct:
+        """Update graded topic mastery scores using exponential moving average.
+
+        Score moves toward 1.0 on correct answers, toward 0.0 on wrong answers.
+        The learning speed controls how quickly scores change (faster learners
+        have scores that respond more quickly to recent performance).
+        """
+        # Get current score (default 0.5 = unknown)
+        current = profile.topic_scores.get(topic, 0.5)
+
+        # Target score: 0.85 for correct, 0.15 for wrong
+        target = 0.85 if is_correct else 0.15
+
+        # Adaptivity: how much each response moves the score (0.05 – 0.20)
+        # Faster learners get bigger updates
+        alpha = 0.05 + profile.learning_speed * 0.15
+
+        # Exponential moving average
+        new_score = current + alpha * (target - current)
+        new_score = max(0.0, min(1.0, new_score))
+        profile.topic_scores[topic] = round(new_score, 4)
+
+        # Maintain weak/strong lists as derived views (threshold-based)
+        # Weak: score < 0.35, Strong: score > 0.7
+        if new_score < 0.35:
+            if topic not in profile.weak_topics:
+                profile.weak_topics.append(topic)
+            if topic in profile.strong_topics:
+                profile.strong_topics.remove(topic)
+        elif new_score > 0.7:
             if topic in profile.weak_topics:
                 profile.weak_topics.remove(topic)
             if topic not in profile.strong_topics:
                 profile.strong_topics.append(topic)
         else:
+            # Mid-range: remove from both lists (neither weak nor strong)
+            if topic in profile.weak_topics:
+                profile.weak_topics.remove(topic)
             if topic in profile.strong_topics:
                 profile.strong_topics.remove(topic)
-            if topic not in profile.weak_topics:
-                profile.weak_topics.append(topic)
 
     def get_profile(self, student_id: str) -> Optional[LearningProfile]:
         return self._profiles.get(student_id)
