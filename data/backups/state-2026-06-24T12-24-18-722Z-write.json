@@ -1,6 +1,6 @@
 {
   "test": true,
-  "updatedAt": "2026-06-24T16:55:43.339Z",
+  "updatedAt": "2026-06-24T12:24:18.688Z",
   "todos": {
     "2026-06-20": [
       {
@@ -315,7 +315,11 @@
     "focusSessions": [],
     "weight": [],
     "nonnegotiables": {},
-    "dailyCheckin": {}
+    "dailyCheckin": {
+      "2026-06-24": {
+        "mood": "good"
+      }
+    }
   },
   "chat": [],
   "ops": {
@@ -345,88 +349,68 @@
     ],
     "activity": [
       {
-        "id": "act_a037b7384600",
+        "id": "act_9bd9dbd1c1d9",
         "type": "conversation",
         "text": "New/updated chat: Chat chat 1",
         "meta": {
-          "id": "thread_1782320143712",
+          "id": "thread_1782303858676",
           "context": {
             "businessIds": [],
             "page": "chat",
             "skillIds": []
           }
         },
-        "at": "2026-06-24T16:55:43.339Z"
+        "at": "2026-06-24T12:24:18.688Z"
       },
       {
-        "id": "act_6539ec4f7675",
+        "id": "act_6121f825bbd2",
         "type": "conversation",
-        "text": "New/updated chat: Chat chat 1",
+        "text": "New/updated chat: Agent Test",
         "meta": {
-          "id": "thread_1782319830347",
+          "id": "chat-mqrwd9zr-25c1",
           "context": {
             "businessIds": [],
-            "page": "chat",
             "skillIds": []
           }
         },
-        "at": "2026-06-24T16:50:30.352Z"
+        "at": "2026-06-24T09:55:04.792Z"
       },
       {
-        "id": "act_942bbc09ad57",
-        "type": "conversation",
-        "text": "New/updated chat: Chat chat 1",
+        "id": "act_9e44444f33e5",
+        "type": "thread-message",
+        "text": "🫡 Johnny — Full chain test. Kaneki relayed thi…: [object Object]",
         "meta": {
-          "id": "thread_1782319713146",
-          "context": {
-            "businessIds": [],
-            "page": "chat",
-            "skillIds": []
-          }
+          "threadId": "johnny-dm"
         },
-        "at": "2026-06-24T16:48:33.150Z"
+        "at": "2026-06-24T09:25:22.548Z"
       },
       {
-        "id": "act_29c3881feabe",
-        "type": "conversation",
-        "text": "New/updated chat: Chat chat 1",
+        "id": "act_dcad6b00ce69",
+        "type": "content-post",
+        "text": "Updated content item: test",
         "meta": {
-          "id": "thread_1782319674628",
-          "context": {
-            "businessIds": [],
-            "page": "chat",
-            "skillIds": []
-          }
+          "id": "test",
+          "status": "idea"
         },
-        "at": "2026-06-24T16:47:54.641Z"
+        "at": "2026-06-24T07:40:08.095Z"
       },
       {
-        "id": "act_44c71962e8da",
-        "type": "conversation",
-        "text": "New/updated chat: Chat chat 1",
+        "id": "act_7c721e28f3d6",
+        "type": "thread-message",
+        "text": "General Brain: test",
         "meta": {
-          "id": "thread_1782319606847",
-          "context": {
-            "businessIds": [],
-            "page": "chat",
-            "skillIds": []
-          }
+          "threadId": "general"
         },
-        "at": "2026-06-24T16:46:46.860Z"
+        "at": "2026-06-24T07:40:08.048Z"
       },
       {
-        "id": "act_671e4b6c4ab5",
-        "type": "conversation",
-        "text": "New/updated chat: Chat chat 1",
+        "id": "act_c397f6dcb65f",
+        "type": "command",
+        "text": "test",
         "meta": {
-          "id": "thread_1782319563896",
-          "context": {
-            "businessIds": [],
-            "page": "chat",
-            "skillIds": []
-          }
+          "threadId": "general"
         },
-        "at": "2026-06-24T16:46:03.921Z"
+        "at": "2026-06-24T07:40:08.047Z"
       },
       {
         "id": "act_d232da1a4dae",
@@ -2944,7 +2928,7 @@
     }
   ],
   "brain": {
-    "activeThread": "thread_1782320143712",
+    "activeThread": "thread_1782303858676",
     "threads": [
       {
         "icon": "💬",
@@ -2956,103 +2940,27 @@
         },
         "messages": [],
         "scope": "Focused conversation",
-        "id": "thread_1782320143712",
+        "id": "thread_1782303858676",
         "title": "Chat chat 1",
-        "sessionKey": "agent:main:dashboard-chat-mqsbe86j-ae95",
-        "createdAt": "2026-06-24T16:55:43.339Z",
-        "updatedAt": "2026-06-24T16:55:43.339Z"
+        "sessionKey": "agent:main:dashboard-chat-mqs1p6v3-7a67",
+        "createdAt": "2026-06-24T12:24:18.687Z",
+        "updatedAt": "2026-06-24T12:24:18.687Z"
       },
       {
         "icon": "💬",
         "tags": [],
         "context": {
           "businessIds": [],
-          "page": "chat",
           "skillIds": []
         },
         "messages": [],
         "scope": "Focused conversation",
-        "id": "thread_1782319830347",
-        "title": "Chat chat 1",
-        "sessionKey": "agent:main:dashboard-chat-mqsb7iog-6206",
-        "createdAt": "2026-06-24T16:50:30.352Z",
-        "updatedAt": "2026-06-24T16:50:30.352Z"
-      },
-      {
-        "icon": "💬",
-        "tags": [],
-        "context": {
-          "businessIds": [],
-          "page": "chat",
-          "skillIds": []
-        },
-        "messages": [],
-        "scope": "Focused conversation",
-        "id": "thread_1782319713146",
-        "title": "Chat chat 1",
-        "sessionKey": "agent:main:dashboard-chat-mqsb508u-c063",
-        "createdAt": "2026-06-24T16:48:33.150Z",
-        "updatedAt": "2026-06-24T16:48:33.150Z"
-      },
-      {
-        "icon": "💬",
-        "tags": [],
-        "context": {
-          "businessIds": [],
-          "page": "chat",
-          "skillIds": []
-        },
-        "messages": [],
-        "scope": "Focused conversation",
-        "id": "thread_1782319674628",
-        "title": "Chat chat 1",
-        "sessionKey": "agent:main:dashboard-chat-mqsb46j4-c69c",
-        "createdAt": "2026-06-24T16:47:54.641Z",
-        "updatedAt": "2026-06-24T16:47:54.641Z"
-      },
-      {
-        "icon": "💬",
-        "tags": [],
-        "context": {
-          "businessIds": [],
-          "page": "chat",
-          "skillIds": []
-        },
-        "messages": [],
-        "scope": "Focused conversation",
-        "id": "thread_1782319606847",
-        "title": "Chat chat 1",
-        "sessionKey": "agent:main:dashboard-chat-mqsb2q8c-dfb1",
-        "createdAt": "2026-06-24T16:46:46.860Z",
-        "updatedAt": "2026-06-24T16:46:46.860Z"
-      },
-      {
-        "icon": "💬",
-        "tags": [],
-        "context": {
-          "businessIds": [],
-          "page": "chat",
-          "skillIds": []
-        },
-        "messages": [],
-        "scope": "Focused conversation",
-        "id": "thread_1782319563896",
-        "title": "Chat chat 1",
-        "sessionKey": "agent:main:dashboard-chat-mqsb1t3d-1a91",
-        "createdAt": "2026-06-24T16:46:03.921Z",
-        "updatedAt": "2026-06-24T16:46:03.921Z"
-      },
-      {
-        "id": "thread_1782313535804",
-        "title": "Chat chat 23",
-        "messages": [],
-        "context": {
-          "businessIds": [],
-          "page": "chat",
-          "skillIds": []
-        },
-        "tags": [],
-        "sessionKey": "agent:main:dashboard-thread_1782313535804"
+        "title": "Agent Test",
+        "agentId": 1,
+        "id": "chat-mqrwd9zr-25c1",
+        "sessionKey": "agent:main:dashboard-chat-mqrwd9zr-9c31",
+        "createdAt": "2026-06-24T09:55:04.791Z",
+        "updatedAt": "2026-06-24T09:55:04.791Z"
       },
       {
         "id": "johnny-dm",
@@ -3077,6 +2985,22 @@
             "role": "assistant",
             "text": "⚠️ The AI encountered a temporary connection issue and has been asked to retry. Please wait a moment and try again.",
             "at": "2026-06-23T13:55:42.223Z",
+            "threadId": "johnny-dm",
+            "isError": true
+          },
+          {
+            "id": "msg_b780eb419f20",
+            "role": "user",
+            "text": "[object Object]",
+            "at": "2026-06-24T09:25:22.548Z",
+            "surface": "dashboard",
+            "threadId": "johnny-dm"
+          },
+          {
+            "id": "msg_324e17a2eb69",
+            "role": "assistant",
+            "text": "⚠️ The request took too long and timed out. The AI has been asked to retry. If this keeps happening, try a shorter or simpler request.",
+            "at": "2026-06-24T09:25:24.585Z",
             "threadId": "johnny-dm",
             "isError": true
           }
@@ -3922,6 +3846,22 @@
             "at": "2026-06-24T00:42:33.418Z",
             "threadId": "general",
             "isError": true
+          },
+          {
+            "id": "msg_d5bf0d4c8b29",
+            "role": "user",
+            "text": "test",
+            "at": "2026-06-24T07:40:08.048Z",
+            "surface": "dashboard",
+            "threadId": "general"
+          },
+          {
+            "id": "msg_b33e8af698b9",
+            "role": "assistant",
+            "text": "⚠️ The request took too long and timed out. The AI has been asked to retry. If this keeps happening, try a shorter or simpler request.",
+            "at": "2026-06-24T07:40:10.084Z",
+            "threadId": "general",
+            "isError": true
           }
         ]
       },
@@ -4234,6 +4174,15 @@
       "preferMornings": true
     },
     "commands": [
+      {
+        "id": "cmd_47ad237726b9",
+        "text": "test",
+        "threadId": "general",
+        "status": "queued",
+        "target": "assistant",
+        "createdAt": "2026-06-24T07:40:08.047Z",
+        "tags": []
+      },
       {
         "id": "cmd_7177a3f1db90",
         "text": "test command",
@@ -4754,6 +4703,16 @@
       ],
       "posts": [
         {
+          "status": "idea",
+          "type": "post",
+          "impressions": 0,
+          "engagement": 0,
+          "title": "test",
+          "id": "test",
+          "createdAt": "2026-06-24T07:40:08.095Z",
+          "updatedAt": "2026-06-24T07:40:08.095Z"
+        },
+        {
           "id": "post_ragx_case",
           "title": "Proof-before-pitch: outreach system lesson",
           "platform": "LinkedIn",
@@ -4882,9 +4841,12 @@
         "Behind-the-scenes ops"
       ],
       "metrics": {
+        "connectedAccounts": 0,
+        "totalAccounts": 3,
         "impressions30d": 0,
         "posts30d": 0,
-        "connectedAccounts": 0
+        "scheduled": 0,
+        "ideas": 3
       }
     },
     "goals": [],

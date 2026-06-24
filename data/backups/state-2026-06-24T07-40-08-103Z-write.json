@@ -1,6 +1,6 @@
 {
   "test": true,
-  "updatedAt": "2026-06-24T16:55:43.339Z",
+  "updatedAt": "2026-06-24T07:40:08.095Z",
   "todos": {
     "2026-06-20": [
       {
@@ -315,7 +315,11 @@
     "focusSessions": [],
     "weight": [],
     "nonnegotiables": {},
-    "dailyCheckin": {}
+    "dailyCheckin": {
+      "2026-06-24": {
+        "mood": "good"
+      }
+    }
   },
   "chat": [],
   "ops": {
@@ -345,88 +349,32 @@
     ],
     "activity": [
       {
-        "id": "act_a037b7384600",
-        "type": "conversation",
-        "text": "New/updated chat: Chat chat 1",
+        "id": "act_dcad6b00ce69",
+        "type": "content-post",
+        "text": "Updated content item: test",
         "meta": {
-          "id": "thread_1782320143712",
-          "context": {
-            "businessIds": [],
-            "page": "chat",
-            "skillIds": []
-          }
+          "id": "test",
+          "status": "idea"
         },
-        "at": "2026-06-24T16:55:43.339Z"
+        "at": "2026-06-24T07:40:08.095Z"
       },
       {
-        "id": "act_6539ec4f7675",
-        "type": "conversation",
-        "text": "New/updated chat: Chat chat 1",
+        "id": "act_7c721e28f3d6",
+        "type": "thread-message",
+        "text": "General Brain: test",
         "meta": {
-          "id": "thread_1782319830347",
-          "context": {
-            "businessIds": [],
-            "page": "chat",
-            "skillIds": []
-          }
+          "threadId": "general"
         },
-        "at": "2026-06-24T16:50:30.352Z"
+        "at": "2026-06-24T07:40:08.048Z"
       },
       {
-        "id": "act_942bbc09ad57",
-        "type": "conversation",
-        "text": "New/updated chat: Chat chat 1",
+        "id": "act_c397f6dcb65f",
+        "type": "command",
+        "text": "test",
         "meta": {
-          "id": "thread_1782319713146",
-          "context": {
-            "businessIds": [],
-            "page": "chat",
-            "skillIds": []
-          }
+          "threadId": "general"
         },
-        "at": "2026-06-24T16:48:33.150Z"
-      },
-      {
-        "id": "act_29c3881feabe",
-        "type": "conversation",
-        "text": "New/updated chat: Chat chat 1",
-        "meta": {
-          "id": "thread_1782319674628",
-          "context": {
-            "businessIds": [],
-            "page": "chat",
-            "skillIds": []
-          }
-        },
-        "at": "2026-06-24T16:47:54.641Z"
-      },
-      {
-        "id": "act_44c71962e8da",
-        "type": "conversation",
-        "text": "New/updated chat: Chat chat 1",
-        "meta": {
-          "id": "thread_1782319606847",
-          "context": {
-            "businessIds": [],
-            "page": "chat",
-            "skillIds": []
-          }
-        },
-        "at": "2026-06-24T16:46:46.860Z"
-      },
-      {
-        "id": "act_671e4b6c4ab5",
-        "type": "conversation",
-        "text": "New/updated chat: Chat chat 1",
-        "meta": {
-          "id": "thread_1782319563896",
-          "context": {
-            "businessIds": [],
-            "page": "chat",
-            "skillIds": []
-          }
-        },
-        "at": "2026-06-24T16:46:03.921Z"
+        "at": "2026-06-24T07:40:08.047Z"
       },
       {
         "id": "act_d232da1a4dae",
@@ -2944,116 +2892,8 @@
     }
   ],
   "brain": {
-    "activeThread": "thread_1782320143712",
+    "activeThread": "general",
     "threads": [
-      {
-        "icon": "💬",
-        "tags": [],
-        "context": {
-          "businessIds": [],
-          "page": "chat",
-          "skillIds": []
-        },
-        "messages": [],
-        "scope": "Focused conversation",
-        "id": "thread_1782320143712",
-        "title": "Chat chat 1",
-        "sessionKey": "agent:main:dashboard-chat-mqsbe86j-ae95",
-        "createdAt": "2026-06-24T16:55:43.339Z",
-        "updatedAt": "2026-06-24T16:55:43.339Z"
-      },
-      {
-        "icon": "💬",
-        "tags": [],
-        "context": {
-          "businessIds": [],
-          "page": "chat",
-          "skillIds": []
-        },
-        "messages": [],
-        "scope": "Focused conversation",
-        "id": "thread_1782319830347",
-        "title": "Chat chat 1",
-        "sessionKey": "agent:main:dashboard-chat-mqsb7iog-6206",
-        "createdAt": "2026-06-24T16:50:30.352Z",
-        "updatedAt": "2026-06-24T16:50:30.352Z"
-      },
-      {
-        "icon": "💬",
-        "tags": [],
-        "context": {
-          "businessIds": [],
-          "page": "chat",
-          "skillIds": []
-        },
-        "messages": [],
-        "scope": "Focused conversation",
-        "id": "thread_1782319713146",
-        "title": "Chat chat 1",
-        "sessionKey": "agent:main:dashboard-chat-mqsb508u-c063",
-        "createdAt": "2026-06-24T16:48:33.150Z",
-        "updatedAt": "2026-06-24T16:48:33.150Z"
-      },
-      {
-        "icon": "💬",
-        "tags": [],
-        "context": {
-          "businessIds": [],
-          "page": "chat",
-          "skillIds": []
-        },
-        "messages": [],
-        "scope": "Focused conversation",
-        "id": "thread_1782319674628",
-        "title": "Chat chat 1",
-        "sessionKey": "agent:main:dashboard-chat-mqsb46j4-c69c",
-        "createdAt": "2026-06-24T16:47:54.641Z",
-        "updatedAt": "2026-06-24T16:47:54.641Z"
-      },
-      {
-        "icon": "💬",
-        "tags": [],
-        "context": {
-          "businessIds": [],
-          "page": "chat",
-          "skillIds": []
-        },
-        "messages": [],
-        "scope": "Focused conversation",
-        "id": "thread_1782319606847",
-        "title": "Chat chat 1",
-        "sessionKey": "agent:main:dashboard-chat-mqsb2q8c-dfb1",
-        "createdAt": "2026-06-24T16:46:46.860Z",
-        "updatedAt": "2026-06-24T16:46:46.860Z"
-      },
-      {
-        "icon": "💬",
-        "tags": [],
-        "context": {
-          "businessIds": [],
-          "page": "chat",
-          "skillIds": []
-        },
-        "messages": [],
-        "scope": "Focused conversation",
-        "id": "thread_1782319563896",
-        "title": "Chat chat 1",
-        "sessionKey": "agent:main:dashboard-chat-mqsb1t3d-1a91",
-        "createdAt": "2026-06-24T16:46:03.921Z",
-        "updatedAt": "2026-06-24T16:46:03.921Z"
-      },
-      {
-        "id": "thread_1782313535804",
-        "title": "Chat chat 23",
-        "messages": [],
-        "context": {
-          "businessIds": [],
-          "page": "chat",
-          "skillIds": []
-        },
-        "tags": [],
-        "sessionKey": "agent:main:dashboard-thread_1782313535804"
-      },
       {
         "id": "johnny-dm",
         "title": "🫡 Johnny — Full chain test. Kaneki relayed thi…",
@@ -3922,6 +3762,24 @@
             "at": "2026-06-24T00:42:33.418Z",
             "threadId": "general",
             "isError": true
+          },
+          {
+            "id": "msg_d5bf0d4c8b29",
+            "role": "user",
+            "text": "test",
+            "at": "2026-06-24T07:40:08.048Z",
+            "surface": "dashboard",
+            "threadId": "general"
+          },
+          {
+            "id": "msg_d7e04b5e4266",
+            "role": "assistant",
+            "text": "Thinking…",
+            "pending": true,
+            "replyTo": "msg_d5bf0d4c8b29",
+            "at": "2026-06-24T07:40:08.048Z",
+            "surface": "openclaw",
+            "threadId": "general"
           }
         ]
       },
@@ -4234,6 +4092,15 @@
       "preferMornings": true
     },
     "commands": [
+      {
+        "id": "cmd_47ad237726b9",
+        "text": "test",
+        "threadId": "general",
+        "status": "queued",
+        "target": "assistant",
+        "createdAt": "2026-06-24T07:40:08.047Z",
+        "tags": []
+      },
       {
         "id": "cmd_7177a3f1db90",
         "text": "test command",
@@ -4754,6 +4621,16 @@
       ],
       "posts": [
         {
+          "status": "idea",
+          "type": "post",
+          "impressions": 0,
+          "engagement": 0,
+          "title": "test",
+          "id": "test",
+          "createdAt": "2026-06-24T07:40:08.095Z",
+          "updatedAt": "2026-06-24T07:40:08.095Z"
+        },
+        {
           "id": "post_ragx_case",
           "title": "Proof-before-pitch: outreach system lesson",
           "platform": "LinkedIn",
@@ -4882,9 +4759,12 @@
         "Behind-the-scenes ops"
       ],
       "metrics": {
+        "connectedAccounts": 0,
+        "totalAccounts": 3,
         "impressions30d": 0,
         "posts30d": 0,
-        "connectedAccounts": 0
+        "scheduled": 0,
+        "ideas": 3
       }
     },
     "goals": [],

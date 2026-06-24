@@ -1,6 +1,6 @@
 {
   "test": true,
-  "updatedAt": "2026-06-24T16:55:43.339Z",
+  "updatedAt": "2026-06-24T16:48:33.150Z",
   "todos": {
     "2026-06-20": [
       {
@@ -344,34 +344,6 @@
       }
     ],
     "activity": [
-      {
-        "id": "act_a037b7384600",
-        "type": "conversation",
-        "text": "New/updated chat: Chat chat 1",
-        "meta": {
-          "id": "thread_1782320143712",
-          "context": {
-            "businessIds": [],
-            "page": "chat",
-            "skillIds": []
-          }
-        },
-        "at": "2026-06-24T16:55:43.339Z"
-      },
-      {
-        "id": "act_6539ec4f7675",
-        "type": "conversation",
-        "text": "New/updated chat: Chat chat 1",
-        "meta": {
-          "id": "thread_1782319830347",
-          "context": {
-            "businessIds": [],
-            "page": "chat",
-            "skillIds": []
-          }
-        },
-        "at": "2026-06-24T16:50:30.352Z"
-      },
       {
         "id": "act_942bbc09ad57",
         "type": "conversation",
@@ -2944,40 +2916,8 @@
     }
   ],
   "brain": {
-    "activeThread": "thread_1782320143712",
+    "activeThread": "thread_1782319713146",
     "threads": [
-      {
-        "icon": "💬",
-        "tags": [],
-        "context": {
-          "businessIds": [],
-          "page": "chat",
-          "skillIds": []
-        },
-        "messages": [],
-        "scope": "Focused conversation",
-        "id": "thread_1782320143712",
-        "title": "Chat chat 1",
-        "sessionKey": "agent:main:dashboard-chat-mqsbe86j-ae95",
-        "createdAt": "2026-06-24T16:55:43.339Z",
-        "updatedAt": "2026-06-24T16:55:43.339Z"
-      },
-      {
-        "icon": "💬",
-        "tags": [],
-        "context": {
-          "businessIds": [],
-          "page": "chat",
-          "skillIds": []
-        },
-        "messages": [],
-        "scope": "Focused conversation",
-        "id": "thread_1782319830347",
-        "title": "Chat chat 1",
-        "sessionKey": "agent:main:dashboard-chat-mqsb7iog-6206",
-        "createdAt": "2026-06-24T16:50:30.352Z",
-        "updatedAt": "2026-06-24T16:50:30.352Z"
-      },
       {
         "icon": "💬",
         "tags": [],
