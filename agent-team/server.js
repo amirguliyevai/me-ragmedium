@@ -24,6 +24,11 @@ const MIME = {
   '.ico': 'image/x-icon',
 };
 
+// ─── Simple in-memory cache (5s TTL) for high-frequency endpoints ───
+const _cache = new Map();
+function cacheGet(key) { const e = _cache.get(key); if (e && Date.now() - e.ts < 5000) return e.data; return null; }
+function cacheSet(key, data) { _cache.set(key, { data, ts: Date.now() }); if (_cache.size > 100) { const first = _cache.keys().next().value; _cache.delete(first); } }
+
 // ─── API Response helpers ───
 function json(res, data, code = 200) {
   res.writeHead(code, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
@@ -68,6 +73,8 @@ async function handleAPI(req, res, parts, body) {
 
   // GET /api/stats - Dashboard overview
   if (resource === 'stats' && req.method === 'GET') {
+    const cached = cacheGet('stats');
+    if (cached) return json(res, cached);
     const [agents, tasks, tasksByStatus, hierarchy, recentTasks, divisionStats] = await Promise.all([
       q('SELECT COUNT(*)::int as total, COUNT(*) FILTER (WHERE is_active)::int as active FROM team.agents'),
       q('SELECT COUNT(*)::int as total FROM team.tasks'),
@@ -88,11 +95,13 @@ async function handleAPI(req, res, parts, body) {
     const taskCounts = {};
     tasksByStatus.forEach(r => taskCounts[r.status] = r.count);
 
-    return json(res, {
+    const result = {
       agents: agents[0], tasks: tasks[0],
       taskCounts, hierarchy, recentTasks, divisionStats,
       uptime: process.uptime()
-    });
+    };
+    cacheSet('stats', result);
+    return json(res, result);
   }
 
   // GET /api/health - Health check (alias for /api/status)
@@ -133,6 +142,8 @@ async function handleAPI(req, res, parts, body) {
 
   // GET /api/hierarchy - Org tree
   if (resource === 'hierarchy' && req.method === 'GET') {
+    const cached = cacheGet('hierarchy');
+    if (cached) return json(res, cached);
     const rows = await q(`WITH RECURSIVE tree AS (
       SELECT id, name, title, level, division, parent_agent_id, is_active, last_active_at,
         total_tasks_completed, success_rate, 0 as depth, name::text as sort_path
@@ -158,7 +169,9 @@ async function handleAPI(req, res, parts, body) {
         roots.push(agentMap[r.id]);
       }
     });
-    return json(res, { roots, flat: rows });
+    const result = { roots, flat: rows };
+    cacheSet('hierarchy', result);
+    return json(res, result);
   }
 
   // GET /api/agents - All agents
@@ -238,6 +251,7 @@ async function handleAPI(req, res, parts, body) {
     const task = await q(`INSERT INTO team.tasks (title, description, agent_type, priority, depends_on, source, tags)
       VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
       [title, description, agent_type, priority, depends_on, source, tags]);
+    _cache.delete('stats');
     return json(res, task[0], 201);
   }
 
