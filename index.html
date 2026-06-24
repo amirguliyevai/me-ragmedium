@@ -893,7 +893,40 @@ camp-section{max-height:220px;overflow-y:auto}
   .settingsPop{min-width:220px!important;right:8px!important}
   #modelPop{right:8px!important}
 }
+/* Connection Status */
+.status-online { background: rgba(0,200,100,0.9); color: #fff; }
+.status-offline { background: rgba(220,50,50,0.9); color: #fff; }
+.status-syncing { background: rgba(50,100,220,0.9); color: #fff; }
+
+/* Team Galaxy Panel */
+.galaxy-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; padding: 12px; }
+.galaxy-team { background: var(--g-surface); border: 1px solid var(--g-glass-border); border-radius: var(--g-radius); padding: 12px; }
+.galaxy-team h4 { margin: 0 0 8px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+.galaxy-agent { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 6px; cursor: pointer; transition: background 0.15s; font-size: 12px; }
+.galaxy-agent:hover { background: var(--g-glass-strong); }
+.galaxy-agent .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.galaxy-agent .dot.active { background: #22c55e; box-shadow: 0 0 6px #22c55e55; }
+.galaxy-agent .dot.idle { background: #eab308; }
+.galaxy-agent .dot.off { background: #374151; }
+.galaxy-agent .name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.galaxy-agent .aps { font-size: 10px; color: var(--dim); }
+.galaxy-detail { position: fixed; inset: 0; z-index: 9998; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+.galaxy-detail-inner { background: var(--g-elevated); border: 1px solid var(--g-glass-border); border-radius: var(--g-radius-lg); padding: 24px; max-width: 480px; width: 90%; max-height: 80vh; overflow-y: auto; }
+.galaxy-detail-inner h3 { margin: 0 0 12px; font-size: 16px; }
+.galaxy-detail-inner .detail-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--g-glass-border); font-size: 12px; }
+.galaxy-detail-inner .detail-row span:first-child { color: var(--dim); }
+.galaxy-detail-inner .close-btn { position: absolute; top: 12px; right: 12px; background: none; border: none; color: var(--muted); font-size: 18px; cursor: pointer; }
+.galaxy-stats { display: flex; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
+.galaxy-stat { text-align: center; padding: 8px 16px; background: var(--g-glass); border-radius: var(--g-radius-sm); }
+.galaxy-stat .num { font-size: 20px; font-weight: 700; }
+.galaxy-stat .lbl { font-size: 10px; color: var(--dim); text-transform: uppercase; letter-spacing: 0.5px; }
 </style></head><body>
+
+<!-- Connection Status Banner -->
+<div id="connectionStatus" style="display:none; position:fixed; top:0; left:0; right:0; z-index:9999; padding:8px 16px; text-align:center; font-size:12px; font-weight:600; transition:background 0.3s;">
+  <span id="connectionText"></span>
+  <span id="queueCount" style="display:none; margin-left:10px; background:rgba(0,0,0,0.3); padding:2px 8px; border-radius:10px;"></span>
+</div>
 
 <!-- Sidebar -->
 <aside id="sidebar">
@@ -2125,7 +2158,17 @@ const pages={
       <div id="approvalsList" style="flex:1;overflow-y:auto;min-height:0;display:flex;flex-direction:column;gap:8px">
         <div style="text-align:center;padding:40px;color:var(--dim);font-size:13px">Loading approvals...</div>
       </div>
-    </div>`
+    </div>`,
+  teamGalaxy:`
+    <div id="team-galaxy" class="page" style="display:flex;flex-direction:column;height:100%;overflow:hidden">
+      <div style="padding:8px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-shrink:0">
+        <h3 style="margin:0;font-size:15px">🌌 Team Galaxy</h3>
+        <span style="font-size:11px;color:var(--muted)" id="galaxyStatus">Loading...</span>
+        <button class="btn alt" onclick="renderTeamGalaxy()" style="margin-left:auto;font-size:10px;padding:4px 10px">↻ Refresh</button>
+      </div>
+      <div id="galaxyStats" class="galaxy-stats" style="padding:8px 12px;border-bottom:1px solid var(--border);flex-shrink:0"></div>
+      <div id="galaxyTeams" class="galaxy-grid" style="flex:1;overflow-y:auto"></div>
+    </div>
 };
 
 
@@ -2157,6 +2200,7 @@ function renderPage(id){
   if(id==='vault'){renderVault();}
   if(id==='approvals')renderApprovals();
   if(id==='aiTeam')renderAITeam();
+  if(id==='team-galaxy')renderTeamGalaxy();
 }
 
 const pageThreads={
@@ -2222,6 +2266,9 @@ const navGroups=[
     ['inbox','🔔','Inbox',0],
     ['docs','📄','Docs',0],
     ['gallery','🖼️','Gallery',0],
+  ]},
+  {label:'Galaxy',items:[
+    ['team-galaxy','🌌','Team Galaxy',0],
   ]},
   {label:'System',items:[
     ['agents','🤖','Agents',0],
@@ -8103,6 +8150,267 @@ function resetConvert() {
   document.getElementById('converting').classList.add('hidden');
   document.getElementById('resultArea').classList.add('hidden');
   convertResult = '';
+}
+
+// ═══ Offline Queue System ═══
+(function() {
+  const DB_NAME = 'galaxy-offline';
+  const STORE = 'actionQueue';
+
+  function openDB() {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open(DB_NAME, 2);
+      req.onupgradeneeded = e => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains(STORE))
+          db.createObjectStore(STORE, { keyPath: 'id', autoIncrement: true });
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  async function enqueue(action) {
+    const db = await openDB();
+    await db.transaction(STORE, 'readwrite').objectStore(STORE).add({
+      action, timestamp: Date.now(), retries: 0
+    });
+    db.close();
+    updateUI();
+  }
+
+  async function processQueue() {
+    if (!navigator.onLine) return;
+    const db = await openDB();
+    const tx = db.transaction(STORE, 'readonly');
+    const items = await tx.objectStore(STORE).getAll();
+
+    for (const item of items) {
+      try {
+        await fetch(item.action.url, {
+          method: item.action.method || 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(item.action.payload)
+        });
+        const delDb = await openDB();
+        const delTx = delDb.transaction(STORE, 'readwrite');
+        await delTx.objectStore(STORE).delete(item.id);
+        await delTx.commit;
+        delDb.close();
+      } catch(e) { break; }
+    }
+    db.close();
+    updateUI();
+  }
+
+  function updateUI() {
+    const banner = document.getElementById('connectionStatus');
+    const text = document.getElementById('connectionText');
+    const qCount = document.getElementById('queueCount');
+
+    if (!navigator.onLine) {
+      banner.className = 'status-offline';
+      text.textContent = '⚡ Offline — actions queued';
+      banner.style.display = 'block';
+    } else {
+      banner.className = 'status-online';
+      text.textContent = '';
+      banner.style.display = 'none';
+    }
+
+    // Show queue count
+    openDB().then(db => {
+      const tx = db.transaction(STORE, 'readonly');
+      tx.objectStore(STORE).count().onsuccess = e => {
+        const count = e.target.result;
+        if (count > 0) {
+          qCount.style.display = 'inline';
+          qCount.textContent = count + ' pending';
+          if (navigator.onLine) {
+            banner.className = 'status-syncing';
+            banner.style.display = 'block';
+            text.textContent = '🔄 syncing...';
+          }
+        } else {
+          qCount.style.display = 'none';
+        }
+        db.close();
+      };
+    });
+  }
+
+  window.addEventListener('online', () => { updateUI(); processQueue(); });
+  window.addEventListener('offline', updateUI);
+
+  // Override API calls when offline
+  const origFetch = window.fetch;
+  window.fetch = function(...args) {
+    if (!navigator.onLine) {
+      const [url, options] = args;
+      if (typeof url === 'string' && url.includes('/api/')) {
+        return enqueue({
+          url: typeof url === 'string' ? url : url.url,
+          method: options?.method || 'GET',
+          payload: options?.body ? JSON.parse(options.body) : null
+        }).then(() => new Response('[]', { headers: { 'Content-Type': 'application/json' } }));
+      }
+    }
+    return origFetch.apply(this, args);
+  };
+
+  // Register enhanced service worker
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js').then(reg => {
+      if ('periodicSync' in reg) {
+        reg.periodicSync.register('sync-offline', { minInterval: 5 * 60 * 1000 }).catch(() => {});
+      }
+    }).catch(() => {});
+  }
+
+  // Listen for sync-complete from SW
+  navigator.serviceWorker?.addEventListener('message', event => {
+    if (event.data?.type === 'sync-complete') {
+      updateUI();
+    }
+    if (event.data?.type === 'network-status') {
+      updateUI();
+    }
+  });
+
+  // Initial check + periodic queue processing
+  updateUI();
+  setInterval(() => { if (navigator.onLine) processQueue(); }, 30000);
+
+  window.offlineQueue = { enqueue, processQueue, updateUI };
+})();
+
+// ═══ Team Galaxy Renderer ═══
+const GALAXY_FALLBACK_DATA = {
+  teams: [
+    {name:'Executive',agents:[
+      {id:'kaneki-ken',name:'Kaneki Ken',specialization:'Executive Leadership',status:'active',aps:99,tasks:['Strategic planning','Team coordination']},
+      {id:'chief-of-staff',name:'Chief of Staff',specialization:'Operations Management',status:'active',aps:95,tasks:['Schedule management','Resource allocation']}
+    ]},
+    {name:'Development',agents:[
+      {id:'devops-agent',name:'DevOps',specialization:'Infrastructure & CI/CD',status:'active',aps:92,tasks:['Deployment pipeline','Server monitoring']},
+      {id:'frontend-dev',name:'Frontend Dev',specialization:'UI/UX Development',status:'idle',aps:88,tasks:['Dashboard redesign','PWA implementation']},
+      {id:'backend-dev',name:'Backend Dev',specialization:'API & Services',status:'idle',aps:90,tasks:['API optimization','Database migration']},
+      {id:'fullstack-dev',name:'Full Stack Dev',specialization:'End-to-End Development',status:'active',aps:94,tasks:['Feature development','Code review']},
+      {id:'mobile-dev',name:'Mobile Dev',specialization:'iOS/Android',status:'idle',aps:85,tasks:['App store release','Push notifications']}
+    ]},
+    {name:'Content',agents:[
+      {id:'content-director',name:'Content Director',specialization:'Content Strategy',status:'active',aps:91,tasks:['Content calendar','Brand voice']},
+      {id:'writer-agent',name:'Writer',specialization:'Copy & Documentation',status:'idle',aps:87,tasks:['Blog posts','API documentation']},
+      {id:'social-media',name:'Social Media',specialization:'Social Engagement',status:'active',aps:83,tasks:['Twitter posts','Community management']},
+      {id:'video-producer',name:'Video Producer',specialization:'Video Content',status:'idle',aps:80,tasks:['Tutorials','Product demos']}
+    ]},
+    {name:'Research',agents:[
+      {id:'research-director',name:'Research Director',specialization:'Research Strategy',status:'active',aps:93,tasks:['Market analysis','Competitive intelligence']},
+      {id:'data-analyst',name:'Data Analyst',specialization:'Data Science',status:'idle',aps:89,tasks:['Metrics dashboards','A/B testing']},
+      {id:'ml-engineer',name:'ML Engineer',specialization:'Machine Learning',status:'active',aps:96,tasks:['Model training','Embeddings']},
+      {id:'qa-tester',name:'QA Tester',specialization:'Quality Assurance',status:'idle',aps:84,tasks:['Test automation','Bug reports']}
+    ]},
+    {name:'Operations',agents:[
+      {id:'ops-director',name:'Ops Director',specialization:'Operations',status:'active',aps:90,tasks:['Process optimization','Workflow automation']},
+      {id:'outreach-head',name:'Outreach Head',specialization:'Partnerships',status:'idle',aps:82,tasks:['Partner outreach','Integration deals']},
+      {id:'support-agent',name:'Support Agent',specialization:'Customer Support',status:'active',aps:86,tasks:['Ticket resolution','FAQ updates']},
+      {id:'hr-coordinator',name:'HR Coordinator',specialization:'Human Resources',status:'idle',aps:78,tasks:['Onboarding','Performance reviews']}
+    ]},
+    {name:'Marketing',agents:[
+      {id:'marketing-lead',name:'Marketing Lead',specialization:'Marketing Strategy',status:'active',aps:88,tasks:['Campaign planning','ROI analysis']},
+      {id:'seo-specialist',name:'SEO Specialist',specialization:'Search Optimization',status:'idle',aps:81,tasks:['Keyword research','SERP tracking']},
+      {id:'email-marketer',name:'Email Marketer',specialization:'Email Campaigns',status:'active',aps:79,tasks:['Newsletter','Drip campaigns']},
+      {id:'analytics-reviewer',name:'Analytics Reviewer',specialization:'Web Analytics',status:'idle',aps:82,tasks:['Traffic analysis','Conversion tracking']}
+    ]},
+    {name:'Security',agents:[
+      {id:'security-lead',name:'Security Lead',specialization:'Cybersecurity',status:'active',aps:97,tasks:['Vulnerability scanning','Access control']},
+      {id:'compliance-auditor',name:'Compliance Auditor',specialization:'Regulatory Compliance',status:'idle',aps:85,tasks:['GDPR audit','Policy updates']},
+      {id:'penetration-tester',name:'Penetration Tester',specialization:'Security Testing',status:'active',aps:91,tasks:['Pen tests','Security reports']}
+    ]}
+  ]
+};
+
+async function renderTeamGalaxy() {
+  const teamsEl = document.getElementById('galaxyTeams');
+  const statsEl = document.getElementById('galaxyStats');
+  const statusEl = document.getElementById('galaxyStatus');
+  if (!teamsEl) return;
+
+  teamsEl.innerHTML = '<div style="text-align:center;padding:40px;color:var(--dim);font-size:13px;width:100%;grid-column:1/-1">Loading Galaxy data...</div>';
+
+  let data = GALAXY_FALLBACK_DATA;
+  try {
+    const resp = await fetch('http://localhost:8765/api/galaxy');
+    if (resp.ok) {
+      const apiData = await resp.json();
+      if (apiData && apiData.teams && apiData.teams.length > 0) {
+        data = apiData;
+        statusEl.textContent = 'API connected';
+      }
+    }
+  } catch(e) {
+    statusEl.textContent = 'Using cached data (API unavailable)';
+  }
+
+  // Calculate stats
+  let totalAgents = 0, activeAgents = 0, totalAps = 0;
+  data.teams.forEach(t => {
+    totalAgents += t.agents.length;
+    t.agents.forEach(a => {
+      if (a.status === 'active') activeAgents++;
+      totalAps += a.aps || 0;
+    });
+  });
+  const avgAps = totalAgents > 0 ? Math.round(totalAps / totalAgents) : 0;
+
+  statsEl.innerHTML = `
+    <div class="galaxy-stat"><div class="num">${data.teams.length}</div><div class="lbl">Teams</div></div>
+    <div class="galaxy-stat"><div class="num">${totalAgents}</div><div class="lbl">Agents</div></div>
+    <div class="galaxy-stat"><div class="num" style="color:var(--g-green)">${activeAgents}</div><div class="lbl">Active</div></div>
+    <div class="galaxy-stat"><div class="num" style="color:var(--g-amber)">${totalAgents - activeAgents}</div><div class="lbl">Idle</div></div>
+    <div class="galaxy-stat"><div class="num">${avgAps}</div><div class="lbl">Avg APS</div></div>
+  `;
+
+  // Render teams
+  teamsEl.innerHTML = data.teams.map(team => `
+    <div class="galaxy-team">
+      <h4>${team.name} <span style="font-size:10px;color:var(--dim);font-weight:400">(${team.agents.length})</span></h4>
+      ${team.agents.map(agent => `
+        <div class="galaxy-agent" onclick="showAgentDetail('${agent.id}')">
+          <div class="dot ${agent.status || 'idle'}"></div>
+          <span class="name">${agent.name}</span>
+          <span class="aps">${agent.aps || 0} APS</span>
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
+}
+
+function showAgentDetail(agentId) {
+  // Find agent in fallback data
+  let agent = null;
+  for (const team of GALAXY_FALLBACK_DATA.teams) {
+    const found = team.agents.find(a => a.id === agentId);
+    if (found) { agent = found; break; }
+  }
+  if (!agent) return;
+
+  const overlay = document.createElement('div');
+  overlay.className = 'galaxy-detail';
+  overlay.id = 'galaxyDetailOverlay';
+  overlay.onclick = e => { if (e.target === overlay) overlay.remove(); };
+  overlay.innerHTML = `
+    <div class="galaxy-detail-inner" style="position:relative">
+      <button class="close-btn" onclick="document.getElementById('galaxyDetailOverlay').remove()">✕</button>
+      <h3>${agent.name}</h3>
+      <div class="detail-row"><span>ID</span><span>${agent.id}</span></div>
+      <div class="detail-row"><span>Specialization</span><span>${agent.specialization}</span></div>
+      <div class="detail-row"><span>Status</span><span style="color:${agent.status==='active'?'var(--g-green)':'var(--g-amber)'}">${agent.status}</span></div>
+      <div class="detail-row"><span>APS Score</span><span>${agent.aps}</span></div>
+      <div class="detail-row"><span>Current Tasks</span><span>${(agent.tasks||[]).join(', ')}</span></div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
 }
 </script>
 </body></html>
