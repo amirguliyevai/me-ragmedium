@@ -85,7 +85,7 @@ a{color:var(--g-accent);text-decoration:none}
 
 /* Sidebar collapse - full hide with bookmark tab */
 #sidebar.hidden{transform:translateX(-100%);opacity:0;pointer-events:none}
-#sidebar.hidden~#appWrap{margin-left:0;width:100%}
+#sidebar.hidden~#appWrap{margin-left:0;width:100%;display:flex;align-items:stretch;flex:1}
 #sidebar.hidden~.chatBar{left:0;width:100%}
 #sidebar.hidden+#appWrap #historyPane{left:0;transform:translateX(0)}
 #sidebar.hidden~#sidebarToggle{left:0;top:8px;width:auto;height:32px;border-radius:0 8px 8px 0;background:var(--g-glass);backdrop-filter:var(--g-blur);-webkit-backdrop-filter:var(--g-blur);border:1px solid var(--g-glass-border);border-left:0;font-size:13px;padding:0 12px 0 8px;opacity:0.9}
@@ -574,7 +574,7 @@ a{color:var(--g-accent);text-decoration:none}
 @media(max-width:600px){
   #sidebar{transform:translateX(-100%);opacity:0;pointer-events:none}
   #sidebar.mobile-open{transform:translateX(0);opacity:1;pointer-events:auto}
-  #appWrap{margin-left:0;width:100%}
+  #appWrap{margin-left:0;width:100%;display:flex;align-items:stretch;flex:1}
   .chatBar{left:0;width:100%;padding:6px 8px env(safe-area-inset-bottom)}
   #sidebarToggle{left:0!important;top:8px;width:auto;height:32px;border-radius:0 8px 8px 0;background:var(--g-glass);backdrop-filter:var(--g-blur);-webkit-backdrop-filter:var(--g-blur);border:1px solid var(--g-glass-border);border-left:0;font-size:13px;padding:0 12px 0 8px;opacity:0.9}
   #sidebarToggle span{display:inline}
@@ -831,9 +831,6 @@ camp-section{max-height:220px;overflow-y:auto}
 
 /* ─── MISSING CSS FIXES ─── */
 
-/* Campaign section */
-.camp-section{max-height:220px;overflow-y:auto}
-
 /* Agent list rows */
 .agent-list-row{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;font-size:11px;border-bottom:1px solid rgba(255,255,255,0.03)}
 .agent-list-row:hover{background:rgba(255,255,255,0.02)}
@@ -893,7 +890,98 @@ camp-section{max-height:220px;overflow-y:auto}
   .settingsPop{min-width:220px!important;right:8px!important}
   #modelPop{right:8px!important}
 }
-</style></head><body>
+
+/* Missing utility classes */
+.text-white{color:#fff!important}
+.tree-dot.active{background:#22c55e;box-shadow:0 0 6px #22c55e55}
+.tree-dot.idle{background:#eab308}
+.tree-dot.off{background:#374151}
+
+/* Brain dashboard focus overlay (hidden by default) */
+#brainFocusArea{display:none;position:fixed;inset:0;z-index:50}
+#brainFocusCard{position:fixed;z-index:51;background:var(--card);border:1px solid var(--line);border-radius:var(--radius-xl);width:min(650px,92vw);max-height:80vh;overflow:hidden;left:50%;top:50%;transform:translate(-50%,-50%)}
+</style>
+<style>
+
+        .kanban-col{min-width:220px;max-width:280px;flex:1;display:flex;flex-direction:column;background:var(--panel2);border-radius:8px;overflow:hidden;border:1px solid var(--border)}
+        .kanban-hdr{padding:8px 12px;font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;color:var(--dim)}
+        .kanban-count{font-size:9px;padding:1px 6px;border-radius:10px;background:var(--bg);color:var(--dim)}
+        .kanban-items{flex:1;overflow-y:auto;padding:4px;display:flex;flex-direction:column;gap:4px;min-height:60px}
+        .kb-card{background:var(--card);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:11px;cursor:pointer;transition:all 0.15s;line-height:1.4}
+        .kb-card:hover{border-color:var(--blue);background:rgba(0,170,255,0.04)}
+        .kb-card .kb-agent{font-size:9px;color:var(--blue);margin-top:4px;display:flex;align-items:center;gap:4px}
+        .kb-card .kb-agent::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--blue)}
+        .kb-card .kb-priority{display:inline-block;font-size:8px;padding:1px 5px;border-radius:3px;margin-right:4px}
+        .kb-card .p-high{background:rgba(255,80,60,0.15);color:#ff503c}
+        .kb-card .p-med{background:rgba(255,180,60,0.15);color:#ffb43c}
+        .kb-card .p-low{background:rgba(100,200,255,0.12);color:#64c8ff}
+        .kb-empty{text-align:center;color:var(--dim);font-size:10px;padding:20px 8px;font-style:italic}
+        #agentKanban::-webkit-scrollbar{height:4px}#agentKanban::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+        .tree-node{margin-left:16px;border-left:1px solid rgba(255,255,255,0.06);padding-left:12px;margin-bottom:2px}
+        .tree-node-root{margin-left:0;border-left:none;padding-left:0}
+        .tree-row{display:flex;align-items:center;gap:6px;padding:4px 8px;border-radius:6px;cursor:pointer;font-size:11px;transition:all 0.15s}
+        .tree-row:hover{background:rgba(255,255,255,0.03)}
+        .tree-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+        .tree-dot.active{background:#22c55e;box-shadow:0 0 6px #22c55e55}
+        .tree-dot.idle{background:#eab308}
+        .tree-dot.off{background:#374151}
+        .tree-name{font-weight:500;white-space:nowrap}
+        .tree-role{font-size:9px;color:var(--dim);margin-left:4px}
+        .tree-count{font-size:9px;color:var(--dim);margin-left:auto}
+        .agent-list-row{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;font-size:11px;border-bottom:1px solid rgba(255,255,255,0.03)}
+        .agent-list-row:hover{background:rgba(255,255,255,0.02)}
+        .agent-list-col{flex:1;min-width:0}
+        .agent-list-col.head{font-size:9px;color:var(--dim);text-transform:uppercase}
+      
+
+#callWidget{position:fixed;bottom:20px;right:20px;z-index:999;font-family:var(--g-font)}
+#callBtn{width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#22c55e,#16a34a);border:none;color:#fff;font-size:24px;cursor:pointer;box-shadow:0 4px 20px rgba(34,197,94,0.4);transition:all .3s;display:flex;align-items:center;justify-content:center}
+#callBtn:hover{transform:scale(1.1)}
+#callBtn.listening{background:linear-gradient(135deg,#ef4444,#dc2626);animation:pulse 1.5s infinite}
+#callBtn.processing{background:linear-gradient(135deg,#f59e0b,#d97706);animation:pulse 1s infinite}
+#callPanel{display:none;position:fixed;bottom:90px;right:20px;width:380px;height:600px;max-height:80vh;background:rgba(13,17,23,.98);border:1px solid rgba(255,255,255,.08);border-radius:16px;backdrop-filter:blur(20px);flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+#callPanel.open{display:flex}
+#callHeader{padding:16px 20px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+#callHeader h3{font-size:14px;font-weight:600;color:#e2e8f0;margin:0;display:flex;align-items:center;gap:8px}
+#callStatus{font-size:11px;color:#6b7280;font-weight:400}
+#callHeader .close{background:none;border:none;color:#6b7280;cursor:pointer;font-size:18px;padding:4px}
+#callLog{flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:10px;min-height:0}
+#callLog .msg{padding:10px 14px;border-radius:12px;font-size:13px;line-height:1.5;max-width:85%;animation:fadeIn .3s}
+#callLog .user-msg{background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.2);align-self:flex-end;border-bottom-right-radius:4px;color:#e2e8f0}
+#callLog .ai-msg{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);align-self:flex-start;border-bottom-left-radius:4px;border-left:3px solid #f97316;color:#e2e8f0}
+#callLog .msg-label{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:1px;opacity:.5;margin-bottom:4px}
+#callLog .sys-msg{text-align:center;font-size:11px;color:#6b7280;padding:8px;max-width:100%;background:rgba(255,255,255,.02);border-radius:8px}
+#callFooter{padding:12px 16px;border-top:1px solid rgba(255,255,255,.06);display:flex;gap:8px;align-items:center;flex-shrink:0}
+#callFooter .wave{flex:1;height:40px;display:flex;align-items:center;justify-content:center;gap:2px}
+#callFooter .wave span{width:3px;background:#22c55e;border-radius:3px;animation:wave .8s infinite;display:none}
+#callFooter .wave.listening span{display:block}
+#callFooter .wave span:nth-child(1){height:12px;animation-delay:0s}
+#callFooter .wave span:nth-child(2){height:20px;animation-delay:.1s}
+#callFooter .wave span:nth-child(3){height:28px;animation-delay:.2s}
+#callFooter .wave span:nth-child(4){height:20px;animation-delay:.3s}
+#callFooter .wave span:nth-child(5){height:12px;animation-delay:.4s}
+#callFooter .actions{display:flex;gap:6px}
+#callFooter button{width:36px;height:36px;border-radius:50%;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.03);color:#e2e8f0;cursor:pointer;font-size:14px;transition:all .2s;display:flex;align-items:center;justify-content:center}
+#callFooter button:hover{background:rgba(255,255,255,.08)}
+#callFooter button.active{background:rgba(34,197,94,.15);border-color:rgba(34,197,94,.3)}
+#callFooter button.end-call{background:rgba(239,68,68,.2);border-color:rgba(239,68,68,.3);color:#ef4444;width:40px;height:40px;font-size:16px}
+#callFooter button.end-call:hover{background:rgba(239,68,68,.3)}
+.call-timer{font-size:11px;font-variant-numeric:tabular-nums;color:#6b7280;font-family:ui-monospace,monospace}
+#callSensitivity{display:flex;align-items:center;gap:6px;padding:6px 16px;border-top:1px solid rgba(255,255,255,.04);font-size:10px;color:#6b7280}
+#callSensitivity input[type=range]{flex:1;height:4px;-webkit-appearance:none;background:rgba(255,255,255,.1);border-radius:2px;outline:none}
+#callSensitivity input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;background:#22c55e;cursor:pointer}
+@keyframes pulse{0%{box-shadow:0 4px 20px rgba(239,68,68,.4)}50%{box-shadow:0 4px 30px rgba(239,68,68,.7)}100%{box-shadow:0 4px 20px rgba(239,68,68,.4)}}
+@keyframes wave{0%,100%{transform:scaleY(.3)}50%{transform:scaleY(1)}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+
+</style>
+</head><body>
+
+<!-- Brain Dashboard Focus Overlay (always present) -->
+<div id="brainFocusArea" onclick="closeBrainFocus()">
+  <div id="brainFocusCard" onclick="event.stopPropagation()"></div>
+</div>
 
 <!-- Sidebar -->
 <aside id="sidebar">
@@ -916,7 +1004,7 @@ camp-section{max-height:220px;overflow-y:auto}
 <!-- Main Area -->
 <div id="appWrap">
   <!-- loading removed -->
-  <div id="loadingMsg" style="padding:40px;text-align:center;color:var(--muted);font-size:13px">Loading dashboard...</div>
+  
   <div id="appMain"></div>
   <!-- Global media lightbox (shared by gallery, docs, etc.) -->
   <div id="galleryModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.92);align-items:center;justify-content:center;flex-direction:column" onclick="closeGalleryModal()">
@@ -1522,8 +1610,21 @@ async function renderAITeam(){
 // ─── PAGES ────────────────────────────────────────────
 const pages={
   home:`
-    <div id="home" class="page" style="width:100%;height:100%;padding:0;overflow:hidden">
-      <iframe src="/galaxy-3d?v=2" style="width:100%;height:100%;border:none;background:#000" title="Galaxy 3D" allow="accelerometer;autoplay;clipboard-write"></iframe>
+    <div id="home" class="page active" style="width:100%;height:100%;padding:0;overflow:hidden">
+      <div id="brainDashContainer" style="width:100%;height:100%;position:relative;overflow:hidden">
+        <svg id="brainConnSVG" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0"></svg>
+        <div id="brainCenter" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:2;cursor:pointer;text-align:center;width:140px;height:140px;display:flex;flex-direction:column;align-items:center;justify-content:center">
+          <div class="bc-core" style="width:110px;height:110px;border-radius:50%;background:radial-gradient(circle at 35% 35%,rgba(97,175,239,.25),var(--panel) 70%);border:2px solid rgba(97,175,239,.4);box-shadow:0 0 40px rgba(97,175,239,.25),0 0 80px rgba(97,175,239,.1),inset 0 0 30px rgba(97,175,239,.08);display:flex;flex-direction:column;align-items:center;justify-content:center;animation:brainPulse 4s ease-in-out infinite;position:relative">
+            <div style="font-size:28px;margin-bottom:2px">🧠</div>
+            <div style="font-size:10px;font-weight:700;color:var(--blue);letter-spacing:2px;text-transform:uppercase">AI BRAIN</div>
+            <div style="font-size:8px;color:var(--muted);margin-top:1px" id="brainSubLabel">Loading...</div>
+          </div>
+          <div class="bc-ring" style="position:absolute;border-radius:50%;border:1px solid;pointer-events:none;left:50%;top:50%;transform:translate(-50%,-50%);width:180px;height:180px;border-color:rgba(97,175,239,.12);animation:ringExpand 4s ease-in-out infinite"></div>
+          <div class="bc-ring" style="position:absolute;border-radius:50%;border:1px solid;pointer-events:none;left:50%;top:50%;transform:translate(-50%,-50%);width:240px;height:240px;border-color:rgba(97,175,239,.08);animation:ringExpand 4s ease-in-out infinite 1s"></div>
+          <div class="bc-ring" style="position:absolute;border-radius:50%;border:1px solid;pointer-events:none;left:50%;top:50%;transform:translate(-50%,-50%);width:300px;height:300px;border-color:rgba(97,175,239,.05);animation:ringExpand 4s ease-in-out infinite 2s"></div>
+        </div>
+        <div id="brainDashModules" style="position:absolute;inset:0;z-index:3"></div>
+      </div>
     </div>`,
 
   todo:`
@@ -1576,8 +1677,8 @@ const pages={
       <iframe src="https://ai.ragmedium.com/dashboard" style="width:100%;height:100%;border:none;border-radius:8px" title="RAGX - AI Knowledge" allow="clipboard-read;clipboard-write"></iframe>
     </div>`,
 
-  content:`
-    <div style="padding:8px;display:flex;flex-direction:column;height:100%">
+  content:`,
+  approvals:`    <div style="padding:8px;display:flex;flex-direction:column;height:100%">
       <div class="card" style="flex-shrink:0;display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
         <h3 style="margin:0;font-size:15px">📣 Content Empire</h3>
         <div style="display:flex;gap:4px;margin-left:auto">
@@ -2020,6 +2121,1389 @@ const pages={
           <button class="btn alt" style="flex:0" onclick="closeSecretForm()">Cancel</button>
         </div>
       </div>
+    </div>``
+      <div class="card" style="flex-shrink:0;display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
+        <h3 style="margin:0;font-size:15px">📣 Content Empire</h3>
+        <div style="display:flex;gap:4px;margin-left:auto">
+          <button id="ctBoardTab" class="btn" style="padding:4px 12px;font-size:11px;background:var(--blue);color:#fff;border-radius:6px" onclick="switchContentTab('board')">📋 Board</button>
+          <button id="ctIdeasTab" class="btn" style="padding:4px 12px;font-size:11px;border-radius:6px" onclick="switchContentTab('ideas')">💡 Ideas</button>
+          <button id="ctEmpireTab" class="btn" style="padding:4px 12px;font-size:11px;border-radius:6px" onclick="switchContentTab('empire')">🌐 Empire</button>
+        </div>
+      </div>
+      <div id="ctBoardView" style="flex:1;overflow:hidden;min-height:0">
+        <div id="contentBoard" style="display:flex;gap:8px;height:100%;overflow-x:auto;padding-bottom:8px"></div>
+      </div>
+      <div id="ctIdeasView" style="flex:1;overflow-y:auto;min-height:0;display:none">
+        <div id="contentIdeasList" style="display:grid;gap:6px"></div>
+      </div>
+      <div id="ctEmpireView" style="flex:1;overflow:hidden;min-height:0;display:none">
+        <iframe src="http://100.111.98.27:8088/" style="width:100%;height:100%;border:none;border-radius:8px" title="Content Empire" allow="clipboard-read;clipboard-write"></iframe>
+      </div>
+      <button id="ctNewPostBtn" class="btn" style="position:fixed;bottom:20px;right:20px;padding:10px 18px;background:var(--accent);color:#fff;border-radius:20px;font-size:13px;font-weight:700;box-shadow:0 4px 16px rgba(0,0,0,.4);z-index:10;cursor:pointer;border:0" onclick="openContentPostForm()">+ New Post</button>
+    </div>
+    <!-- Content Post Edit Modal -->
+    <div id="ctPostModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.7);align-items:center;justify-content:center" onclick="closeContentPostForm(event)">
+      <div class="card" style="width:min(90vw,500px);max-height:85vh;overflow-y:auto;padding:16px" onclick="event.stopPropagation()">
+        <h3 id="ctModalTitle" style="margin:0 0 12px">New Post</h3>
+        <input id="ctPostTitle" placeholder="Post title / idea" style="width:100%;padding:8px 12px;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:13px;margin-bottom:8px">
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <select id="ctPostPlatform" style="flex:1;padding:8px;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:12px">
+            <option value="LinkedIn">LinkedIn</option><option value="X">X / BlueSky</option><option value="TikTok/Reels">TikTok / Reels</option><option value="YouTube">YouTube</option><option value="Instagram">Instagram</option></select>
+          <select id="ctPostType" style="flex:1;padding:8px;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:12px">
+            <option value="insight">Insight</option><option value="short-form">Short-form</option><option value="carousel">Carousel</option><option value="thread">Thread</option><option value="long-form">Long-form</option><option value="behind-scenes">Behind-scenes</option></select>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <select id="ctPostPersona" style="flex:1;padding:8px;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:12px">
+            <option value="pb-builder">Builder Amir</option><option value="pb-kaneki">Kaneki Edge</option><option value="pb-creator">Creator Amir</option><option value="">No persona</option></select>
+          <select id="ctPostStatus" style="flex:1;padding:8px;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:12px">
+            <option value="idea">💡 Idea</option><option value="drafted">✏️ Drafted</option><option value="scheduled">📅 Scheduled</option><option value="posted">✅ Posted</option></select>
+        </div>
+        <textarea id="ctPostBody" placeholder="Post body / script / notes..." style="width:100%;min-height:100px;padding:8px 12px;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:12px;resize:vertical;margin-bottom:8px"></textarea>
+        <input id="ctPostHook" placeholder="Hook (first line)" style="width:100%;padding:8px 12px;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:12px;margin-bottom:8px">
+        <div style="display:flex;gap:8px;justify-content:flex-end">
+          <button class="btn ghost" onclick="closeContentPostForm()">Cancel</button>
+          <button class="btn" style="background:var(--accent);color:#fff;padding:8px 20px;border-radius:8px;font-size:13px" onclick="saveContentPost()">Save</button>
+        </div>
+      </div>
+    </div>`,
+
+  calendar:`
+    <div class="calPage">
+      <div class="calLeft">
+        <div class="card" style="padding:8px 10px">
+          <div class="row" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <button class="btn ghost" onclick="moveCal(-1)" style="padding:4px 8px;font-size:11px">←</button>
+            <h2 id="calMonth" style="margin:0;font-size:14px"></h2>
+            <button class="btn ghost" onclick="moveCal(1)" style="padding:4px 8px;font-size:11px">→</button>
+          </div>
+          <div class="calGrid" id="calGrid"></div>
+          <div class="calSync">
+            <span id="calSyncStatus">⏳ Connect to GCal</span>
+            <span id="calDeadlineCount" style="color:var(--muted)"></span>
+          </div>
+        </div>
+      </div>
+      <div class="calRight">
+        <div class="card" style="padding:12px 14px;height:100%">
+          <div class="dayView" id="dayView">
+            <div class="dayViewHead">
+              <div>
+                <h2 id="dvTitle">Today</h2>
+                <div class="dvLabel" id="dvLabel"></div>
+              </div>
+              <div class="dvNav">
+                <button onclick="moveDay(-1)">←</button>
+                <button onclick="selectedDate=todayKey();renderCalendar();load()">Today</button>
+                <button onclick="moveDay(1)">→</button>
+              </div>
+            </div>
+            <div id="ttConfig" class="card" style="padding:8px 10px;margin-bottom:10px"></div>
+            <div style="display:flex;gap:10px;margin-bottom:10px">
+              <div style="flex:1;max-height:300px;overflow-y:auto" id="timelineWrap">
+                <div id="timeline"></div>
+              </div>
+            </div>
+            <div id="dvContent" style="overflow-y:auto"></div>
+          </div>
+        </div>
+      </div>
+    </div>`,
+
+  chat:`
+    <div class="chatWrap" style="display:flex;flex-direction:column;height:100%">
+      <!-- Messages -->
+      <div id="chatTopBar" style="display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid var(--border);flex-shrink:0;min-height:42px">
+        <button onclick="toggleHistory()" style="border:0;background:var(--soft);color:var(--muted);cursor:pointer;padding:6px 10px;border-radius:6px;font-size:14px">☰ History</button>
+        <span id="chatThreadTitle" style="font-size:13px;font-weight:500;color:var(--fg);flex:1">Chat</span>
+        <button class="btn alt" onclick="createNewChat();navTo('chat')" style="padding:3px 10px;font-size:10px">＋ New</button>
+        <button onclick="refreshChat()" title="Refresh chat view" style="border:0;background:var(--soft);color:var(--muted);cursor:pointer;padding:3px 8px;border-radius:6px;font-size:13px">↻</button>
+      </div>
+      <!-- History sidebar -->
+      <div id="historyPane" class="historyPane">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px 12px;border-bottom:1px solid var(--border);margin-bottom:8px">
+          <span style="font-size:13px;font-weight:600;color:var(--fg)">Chat History</span>
+          <button onclick="toggleHistory()" style="border:0;background:none;color:var(--muted);cursor:pointer;font-size:16px;padding:2px 6px">×</button>
+        </div>
+        <div id="histList"></div>
+      </div>
+      <!-- Messages area -->
+      <div class="msgList" id="msgList" style="flex:1;overflow-y:auto;padding:20px 16px 80px 16px"></div>
+      <!-- Input area (Odysseus style) -->
+      <div class="chatInputWrap" style="padding:0 12px 4px;flex-shrink:0">
+        <div id="chatUploadStatus" style="padding:4px 4px 0;display:flex;flex-wrap:wrap;gap:4px;min-height:0"></div>
+        <div style="display:flex;gap:6px;margin-bottom:4px;align-items:center;flex-wrap:wrap;flex-shrink:0">
+          <button class="modeBtn" onclick="toggleChatMode('code')" id="codeModeBtn" style="border:0;background:var(--panel2);color:var(--muted);padding:3px 10px;border-radius:6px;cursor:pointer;font-size:10px;font-weight:600">⌘ Code</button>
+          <button class="modeBtn" onclick="toggleChatMode('research')" id="researchModeBtn" style="border:0;background:var(--panel2);color:var(--muted);padding:3px 10px;border-radius:6px;cursor:pointer;font-size:10px;font-weight:600">🧠 Research</button>
+          <button class="modeBtn" onclick="toggleChatMode('goal')" id="goalModeBtn" style="border:0;background:var(--panel2);color:var(--muted);padding:3px 10px;border-radius:6px;cursor:pointer;font-size:10px;font-weight:600">🎯 Goal</button>
+          <select id="chatProjectSelect" style="border:0;background:var(--panel2);color:var(--muted);padding:3px 8px;border-radius:6px;font-size:10px;cursor:pointer;outline:none">
+            <option value="">📁 Project</option>
+          </select>
+          <select id="chatSkillsSelect" style="border:0;background:var(--panel2);color:var(--muted);padding:3px 8px;border-radius:6px;font-size:10px;cursor:pointer;outline:none">
+            <option value="">🎯 Skills</option>
+          </select>
+          <span style="flex:1"></span>
+          <span id="chatModeIndicator" style="font-size:9px;color:var(--dim)">DeepSeek Pro</span>
+        </div>
+        <div style="display:flex;align-items:flex-end;gap:8px;background:var(--panel2);border:1px solid var(--border);border-radius:16px;padding:8px 8px 8px 16px" id="chatInputContainer">
+          <textarea id="chatInput" placeholder="Ask Kaneki to do anything..." style="flex:1;border:0;background:transparent;color:var(--text);font:inherit;font-size:14px;outline:none;resize:none;min-height:24px;max-height:120px;line-height:1.5;padding:4px 0;transition:height 0.15s" rows="1"></textarea>
+          <div style="display:flex;gap:4px;align-items:center;flex-shrink:0">
+            <input type="file" id="chatFileInput" multiple accept="image/*,.pdf,.doc,.docx,.txt,.zip" style="display:none" onchange="handleChatFileUpload(this.files)">
+            <button onclick="document.getElementById('chatFileInput').click()" title="Attach files or images" style="border:0;background:transparent;color:var(--muted);cursor:pointer;padding:6px;border-radius:8px;font-size:16px">📎</button>
+            <button id="chatToolsBtn" onclick="toggleChatMode('code')" title="Code" style="border:0;background:transparent;color:var(--muted);cursor:pointer;padding:6px;border-radius:8px;font-size:15px">⌘</button>
+            <button onclick="sendChatMessage()" style="border:0;background:var(--accent);color:#fff;border-radius:10px;width:36px;height:36px;cursor:pointer;font-size:16px;display:grid;place-items:center">➤</button>
+          </div>
+        </div>
+      </div>
+    </div>`,
+
+  desktop:`
+    <div style="width:100%;height:100%;overflow:hidden;border-radius:8px;display:flex;flex-direction:column">
+      <div id="dtStatus" style="padding:6px 12px;background:var(--card);border-bottom:1px solid var(--line);font-size:11px;color:var(--muted);display:flex;gap:12px;align-items:center;flex-shrink:0">
+        <span id="dtDot" style="width:7px;height:7px;border-radius:50%;background:var(--amber);display:inline-block"></span>
+        <span id="dtLabel">Starting desktop...</span>
+        <span style="flex:1"></span>
+        <a href="https://100.111.98.27:2088/" target="_blank" style="color:var(--blue);text-decoration:none;font-size:10px">↗ Full screen</a>
+      </div>
+      <iframe id="dtFrame" src="/desktop/" style="width:100%;height:100%;border:none"
+        title="Linux Desktop"></iframe>
+    </div>`,
+
+  brain:`,
+  approvals:`    <div style="padding:8px;display:flex;flex-direction:column;height:100%">
+      <div class="card" style="flex-shrink:0">
+        <h3 style="margin:0;font-size:15px">🧠 Deep Research</h3>
+        <p style="font-size:12px;color:var(--muted);margin-top:4px">Multi-step research — gather, analyze, and synthesize from multiple sources.</p>
+      </div>
+      <div class="card" style="flex:1;overflow-y:auto;min-height:0;display:flex;flex-direction:column">
+        <textarea id="brainQuery" placeholder="Enter a research topic..." style="width:100%;min-height:80px;padding:10px 14px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--text);font:inherit;font-size:13px;resize:vertical;margin-bottom:8px" onkeydown="if(event.key==='Enter'&&event.metaKey)startResearch()"></textarea>
+        <button class="btn" onclick="startResearch()" style="align-self:flex-start;font-size:12px">🔍 Research</button>
+        <div id="brainResults" style="flex:1;overflow-y:auto;margin-top:8px;font-size:13px;color:var(--muted)">
+          <div style="text-align:center;padding:40px 0;color:var(--dim)">Ask a research question. AI will search, analyze, and compile findings.</div>
+        </div>
+      </div>
+    </div>`,
+
+  compare:`
+    <div style="padding:8px;display:flex;flex-direction:column;height:100%">
+      <div class="card" style="flex-shrink:0">
+        <h3 style="margin:0;font-size:15px">⚖️ Compare Models</h3>
+        <p style="font-size:12px;color:var(--muted);margin-top:4px">Test two models side by side with the same prompt.</p>
+      </div>
+      <div class="card" style="flex:1;overflow-y:auto;min-height:0">
+        <textarea id="comparePrompt" placeholder="Enter a prompt to test both models..." style="width:100%;min-height:60px;padding:10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--text);font:inherit;font-size:13px;resize:vertical;margin-bottom:8px"></textarea>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <select id="compareModelA" style="flex:1;padding:8px;border-radius:6px;border:1px solid var(--line);background:var(--card);color:var(--text);font-size:12px;min-width:140px"></select>
+          <select id="compareModelB" style="flex:1;padding:8px;border-radius:6px;border:1px solid var(--line);background:var(--card);color:var(--text);font-size:12px;min-width:140px"></select>
+          <button class="btn" onclick="startCompare()" style="font-size:11px">Run</button>
+        </div>
+        <div id="compareResults" style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div style="background:var(--bg);border-radius:8px;padding:10px;min-height:100px;font-size:12px;color:var(--muted);white-space:pre-wrap" id="compareResultA">Model A response...</div>
+          <div style="background:var(--bg);border-radius:8px;padding:10px;min-height:100px;font-size:12px;color:var(--muted);white-space:pre-wrap" id="compareResultB">Model B response...</div>
+        </div>
+      </div>
+    </div>`,
+
+  inbox:`
+    <div style="padding:8px;display:flex;flex-direction:column;height:100%">
+      <div class="card" style="flex-shrink:0;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <h3 style="margin:0;font-size:15px">🔔 Notifications</h3>
+        <span id="inboxCount" style="font-size:11px;color:var(--muted)">0 items</span>
+        <button class="btn alt" onclick="pushSetupClick()" id="inboxPushBtn" style="margin-left:auto;font-size:10px;padding:4px 10px">📲 Enable Push</button>
+        <button class="btn alt" onclick="markAllNotifRead()" style="font-size:10px;padding:4px 10px">✓ All read</button>
+      </div>
+      <div id="inboxList" style="flex:1;overflow-y:auto;min-height:0">
+        <div style="text-align:center;padding:40px;color:var(--dim);font-size:13px">🔔 No notifications yet. Activity will appear here.</div>
+      </div>
+    </div>`,
+
+  mindmap:`
+    <div style="width:100%;height:100%;overflow:hidden;border-radius:8px">
+      <iframe src="http://100.111.98.27:4444/" style="width:100%;height:100%;border:none;border-radius:8px" title="RAGmind Strategy Map"></iframe>
+    </div>`,
+
+  scrape:`
+    <div style="width:100%;height:100%;overflow:hidden;border-radius:8px">
+      <iframe src="https://scrape.ragmedium.com/" style="width:100%;height:100%;border:none;border-radius:8px" title="ScrapeGraphAI Web Scraper"></iframe>
+    </div>`,
+
+  workspace:`
+    <div style="width:100%;height:100%;overflow:hidden;border-radius:8px;display:flex;flex-direction:column;position:relative">
+      <div style="display:flex;gap:6px;position:absolute;top:8px;right:8px;z-index:10;font-size:10px;align-items:center">
+        <span id="ocDot" style="width:7px;height:7px;border-radius:50%;background:var(--amber);display:inline-block"></span>
+        <span id="ocLabel" style="color:var(--dim)">Connecting...</span>
+        <button onclick="reloadOC()" style="border:1px solid var(--line);background:var(--card);color:var(--muted);border-radius:6px;padding:3px 8px;cursor:pointer;font-size:10px">↻</button>
+        <a href="http://100.111.98.27:1704/" target="_blank" style="border:1px solid var(--line);background:var(--card);color:var(--blue);border-radius:6px;padding:3px 8px;cursor:pointer;font-size:10px;text-decoration:none">↗</a>
+      </div>
+      <div id="ocLoading" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:8px;color:var(--dim)">
+        <span style="font-size:24px">⌘</span>
+        <span style="font-size:13px">Loading workspace...</span>
+      </div>
+      <iframe id="ocFrame" src="about:blank" style="width:100%;height:100%;border:none;border-radius:8px"
+        sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+        title="OpenCode Workspace" allow="clipboard-read;clipboard-write"></iframe>
+    </div>`,
+
+  leads:`
+    <div style="width:100%;height:100%;overflow:hidden;border-radius:8px">
+      <iframe src="https://l.ragmedium.com/" style="width:100%;height:100%;border:none;border-radius:8px" title="Lead Database"></iframe>
+    </div>`,
+
+  vault:`
+    <div style="padding:0;display:flex;flex-direction:column;height:100%">
+      <div style="display:flex;gap:8px;align-items:center;padding:6px 12px;flex-shrink:0;border-bottom:1px solid var(--border)">
+        <h2 style="margin:0;font-size:14px;font-weight:600">🧠 Vault</h2>
+        <span style="flex:1"></span>
+        <div style="display:flex;gap:4px;align-items:center">
+          <input id="vaultSearch" placeholder="Filter graph…" style="padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:11px;width:120px;outline:none" oninput="vaultSearchChange(this.value)">
+          <input id="vaultRagSearch" placeholder="🔍 AI search all data…" style="padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:11px;width:140px;outline:none" onkeydown="if(event.key==='Enter')vaultRagSearch(this.value)">
+          <select id="vaultFilter" style="padding:4px 6px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:10px" onchange="vaultFilterChange(this.value)">
+            <option value="all">All</option>
+            <option value="chat">💬 Chats</option>
+            <option value="business">🏢 Businesses</option>
+            <option value="document">📄 Docs</option>
+            <option value="task">✅ Tasks</option>
+            <option value="post">📝 Posts</option>
+            <option value="account">🔗 Accounts</option>
+            <option value="persona">👤 Personas</option>
+          </select>
+          <span id="vaultStats" style="font-size:10px;color:var(--dim);min-width:60px;text-align:right"></span>
+        </div>
+      </div>
+      <div style="display:flex;flex:1;overflow:hidden">
+        <div id="vaultCanvasWrap" style="flex:1;position:relative;overflow:hidden;background:var(--bg);min-width:0">
+          <canvas id="vaultCanvas" style="width:100%;height:100%;display:block;image-rendering:optimizeQuality"></canvas>
+          <div id="vaultMiniMap" style="position:absolute;bottom:8px;right:8px;width:120px;height:80px;background:rgba(0,0,0,0.5);border:1px solid var(--border);border-radius:6px"></div>
+          <div id="vaultLoading" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:var(--muted);font-size:13px">Loading knowledge graph…</div>
+          <div id="vaultEmpty" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:var(--muted);font-size:13px;display:none;text-align:center;line-height:1.8">
+            No data yet. Start chatting,<br>add projects, or upload documents.
+          </div>
+        </div>
+        <div id="vaultDetail" style="width:0;overflow:hidden;transition:width 0.2s;background:var(--card);border-left:1px solid var(--border);display:flex;flex-direction:column">
+          <div style="padding:8px 10px;display:flex;align-items:center;gap:6px;border-bottom:1px solid var(--border);flex-shrink:0">
+            <span id="vaultDetailIcon" style="font-size:16px">📄</span>
+            <span id="vaultDetailTitle" style="font-size:13px;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Title</span>
+            <button onclick="closeVaultDetail()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:2px 6px">✕</button>
+          </div>
+          <div id="vaultDetailBody" style="flex:1;overflow-y:auto;padding:8px 10px;font-size:12px;color:var(--text);line-height:1.6"></div>
+        </div>
+      </div>
+    </div>`,
+
+  skills:`
+    <div style="padding:8px">
+      <div class="card"><h3 style="margin:0 0 8px">📋 Skills</h3>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+          <select id="skillFilter" style="padding:6px 12px;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:12px" onchange="renderSkills()">
+            <option value="all">All categories</option>
+          </select>
+          <input id="skillSearch" type="text" placeholder="Search skills..." style="flex:1;min-width:120px;padding:6px 12px;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:12px" oninput="renderSkills()">
+        </div>
+        <div id="skillGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px"></div>
+      </div>
+    </div>`,
+
+  docs:`
+    <div style="padding:8px">
+      <div class="card">
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
+          <h3 style="margin:0;font-size:15px">📄 Documents</h3>
+          <div style="display:flex;gap:4px;margin-left:auto">
+            <button id="docsTabBtn" class="btn" style="padding:4px 12px;font-size:11px;background:var(--blue);color:#fff;border-radius:6px" onclick="switchDocTab('docs')">📄 Docs</button>
+            <button id="galleryTabBtn" class="btn" style="padding:4px 12px;font-size:11px;border-radius:6px" onclick="switchDocTab('gallery')">🖼️ Gallery</button>
+          </div>
+        </div>
+        <div id="docsDocView">
+          <div style="display:flex;gap:8px;margin-bottom:12px">
+            <input id="docSearch" type="text" placeholder="Search documents..." style="flex:1;padding:8px 12px;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:13px" oninput="filterDocs(this.value)">
+          </div>
+          <div id="docUploadArea" style="border:2px dashed var(--line);border-radius:12px;padding:24px;text-align:center;margin-bottom:12px;cursor:pointer" onclick="document.getElementById('docFileInput').click()" ondragover="event.preventDefault()" ondrop="handleDocDrop(event)">
+            <div style="font-size:24px;margin-bottom:8px">📤</div>
+            <div style="font-size:13px;color:var(--muted)">Drop files here or click to upload</div>
+            <input id="docFileInput" type="file" multiple style="display:none" onchange="handleDocUpload(this.files)">
+          </div>
+          <div id="docStats" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;font-size:12px;color:var(--muted)"></div>
+          <div id="docList" style="display:grid;gap:6px"></div>
+        </div>
+        <div id="docsGalleryView" style="display:none">
+          <div id="galleryGridInline" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px"></div>
+        </div>
+      </div>
+    </div>`,
+
+  board:`
+    <div class="boardWrap">
+      <div class="boardFilter">
+        <select id="boardProjectFilter" onchange="renderBoard()"><option value="__all">All projects</option></select>
+        <select id="boardPriorityFilter" onchange="renderBoard()"><option value="__all">All priorities</option><option value="high">🔥 High</option><option value="medium">📌 Medium</option><option value="low">💤 Low</option></select>
+      </div>
+      <div class="boardCols" id="boardCols"></div>
+    </div>
+    <div class="taskOverlay" id="taskOverlay" onclick="closeTaskMenu(event)">
+      <div class="taskPopup" onclick="event.stopPropagation()">
+        <h3 id="tpTitle"></h3>
+        <div class="tpMeta" id="tpMeta"></div>
+        <div class="tpDescHeader">
+          <label>📝 Description</label>
+          <button class="btn ghost" id="tpEditBtn" onclick="toggleDescEdit()" style="padding:2px 10px;font-size:10px">✏️ Edit</button>
+        </div>
+        <div class="tpDesc" id="tpDesc"></div>
+        <textarea class="tpDescEdit" id="tpDescEdit" placeholder="Add notes, context, steps…"></textarea>
+        <button class="btn alt" id="tpSaveDesc" onclick="saveTaskDesc()" style="display:none;width:100%;margin-bottom:12px;font-size:11px">💾 Save description</button>
+        <div class="tpActions">
+          <div class="tpBtn" onclick="taskDone()"><span class="tpIcon">✅</span> <div>Mark done <span class="tpSub">— complete this task</span></div></div>
+          <div class="tpBtn" onclick="taskChat()"><span class="tpIcon">💬</span> <div>Discuss in Chat <span class="tpSub">— talk it through with Kaneki</span></div></div>
+          <div class="tpBtn" onclick="taskCode()"><span class="tpIcon">⌘</span> <div>Code mode <span class="tpSub">— build / implement / configure</span></div></div>
+        </div>
+        <button class="tpClose" onclick="closeTaskMenu()">Cancel</button>
+      </div>
+    </div>`,
+
+  gallery:`
+    <div style="padding:8px;display:flex;flex-direction:column;height:100%">
+      <div class="card" style="flex-shrink:0;display:flex;gap:12px;align-items:center">
+        <h3 style="margin:0;font-size:15px">🖼️ Gallery</h3>
+        <span style="font-size:11px;color:var(--muted)">Photos & videos</span>
+        <span style="flex:1"></span>
+        <span id="galleryCount" style="font-size:10px;color:var(--dim)"></span>
+      </div>
+      <div class="card" style="flex:1;overflow-y:auto;min-height:0;padding:6px">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:4px" id="galleryGrid">
+          <div style="text-align:center;padding:40px;color:var(--dim);font-size:13px;grid-column:1/-1">
+            <div style="font-size:48px;margin-bottom:12px">🖼️</div>
+            <div>Loading gallery...</div>
+          </div>
+        </div>
+      </div>`,
+
+  legal:`
+    <div style="display:flex;flex-direction:column;height:100%">
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid var(--border);flex-shrink:0;min-height:42px">
+        <span style="font-size:16px">⚖️</span>
+        <span style="font-size:13px;font-weight:500;color:var(--fg);flex:1">Legal AI Assistant</span>
+        <span style="font-size:9px;color:var(--dim);background:var(--panel2);padding:2px 8px;border-radius:10px">⚠️ Not legal advice</span>
+      </div>
+      <div id="legalMsgList" style="flex:1;overflow-y:auto;padding:20px 16px 8px">
+        <div style="text-align:center;padding:40px 20px">
+          <div style="font-size:48px;margin-bottom:12px">⚖️</div>
+          <h3 style="margin:0 0 6px;font-size:16px;color:var(--fg)">Legal AI Assistant</h3>
+          <p style="margin:0 0 20px;color:var(--dim);font-size:12px">Ask me about contracts, business law, IP, GDPR, compliance, and more.<br>⚠️ I provide informational guidance, not legal advice.</p>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;max-width:500px;margin:0 auto">
+            <button onclick="sendLegalMsg('Review a standard NDA clause for freelancer contracts')" style="border:1px solid var(--border);background:var(--panel2);color:var(--fg);border-radius:12px;padding:6px 14px;cursor:pointer;font-size:10px">📄 Review NDA clause</button>
+            <button onclick="sendLegalMsg('What should a SaaS Terms of Service include?')" style="border:1px solid var(--border);background:var(--panel2);color:var(--fg);border-radius:12px;padding:6px 14px;cursor:pointer;font-size:10px">📋 SaaS Terms of Service</button>
+            <button onclick="sendLegalMsg('Explain GDPR requirements for a B2B SaaS based in Germany')" style="border:1px solid var(--border);background:var(--panel2);color:var(--fg);border-radius:12px;padding:6px 14px;cursor:pointer;font-size:10px">🔒 GDPR for B2B SaaS</button>
+            <button onclick="sendLegalMsg('What IP considerations for white-label software agreements?')" style="border:1px solid var(--border);background:var(--panel2);color:var(--fg);border-radius:12px;padding:6px 14px;cursor:pointer;font-size:10px">💡 IP & White-label</button>
+            <button onclick="sendLegalMsg('LLC vs UG vs GmbH in Germany — which is best for my startups?')" style="border:1px solid var(--border);background:var(--panel2);color:var(--fg);border-radius:12px;padding:6px 14px;cursor:pointer;font-size:10px">🏢 Entity formation</button>
+            <button onclick="sendLegalMsg('What are the key clauses in a software development agreement?')" style="border:1px solid var(--border);background:var(--panel2);color:var(--fg);border-radius:12px;padding:6px 14px;cursor:pointer;font-size:10px">⚙️ Dev agreement</button>
+          </div>
+        </div>
+      </div>
+      <div style="padding:8px 12px 12px;flex-shrink:0">
+        <div style="display:flex;align-items:flex-end;gap:8px;background:var(--panel2);border:1px solid var(--border);border-radius:16px;padding:8px 8px 8px 16px">
+          <textarea id="legalInput" placeholder="Ask about contracts, compliance, entity formation, IP..." style="flex:1;border:0;background:transparent;color:var(--text);font:inherit;font-size:14px;outline:none;resize:none;min-height:24px;max-height:120px;line-height:1.5;padding:4px 0" rows="1"></textarea>
+          <button onclick="sendLegalMsg()" style="border:0;background:var(--accent);color:#fff;border-radius:10px;width:36px;height:36px;cursor:pointer;font-size:16px;display:grid;place-items:center;flex-shrink:0">➤</button>
+        </div>
+      </div>
+    </div>`,
+  studio:`
+    <div style="width:100%;height:100%;overflow:hidden;border-radius:8px">
+      <iframe src="http://100.111.98.27:1705/" style="width:100%;height:100%;border:none;border-radius:8px" title="Content Studio - AI Content Creation" allow="clipboard-read;clipboard-write"></iframe>
+    </div>`,
+
+  slack:`
+    <div style="width:100%;height:100%;overflow:hidden;border-radius:8px">
+      <iframe src="/slack.html" style="width:100%;height:100%;border:none;background:#0a0a0f" title="AI Slack — Team Communication"></iframe>
+    </div>`,
+
+
+  goals:`
+    <div style="padding:0;display:flex;flex-direction:column;height:100%">
+      <div style="display:flex;gap:8px;align-items:center;padding:6px 12px;flex-shrink:0;border-bottom:1px solid var(--border)">
+        <h2 style="margin:0;font-size:14px;font-weight:600">🎯 Goal Mode</h2>
+        <span style="font-size:10px;color:var(--muted)">autonomous execution</span>
+        <span style="flex:1"></span>
+        <button class="btn" style="padding:4px 12px;font-size:11px;background:var(--accent);color:#fff;border-radius:6px" onclick="showGoalForm()">＋ New Goal</button>
+      </div>
+      <div id="goalList" style="flex:1;overflow-y:auto;padding:8px 12px;display:flex;flex-direction:column;gap:8px"></div>
+    </div>`,
+  secrets:`
+    <div style="padding:0;display:flex;flex-direction:column;height:100%">
+      <div style="display:flex;gap:8px;align-items:center;padding:6px 12px;flex-shrink:0;border-bottom:1px solid var(--border)">
+        <h2 style="margin:0;font-size:14px;font-weight:600">🔐 Secrets</h2>
+        <span style="font-size:10px;color:var(--muted)">encrypted at rest · AES-256</span>
+        <span style="flex:1"></span>
+        <input id="secSearch" placeholder="Search secrets…" style="padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:11px;width:140px;outline:none" oninput="renderSecrets()">
+        <span id="secStats" style="font-size:10px;color:var(--dim)"></span>
+        <button class="btn" style="padding:4px 12px;font-size:11px;background:var(--blue);color:#fff;border-radius:6px" onclick="showSecretForm()">＋ New Secret</button>
+      </div>
+      <div id="secList" style="flex:1;overflow-y:auto;padding:8px 12px"></div>
+    </div>
+    <!-- Secret Form Overlay -->
+    <div class="taskOverlay" id="secFormOverlay" onclick="if(event.target===this)closeSecretForm()">
+      <div class="taskPopup" style="max-width:440px" onclick="event.stopPropagation()">
+        <h3 id="secFormTitle">New Secret</h3>
+        <div style="display:grid;gap:8px;margin:12px 0">
+          <select id="secProject" style="padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:13px">
+            <option value="">Select project…</option>
+          </select>
+          <input id="secKey" type="text" placeholder="Key name (e.g. API_KEY, DB_PASSWORD, OPENAI_KEY)" style="padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:13px">
+          <div style="position:relative">
+            <input id="secValue" type="password" placeholder="Secret value (will be encrypted)" style="padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:13px;width:100%;padding-right:36px">
+            <button onclick="toggleSecVisibility()" style="position:absolute;right:4px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;padding:4px;font-size:14px" tabindex="-1">👁️</button>
+          </div>
+          <select id="secType" style="padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:13px">
+            <option value="api-key">🔑 API Key</option>
+            <option value="password">🔒 Password</option>
+            <option value="token">🪙 Token</option>
+            <option value="db">🗄️ Database</option>
+            <option value="other">📎 Other</option>
+          </select>
+          <input id="secNotes" type="text" placeholder="Optional notes / context" style="padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:13px">
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="btn" style="flex:1;background:var(--green);color:#fff" onclick="saveSecret()">💾 Save Encrypted</button>
+          <button class="btn alt" style="flex:0" onclick="closeSecretForm()">Cancel</button>
+        </div>
+      </div>
+    </div>``
+      <div class="card" style="flex-shrink:0">
+        <h3 style="margin:0;font-size:15px">🧠 Deep Research</h3>
+        <p style="font-size:12px;color:var(--muted);margin-top:4px">Multi-step research — gather, analyze, and synthesize from multiple sources.</p>
+      </div>
+      <div class="card" style="flex:1;overflow-y:auto;min-height:0;display:flex;flex-direction:column">
+        <textarea id="brainQuery" placeholder="Enter a research topic..." style="width:100%;min-height:80px;padding:10px 14px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--text);font:inherit;font-size:13px;resize:vertical;margin-bottom:8px" onkeydown="if(event.key==='Enter'&&event.metaKey)startResearch()"></textarea>
+        <button class="btn" onclick="startResearch()" style="align-self:flex-start;font-size:12px">🔍 Research</button>
+        <div id="brainResults" style="flex:1;overflow-y:auto;margin-top:8px;font-size:13px;color:var(--muted)">
+          <div style="text-align:center;padding:40px 0;color:var(--dim)">Ask a research question. AI will search, analyze, and compile findings.</div>
+        </div>
+      </div>
+    </div>`,
+
+  compare:`,
+  approvals:`    <div style="padding:8px;display:flex;flex-direction:column;height:100%">
+      <div class="card" style="flex-shrink:0">
+        <h3 style="margin:0;font-size:15px">⚖️ Compare Models</h3>
+        <p style="font-size:12px;color:var(--muted);margin-top:4px">Test two models side by side with the same prompt.</p>
+      </div>
+      <div class="card" style="flex:1;overflow-y:auto;min-height:0">
+        <textarea id="comparePrompt" placeholder="Enter a prompt to test both models..." style="width:100%;min-height:60px;padding:10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--text);font:inherit;font-size:13px;resize:vertical;margin-bottom:8px"></textarea>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <select id="compareModelA" style="flex:1;padding:8px;border-radius:6px;border:1px solid var(--line);background:var(--card);color:var(--text);font-size:12px;min-width:140px"></select>
+          <select id="compareModelB" style="flex:1;padding:8px;border-radius:6px;border:1px solid var(--line);background:var(--card);color:var(--text);font-size:12px;min-width:140px"></select>
+          <button class="btn" onclick="startCompare()" style="font-size:11px">Run</button>
+        </div>
+        <div id="compareResults" style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div style="background:var(--bg);border-radius:8px;padding:10px;min-height:100px;font-size:12px;color:var(--muted);white-space:pre-wrap" id="compareResultA">Model A response...</div>
+          <div style="background:var(--bg);border-radius:8px;padding:10px;min-height:100px;font-size:12px;color:var(--muted);white-space:pre-wrap" id="compareResultB">Model B response...</div>
+        </div>
+      </div>
+    </div>`,
+
+  inbox:`
+    <div style="padding:8px;display:flex;flex-direction:column;height:100%">
+      <div class="card" style="flex-shrink:0;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <h3 style="margin:0;font-size:15px">🔔 Notifications</h3>
+        <span id="inboxCount" style="font-size:11px;color:var(--muted)">0 items</span>
+        <button class="btn alt" onclick="pushSetupClick()" id="inboxPushBtn" style="margin-left:auto;font-size:10px;padding:4px 10px">📲 Enable Push</button>
+        <button class="btn alt" onclick="markAllNotifRead()" style="font-size:10px;padding:4px 10px">✓ All read</button>
+      </div>
+      <div id="inboxList" style="flex:1;overflow-y:auto;min-height:0">
+        <div style="text-align:center;padding:40px;color:var(--dim);font-size:13px">🔔 No notifications yet. Activity will appear here.</div>
+      </div>
+    </div>`,
+
+  mindmap:`
+    <div style="width:100%;height:100%;overflow:hidden;border-radius:8px">
+      <iframe src="http://100.111.98.27:4444/" style="width:100%;height:100%;border:none;border-radius:8px" title="RAGmind Strategy Map"></iframe>
+    </div>`,
+
+  scrape:`
+    <div style="width:100%;height:100%;overflow:hidden;border-radius:8px">
+      <iframe src="https://scrape.ragmedium.com/" style="width:100%;height:100%;border:none;border-radius:8px" title="ScrapeGraphAI Web Scraper"></iframe>
+    </div>`,
+
+  workspace:`
+    <div style="width:100%;height:100%;overflow:hidden;border-radius:8px;display:flex;flex-direction:column;position:relative">
+      <div style="display:flex;gap:6px;position:absolute;top:8px;right:8px;z-index:10;font-size:10px;align-items:center">
+        <span id="ocDot" style="width:7px;height:7px;border-radius:50%;background:var(--amber);display:inline-block"></span>
+        <span id="ocLabel" style="color:var(--dim)">Connecting...</span>
+        <button onclick="reloadOC()" style="border:1px solid var(--line);background:var(--card);color:var(--muted);border-radius:6px;padding:3px 8px;cursor:pointer;font-size:10px">↻</button>
+        <a href="http://100.111.98.27:1704/" target="_blank" style="border:1px solid var(--line);background:var(--card);color:var(--blue);border-radius:6px;padding:3px 8px;cursor:pointer;font-size:10px;text-decoration:none">↗</a>
+      </div>
+      <div id="ocLoading" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:8px;color:var(--dim)">
+        <span style="font-size:24px">⌘</span>
+        <span style="font-size:13px">Loading workspace...</span>
+      </div>
+      <iframe id="ocFrame" src="about:blank" style="width:100%;height:100%;border:none;border-radius:8px"
+        sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+        title="OpenCode Workspace" allow="clipboard-read;clipboard-write"></iframe>
+    </div>`,
+
+  leads:`
+    <div style="width:100%;height:100%;overflow:hidden;border-radius:8px">
+      <iframe src="https://l.ragmedium.com/" style="width:100%;height:100%;border:none;border-radius:8px" title="Lead Database"></iframe>
+    </div>`,
+
+  vault:`
+    <div style="padding:0;display:flex;flex-direction:column;height:100%">
+      <div style="display:flex;gap:8px;align-items:center;padding:6px 12px;flex-shrink:0;border-bottom:1px solid var(--border)">
+        <h2 style="margin:0;font-size:14px;font-weight:600">🧠 Vault</h2>
+        <span style="flex:1"></span>
+        <div style="display:flex;gap:4px;align-items:center">
+          <input id="vaultSearch" placeholder="Filter graph…" style="padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:11px;width:120px;outline:none" oninput="vaultSearchChange(this.value)">
+          <input id="vaultRagSearch" placeholder="🔍 AI search all data…" style="padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:11px;width:140px;outline:none" onkeydown="if(event.key==='Enter')vaultRagSearch(this.value)">
+          <select id="vaultFilter" style="padding:4px 6px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:10px" onchange="vaultFilterChange(this.value)">
+            <option value="all">All</option>
+            <option value="chat">💬 Chats</option>
+            <option value="business">🏢 Businesses</option>
+            <option value="document">📄 Docs</option>
+            <option value="task">✅ Tasks</option>
+            <option value="post">📝 Posts</option>
+            <option value="account">🔗 Accounts</option>
+            <option value="persona">👤 Personas</option>
+          </select>
+          <span id="vaultStats" style="font-size:10px;color:var(--dim);min-width:60px;text-align:right"></span>
+        </div>
+      </div>
+      <div style="display:flex;flex:1;overflow:hidden">
+        <div id="vaultCanvasWrap" style="flex:1;position:relative;overflow:hidden;background:var(--bg);min-width:0">
+          <canvas id="vaultCanvas" style="width:100%;height:100%;display:block;image-rendering:optimizeQuality"></canvas>
+          <div id="vaultMiniMap" style="position:absolute;bottom:8px;right:8px;width:120px;height:80px;background:rgba(0,0,0,0.5);border:1px solid var(--border);border-radius:6px"></div>
+          <div id="vaultLoading" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:var(--muted);font-size:13px">Loading knowledge graph…</div>
+          <div id="vaultEmpty" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:var(--muted);font-size:13px;display:none;text-align:center;line-height:1.8">
+            No data yet. Start chatting,<br>add projects, or upload documents.
+          </div>
+        </div>
+        <div id="vaultDetail" style="width:0;overflow:hidden;transition:width 0.2s;background:var(--card);border-left:1px solid var(--border);display:flex;flex-direction:column">
+          <div style="padding:8px 10px;display:flex;align-items:center;gap:6px;border-bottom:1px solid var(--border);flex-shrink:0">
+            <span id="vaultDetailIcon" style="font-size:16px">📄</span>
+            <span id="vaultDetailTitle" style="font-size:13px;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Title</span>
+            <button onclick="closeVaultDetail()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:2px 6px">✕</button>
+          </div>
+          <div id="vaultDetailBody" style="flex:1;overflow-y:auto;padding:8px 10px;font-size:12px;color:var(--text);line-height:1.6"></div>
+        </div>
+      </div>
+    </div>`,
+
+  skills:`
+    <div style="padding:8px">
+      <div class="card"><h3 style="margin:0 0 8px">📋 Skills</h3>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+          <select id="skillFilter" style="padding:6px 12px;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:12px" onchange="renderSkills()">
+            <option value="all">All categories</option>
+          </select>
+          <input id="skillSearch" type="text" placeholder="Search skills..." style="flex:1;min-width:120px;padding:6px 12px;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:12px" oninput="renderSkills()">
+        </div>
+        <div id="skillGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px"></div>
+      </div>
+    </div>`,
+
+  docs:`
+    <div style="padding:8px">
+      <div class="card">
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
+          <h3 style="margin:0;font-size:15px">📄 Documents</h3>
+          <div style="display:flex;gap:4px;margin-left:auto">
+            <button id="docsTabBtn" class="btn" style="padding:4px 12px;font-size:11px;background:var(--blue);color:#fff;border-radius:6px" onclick="switchDocTab('docs')">📄 Docs</button>
+            <button id="galleryTabBtn" class="btn" style="padding:4px 12px;font-size:11px;border-radius:6px" onclick="switchDocTab('gallery')">🖼️ Gallery</button>
+          </div>
+        </div>
+        <div id="docsDocView">
+          <div style="display:flex;gap:8px;margin-bottom:12px">
+            <input id="docSearch" type="text" placeholder="Search documents..." style="flex:1;padding:8px 12px;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:13px" oninput="filterDocs(this.value)">
+          </div>
+          <div id="docUploadArea" style="border:2px dashed var(--line);border-radius:12px;padding:24px;text-align:center;margin-bottom:12px;cursor:pointer" onclick="document.getElementById('docFileInput').click()" ondragover="event.preventDefault()" ondrop="handleDocDrop(event)">
+            <div style="font-size:24px;margin-bottom:8px">📤</div>
+            <div style="font-size:13px;color:var(--muted)">Drop files here or click to upload</div>
+            <input id="docFileInput" type="file" multiple style="display:none" onchange="handleDocUpload(this.files)">
+          </div>
+          <div id="docStats" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;font-size:12px;color:var(--muted)"></div>
+          <div id="docList" style="display:grid;gap:6px"></div>
+        </div>
+        <div id="docsGalleryView" style="display:none">
+          <div id="galleryGridInline" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px"></div>
+        </div>
+      </div>
+    </div>`,
+
+  board:`
+    <div class="boardWrap">
+      <div class="boardFilter">
+        <select id="boardProjectFilter" onchange="renderBoard()"><option value="__all">All projects</option></select>
+        <select id="boardPriorityFilter" onchange="renderBoard()"><option value="__all">All priorities</option><option value="high">🔥 High</option><option value="medium">📌 Medium</option><option value="low">💤 Low</option></select>
+      </div>
+      <div class="boardCols" id="boardCols"></div>
+    </div>
+    <div class="taskOverlay" id="taskOverlay" onclick="closeTaskMenu(event)">
+      <div class="taskPopup" onclick="event.stopPropagation()">
+        <h3 id="tpTitle"></h3>
+        <div class="tpMeta" id="tpMeta"></div>
+        <div class="tpDescHeader">
+          <label>📝 Description</label>
+          <button class="btn ghost" id="tpEditBtn" onclick="toggleDescEdit()" style="padding:2px 10px;font-size:10px">✏️ Edit</button>
+        </div>
+        <div class="tpDesc" id="tpDesc"></div>
+        <textarea class="tpDescEdit" id="tpDescEdit" placeholder="Add notes, context, steps…"></textarea>
+        <button class="btn alt" id="tpSaveDesc" onclick="saveTaskDesc()" style="display:none;width:100%;margin-bottom:12px;font-size:11px">💾 Save description</button>
+        <div class="tpActions">
+          <div class="tpBtn" onclick="taskDone()"><span class="tpIcon">✅</span> <div>Mark done <span class="tpSub">— complete this task</span></div></div>
+          <div class="tpBtn" onclick="taskChat()"><span class="tpIcon">💬</span> <div>Discuss in Chat <span class="tpSub">— talk it through with Kaneki</span></div></div>
+          <div class="tpBtn" onclick="taskCode()"><span class="tpIcon">⌘</span> <div>Code mode <span class="tpSub">— build / implement / configure</span></div></div>
+        </div>
+        <button class="tpClose" onclick="closeTaskMenu()">Cancel</button>
+      </div>
+    </div>`,
+
+  gallery:`
+    <div style="padding:8px;display:flex;flex-direction:column;height:100%">
+      <div class="card" style="flex-shrink:0;display:flex;gap:12px;align-items:center">
+        <h3 style="margin:0;font-size:15px">🖼️ Gallery</h3>
+        <span style="font-size:11px;color:var(--muted)">Photos & videos</span>
+        <span style="flex:1"></span>
+        <span id="galleryCount" style="font-size:10px;color:var(--dim)"></span>
+      </div>
+      <div class="card" style="flex:1;overflow-y:auto;min-height:0;padding:6px">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:4px" id="galleryGrid">
+          <div style="text-align:center;padding:40px;color:var(--dim);font-size:13px;grid-column:1/-1">
+            <div style="font-size:48px;margin-bottom:12px">🖼️</div>
+            <div>Loading gallery...</div>
+          </div>
+        </div>
+      </div>`,
+
+  legal:`
+    <div style="display:flex;flex-direction:column;height:100%">
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid var(--border);flex-shrink:0;min-height:42px">
+        <span style="font-size:16px">⚖️</span>
+        <span style="font-size:13px;font-weight:500;color:var(--fg);flex:1">Legal AI Assistant</span>
+        <span style="font-size:9px;color:var(--dim);background:var(--panel2);padding:2px 8px;border-radius:10px">⚠️ Not legal advice</span>
+      </div>
+      <div id="legalMsgList" style="flex:1;overflow-y:auto;padding:20px 16px 8px">
+        <div style="text-align:center;padding:40px 20px">
+          <div style="font-size:48px;margin-bottom:12px">⚖️</div>
+          <h3 style="margin:0 0 6px;font-size:16px;color:var(--fg)">Legal AI Assistant</h3>
+          <p style="margin:0 0 20px;color:var(--dim);font-size:12px">Ask me about contracts, business law, IP, GDPR, compliance, and more.<br>⚠️ I provide informational guidance, not legal advice.</p>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;max-width:500px;margin:0 auto">
+            <button onclick="sendLegalMsg('Review a standard NDA clause for freelancer contracts')" style="border:1px solid var(--border);background:var(--panel2);color:var(--fg);border-radius:12px;padding:6px 14px;cursor:pointer;font-size:10px">📄 Review NDA clause</button>
+            <button onclick="sendLegalMsg('What should a SaaS Terms of Service include?')" style="border:1px solid var(--border);background:var(--panel2);color:var(--fg);border-radius:12px;padding:6px 14px;cursor:pointer;font-size:10px">📋 SaaS Terms of Service</button>
+            <button onclick="sendLegalMsg('Explain GDPR requirements for a B2B SaaS based in Germany')" style="border:1px solid var(--border);background:var(--panel2);color:var(--fg);border-radius:12px;padding:6px 14px;cursor:pointer;font-size:10px">🔒 GDPR for B2B SaaS</button>
+            <button onclick="sendLegalMsg('What IP considerations for white-label software agreements?')" style="border:1px solid var(--border);background:var(--panel2);color:var(--fg);border-radius:12px;padding:6px 14px;cursor:pointer;font-size:10px">💡 IP & White-label</button>
+            <button onclick="sendLegalMsg('LLC vs UG vs GmbH in Germany — which is best for my startups?')" style="border:1px solid var(--border);background:var(--panel2);color:var(--fg);border-radius:12px;padding:6px 14px;cursor:pointer;font-size:10px">🏢 Entity formation</button>
+            <button onclick="sendLegalMsg('What are the key clauses in a software development agreement?')" style="border:1px solid var(--border);background:var(--panel2);color:var(--fg);border-radius:12px;padding:6px 14px;cursor:pointer;font-size:10px">⚙️ Dev agreement</button>
+          </div>
+        </div>
+      </div>
+      <div style="padding:8px 12px 12px;flex-shrink:0">
+        <div style="display:flex;align-items:flex-end;gap:8px;background:var(--panel2);border:1px solid var(--border);border-radius:16px;padding:8px 8px 8px 16px">
+          <textarea id="legalInput" placeholder="Ask about contracts, compliance, entity formation, IP..." style="flex:1;border:0;background:transparent;color:var(--text);font:inherit;font-size:14px;outline:none;resize:none;min-height:24px;max-height:120px;line-height:1.5;padding:4px 0" rows="1"></textarea>
+          <button onclick="sendLegalMsg()" style="border:0;background:var(--accent);color:#fff;border-radius:10px;width:36px;height:36px;cursor:pointer;font-size:16px;display:grid;place-items:center;flex-shrink:0">➤</button>
+        </div>
+      </div>
+    </div>`,
+  studio:`
+    <div style="width:100%;height:100%;overflow:hidden;border-radius:8px">
+      <iframe src="http://100.111.98.27:1705/" style="width:100%;height:100%;border:none;border-radius:8px" title="Content Studio - AI Content Creation" allow="clipboard-read;clipboard-write"></iframe>
+    </div>`,
+
+  slack:`
+    <div style="width:100%;height:100%;overflow:hidden;border-radius:8px">
+      <iframe src="/slack.html" style="width:100%;height:100%;border:none;background:#0a0a0f" title="AI Slack — Team Communication"></iframe>
+    </div>`,
+
+
+  goals:`
+    <div style="padding:0;display:flex;flex-direction:column;height:100%">
+      <div style="display:flex;gap:8px;align-items:center;padding:6px 12px;flex-shrink:0;border-bottom:1px solid var(--border)">
+        <h2 style="margin:0;font-size:14px;font-weight:600">🎯 Goal Mode</h2>
+        <span style="font-size:10px;color:var(--muted)">autonomous execution</span>
+        <span style="flex:1"></span>
+        <button class="btn" style="padding:4px 12px;font-size:11px;background:var(--accent);color:#fff;border-radius:6px" onclick="showGoalForm()">＋ New Goal</button>
+      </div>
+      <div id="goalList" style="flex:1;overflow-y:auto;padding:8px 12px;display:flex;flex-direction:column;gap:8px"></div>
+    </div>`,
+  secrets:`
+    <div style="padding:0;display:flex;flex-direction:column;height:100%">
+      <div style="display:flex;gap:8px;align-items:center;padding:6px 12px;flex-shrink:0;border-bottom:1px solid var(--border)">
+        <h2 style="margin:0;font-size:14px;font-weight:600">🔐 Secrets</h2>
+        <span style="font-size:10px;color:var(--muted)">encrypted at rest · AES-256</span>
+        <span style="flex:1"></span>
+        <input id="secSearch" placeholder="Search secrets…" style="padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:11px;width:140px;outline:none" oninput="renderSecrets()">
+        <span id="secStats" style="font-size:10px;color:var(--dim)"></span>
+        <button class="btn" style="padding:4px 12px;font-size:11px;background:var(--blue);color:#fff;border-radius:6px" onclick="showSecretForm()">＋ New Secret</button>
+      </div>
+      <div id="secList" style="flex:1;overflow-y:auto;padding:8px 12px"></div>
+    </div>
+    <!-- Secret Form Overlay -->
+    <div class="taskOverlay" id="secFormOverlay" onclick="if(event.target===this)closeSecretForm()">
+      <div class="taskPopup" style="max-width:440px" onclick="event.stopPropagation()">
+        <h3 id="secFormTitle">New Secret</h3>
+        <div style="display:grid;gap:8px;margin:12px 0">
+          <select id="secProject" style="padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:13px">
+            <option value="">Select project…</option>
+          </select>
+          <input id="secKey" type="text" placeholder="Key name (e.g. API_KEY, DB_PASSWORD, OPENAI_KEY)" style="padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:13px">
+          <div style="position:relative">
+            <input id="secValue" type="password" placeholder="Secret value (will be encrypted)" style="padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:13px;width:100%;padding-right:36px">
+            <button onclick="toggleSecVisibility()" style="position:absolute;right:4px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;padding:4px;font-size:14px" tabindex="-1">👁️</button>
+          </div>
+          <select id="secType" style="padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:13px">
+            <option value="api-key">🔑 API Key</option>
+            <option value="password">🔒 Password</option>
+            <option value="token">🪙 Token</option>
+            <option value="db">🗄️ Database</option>
+            <option value="other">📎 Other</option>
+          </select>
+          <input id="secNotes" type="text" placeholder="Optional notes / context" style="padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:13px">
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="btn" style="flex:1;background:var(--green);color:#fff" onclick="saveSecret()">💾 Save Encrypted</button>
+          <button class="btn alt" style="flex:0" onclick="closeSecretForm()">Cancel</button>
+        </div>
+      </div>
+    </div>``
+      <div class="card" style="flex-shrink:0">
+        <h3 style="margin:0;font-size:15px">⚖️ Compare Models</h3>
+        <p style="font-size:12px;color:var(--muted);margin-top:4px">Test two models side by side with the same prompt.</p>
+      </div>
+      <div class="card" style="flex:1;overflow-y:auto;min-height:0">
+        <textarea id="comparePrompt" placeholder="Enter a prompt to test both models..." style="width:100%;min-height:60px;padding:10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--text);font:inherit;font-size:13px;resize:vertical;margin-bottom:8px"></textarea>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <select id="compareModelA" style="flex:1;padding:8px;border-radius:6px;border:1px solid var(--line);background:var(--card);color:var(--text);font-size:12px;min-width:140px"></select>
+          <select id="compareModelB" style="flex:1;padding:8px;border-radius:6px;border:1px solid var(--line);background:var(--card);color:var(--text);font-size:12px;min-width:140px"></select>
+          <button class="btn" onclick="startCompare()" style="font-size:11px">Run</button>
+        </div>
+        <div id="compareResults" style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div style="background:var(--bg);border-radius:8px;padding:10px;min-height:100px;font-size:12px;color:var(--muted);white-space:pre-wrap" id="compareResultA">Model A response...</div>
+          <div style="background:var(--bg);border-radius:8px;padding:10px;min-height:100px;font-size:12px;color:var(--muted);white-space:pre-wrap" id="compareResultB">Model B response...</div>
+        </div>
+      </div>
+    </div>`,
+
+  inbox:`,
+  approvals:`    <div style="padding:8px;display:flex;flex-direction:column;height:100%">
+      <div class="card" style="flex-shrink:0;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <h3 style="margin:0;font-size:15px">🔔 Notifications</h3>
+        <span id="inboxCount" style="font-size:11px;color:var(--muted)">0 items</span>
+        <button class="btn alt" onclick="pushSetupClick()" id="inboxPushBtn" style="margin-left:auto;font-size:10px;padding:4px 10px">📲 Enable Push</button>
+        <button class="btn alt" onclick="markAllNotifRead()" style="font-size:10px;padding:4px 10px">✓ All read</button>
+      </div>
+      <div id="inboxList" style="flex:1;overflow-y:auto;min-height:0">
+        <div style="text-align:center;padding:40px;color:var(--dim);font-size:13px">🔔 No notifications yet. Activity will appear here.</div>
+      </div>
+    </div>`,
+
+  mindmap:`
+    <div style="width:100%;height:100%;overflow:hidden;border-radius:8px">
+      <iframe src="http://100.111.98.27:4444/" style="width:100%;height:100%;border:none;border-radius:8px" title="RAGmind Strategy Map"></iframe>
+    </div>`,
+
+  scrape:`
+    <div style="width:100%;height:100%;overflow:hidden;border-radius:8px">
+      <iframe src="https://scrape.ragmedium.com/" style="width:100%;height:100%;border:none;border-radius:8px" title="ScrapeGraphAI Web Scraper"></iframe>
+    </div>`,
+
+  workspace:`
+    <div style="width:100%;height:100%;overflow:hidden;border-radius:8px;display:flex;flex-direction:column;position:relative">
+      <div style="display:flex;gap:6px;position:absolute;top:8px;right:8px;z-index:10;font-size:10px;align-items:center">
+        <span id="ocDot" style="width:7px;height:7px;border-radius:50%;background:var(--amber);display:inline-block"></span>
+        <span id="ocLabel" style="color:var(--dim)">Connecting...</span>
+        <button onclick="reloadOC()" style="border:1px solid var(--line);background:var(--card);color:var(--muted);border-radius:6px;padding:3px 8px;cursor:pointer;font-size:10px">↻</button>
+        <a href="http://100.111.98.27:1704/" target="_blank" style="border:1px solid var(--line);background:var(--card);color:var(--blue);border-radius:6px;padding:3px 8px;cursor:pointer;font-size:10px;text-decoration:none">↗</a>
+      </div>
+      <div id="ocLoading" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:8px;color:var(--dim)">
+        <span style="font-size:24px">⌘</span>
+        <span style="font-size:13px">Loading workspace...</span>
+      </div>
+      <iframe id="ocFrame" src="about:blank" style="width:100%;height:100%;border:none;border-radius:8px"
+        sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+        title="OpenCode Workspace" allow="clipboard-read;clipboard-write"></iframe>
+    </div>`,
+
+  leads:`
+    <div style="width:100%;height:100%;overflow:hidden;border-radius:8px">
+      <iframe src="https://l.ragmedium.com/" style="width:100%;height:100%;border:none;border-radius:8px" title="Lead Database"></iframe>
+    </div>`,
+
+  vault:`
+    <div style="padding:0;display:flex;flex-direction:column;height:100%">
+      <div style="display:flex;gap:8px;align-items:center;padding:6px 12px;flex-shrink:0;border-bottom:1px solid var(--border)">
+        <h2 style="margin:0;font-size:14px;font-weight:600">🧠 Vault</h2>
+        <span style="flex:1"></span>
+        <div style="display:flex;gap:4px;align-items:center">
+          <input id="vaultSearch" placeholder="Filter graph…" style="padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:11px;width:120px;outline:none" oninput="vaultSearchChange(this.value)">
+          <input id="vaultRagSearch" placeholder="🔍 AI search all data…" style="padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:11px;width:140px;outline:none" onkeydown="if(event.key==='Enter')vaultRagSearch(this.value)">
+          <select id="vaultFilter" style="padding:4px 6px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:10px" onchange="vaultFilterChange(this.value)">
+            <option value="all">All</option>
+            <option value="chat">💬 Chats</option>
+            <option value="business">🏢 Businesses</option>
+            <option value="document">📄 Docs</option>
+            <option value="task">✅ Tasks</option>
+            <option value="post">📝 Posts</option>
+            <option value="account">🔗 Accounts</option>
+            <option value="persona">👤 Personas</option>
+          </select>
+          <span id="vaultStats" style="font-size:10px;color:var(--dim);min-width:60px;text-align:right"></span>
+        </div>
+      </div>
+      <div style="display:flex;flex:1;overflow:hidden">
+        <div id="vaultCanvasWrap" style="flex:1;position:relative;overflow:hidden;background:var(--bg);min-width:0">
+          <canvas id="vaultCanvas" style="width:100%;height:100%;display:block;image-rendering:optimizeQuality"></canvas>
+          <div id="vaultMiniMap" style="position:absolute;bottom:8px;right:8px;width:120px;height:80px;background:rgba(0,0,0,0.5);border:1px solid var(--border);border-radius:6px"></div>
+          <div id="vaultLoading" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:var(--muted);font-size:13px">Loading knowledge graph…</div>
+          <div id="vaultEmpty" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:var(--muted);font-size:13px;display:none;text-align:center;line-height:1.8">
+            No data yet. Start chatting,<br>add projects, or upload documents.
+          </div>
+        </div>
+        <div id="vaultDetail" style="width:0;overflow:hidden;transition:width 0.2s;background:var(--card);border-left:1px solid var(--border);display:flex;flex-direction:column">
+          <div style="padding:8px 10px;display:flex;align-items:center;gap:6px;border-bottom:1px solid var(--border);flex-shrink:0">
+            <span id="vaultDetailIcon" style="font-size:16px">📄</span>
+            <span id="vaultDetailTitle" style="font-size:13px;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Title</span>
+            <button onclick="closeVaultDetail()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:2px 6px">✕</button>
+          </div>
+          <div id="vaultDetailBody" style="flex:1;overflow-y:auto;padding:8px 10px;font-size:12px;color:var(--text);line-height:1.6"></div>
+        </div>
+      </div>
+    </div>`,
+
+  skills:`
+    <div style="padding:8px">
+      <div class="card"><h3 style="margin:0 0 8px">📋 Skills</h3>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+          <select id="skillFilter" style="padding:6px 12px;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:12px" onchange="renderSkills()">
+            <option value="all">All categories</option>
+          </select>
+          <input id="skillSearch" type="text" placeholder="Search skills..." style="flex:1;min-width:120px;padding:6px 12px;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:12px" oninput="renderSkills()">
+        </div>
+        <div id="skillGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px"></div>
+      </div>
+    </div>`,
+
+  docs:`
+    <div style="padding:8px">
+      <div class="card">
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
+          <h3 style="margin:0;font-size:15px">📄 Documents</h3>
+          <div style="display:flex;gap:4px;margin-left:auto">
+            <button id="docsTabBtn" class="btn" style="padding:4px 12px;font-size:11px;background:var(--blue);color:#fff;border-radius:6px" onclick="switchDocTab('docs')">📄 Docs</button>
+            <button id="galleryTabBtn" class="btn" style="padding:4px 12px;font-size:11px;border-radius:6px" onclick="switchDocTab('gallery')">🖼️ Gallery</button>
+          </div>
+        </div>
+        <div id="docsDocView">
+          <div style="display:flex;gap:8px;margin-bottom:12px">
+            <input id="docSearch" type="text" placeholder="Search documents..." style="flex:1;padding:8px 12px;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:13px" oninput="filterDocs(this.value)">
+          </div>
+          <div id="docUploadArea" style="border:2px dashed var(--line);border-radius:12px;padding:24px;text-align:center;margin-bottom:12px;cursor:pointer" onclick="document.getElementById('docFileInput').click()" ondragover="event.preventDefault()" ondrop="handleDocDrop(event)">
+            <div style="font-size:24px;margin-bottom:8px">📤</div>
+            <div style="font-size:13px;color:var(--muted)">Drop files here or click to upload</div>
+            <input id="docFileInput" type="file" multiple style="display:none" onchange="handleDocUpload(this.files)">
+          </div>
+          <div id="docStats" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;font-size:12px;color:var(--muted)"></div>
+          <div id="docList" style="display:grid;gap:6px"></div>
+        </div>
+        <div id="docsGalleryView" style="display:none">
+          <div id="galleryGridInline" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px"></div>
+        </div>
+      </div>
+    </div>`,
+
+  board:`
+    <div class="boardWrap">
+      <div class="boardFilter">
+        <select id="boardProjectFilter" onchange="renderBoard()"><option value="__all">All projects</option></select>
+        <select id="boardPriorityFilter" onchange="renderBoard()"><option value="__all">All priorities</option><option value="high">🔥 High</option><option value="medium">📌 Medium</option><option value="low">💤 Low</option></select>
+      </div>
+      <div class="boardCols" id="boardCols"></div>
+    </div>
+    <div class="taskOverlay" id="taskOverlay" onclick="closeTaskMenu(event)">
+      <div class="taskPopup" onclick="event.stopPropagation()">
+        <h3 id="tpTitle"></h3>
+        <div class="tpMeta" id="tpMeta"></div>
+        <div class="tpDescHeader">
+          <label>📝 Description</label>
+          <button class="btn ghost" id="tpEditBtn" onclick="toggleDescEdit()" style="padding:2px 10px;font-size:10px">✏️ Edit</button>
+        </div>
+        <div class="tpDesc" id="tpDesc"></div>
+        <textarea class="tpDescEdit" id="tpDescEdit" placeholder="Add notes, context, steps…"></textarea>
+        <button class="btn alt" id="tpSaveDesc" onclick="saveTaskDesc()" style="display:none;width:100%;margin-bottom:12px;font-size:11px">💾 Save description</button>
+        <div class="tpActions">
+          <div class="tpBtn" onclick="taskDone()"><span class="tpIcon">✅</span> <div>Mark done <span class="tpSub">— complete this task</span></div></div>
+          <div class="tpBtn" onclick="taskChat()"><span class="tpIcon">💬</span> <div>Discuss in Chat <span class="tpSub">— talk it through with Kaneki</span></div></div>
+          <div class="tpBtn" onclick="taskCode()"><span class="tpIcon">⌘</span> <div>Code mode <span class="tpSub">— build / implement / configure</span></div></div>
+        </div>
+        <button class="tpClose" onclick="closeTaskMenu()">Cancel</button>
+      </div>
+    </div>`,
+
+  gallery:`
+    <div style="padding:8px;display:flex;flex-direction:column;height:100%">
+      <div class="card" style="flex-shrink:0;display:flex;gap:12px;align-items:center">
+        <h3 style="margin:0;font-size:15px">🖼️ Gallery</h3>
+        <span style="font-size:11px;color:var(--muted)">Photos & videos</span>
+        <span style="flex:1"></span>
+        <span id="galleryCount" style="font-size:10px;color:var(--dim)"></span>
+      </div>
+      <div class="card" style="flex:1;overflow-y:auto;min-height:0;padding:6px">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:4px" id="galleryGrid">
+          <div style="text-align:center;padding:40px;color:var(--dim);font-size:13px;grid-column:1/-1">
+            <div style="font-size:48px;margin-bottom:12px">🖼️</div>
+            <div>Loading gallery...</div>
+          </div>
+        </div>
+      </div>`,
+
+  legal:`
+    <div style="display:flex;flex-direction:column;height:100%">
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid var(--border);flex-shrink:0;min-height:42px">
+        <span style="font-size:16px">⚖️</span>
+        <span style="font-size:13px;font-weight:500;color:var(--fg);flex:1">Legal AI Assistant</span>
+        <span style="font-size:9px;color:var(--dim);background:var(--panel2);padding:2px 8px;border-radius:10px">⚠️ Not legal advice</span>
+      </div>
+      <div id="legalMsgList" style="flex:1;overflow-y:auto;padding:20px 16px 8px">
+        <div style="text-align:center;padding:40px 20px">
+          <div style="font-size:48px;margin-bottom:12px">⚖️</div>
+          <h3 style="margin:0 0 6px;font-size:16px;color:var(--fg)">Legal AI Assistant</h3>
+          <p style="margin:0 0 20px;color:var(--dim);font-size:12px">Ask me about contracts, business law, IP, GDPR, compliance, and more.<br>⚠️ I provide informational guidance, not legal advice.</p>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;max-width:500px;margin:0 auto">
+            <button onclick="sendLegalMsg('Review a standard NDA clause for freelancer contracts')" style="border:1px solid var(--border);background:var(--panel2);color:var(--fg);border-radius:12px;padding:6px 14px;cursor:pointer;font-size:10px">📄 Review NDA clause</button>
+            <button onclick="sendLegalMsg('What should a SaaS Terms of Service include?')" style="border:1px solid var(--border);background:var(--panel2);color:var(--fg);border-radius:12px;padding:6px 14px;cursor:pointer;font-size:10px">📋 SaaS Terms of Service</button>
+            <button onclick="sendLegalMsg('Explain GDPR requirements for a B2B SaaS based in Germany')" style="border:1px solid var(--border);background:var(--panel2);color:var(--fg);border-radius:12px;padding:6px 14px;cursor:pointer;font-size:10px">🔒 GDPR for B2B SaaS</button>
+            <button onclick="sendLegalMsg('What IP considerations for white-label software agreements?')" style="border:1px solid var(--border);background:var(--panel2);color:var(--fg);border-radius:12px;padding:6px 14px;cursor:pointer;font-size:10px">💡 IP & White-label</button>
+            <button onclick="sendLegalMsg('LLC vs UG vs GmbH in Germany — which is best for my startups?')" style="border:1px solid var(--border);background:var(--panel2);color:var(--fg);border-radius:12px;padding:6px 14px;cursor:pointer;font-size:10px">🏢 Entity formation</button>
+            <button onclick="sendLegalMsg('What are the key clauses in a software development agreement?')" style="border:1px solid var(--border);background:var(--panel2);color:var(--fg);border-radius:12px;padding:6px 14px;cursor:pointer;font-size:10px">⚙️ Dev agreement</button>
+          </div>
+        </div>
+      </div>
+      <div style="padding:8px 12px 12px;flex-shrink:0">
+        <div style="display:flex;align-items:flex-end;gap:8px;background:var(--panel2);border:1px solid var(--border);border-radius:16px;padding:8px 8px 8px 16px">
+          <textarea id="legalInput" placeholder="Ask about contracts, compliance, entity formation, IP..." style="flex:1;border:0;background:transparent;color:var(--text);font:inherit;font-size:14px;outline:none;resize:none;min-height:24px;max-height:120px;line-height:1.5;padding:4px 0" rows="1"></textarea>
+          <button onclick="sendLegalMsg()" style="border:0;background:var(--accent);color:#fff;border-radius:10px;width:36px;height:36px;cursor:pointer;font-size:16px;display:grid;place-items:center;flex-shrink:0">➤</button>
+        </div>
+      </div>
+    </div>`,
+  studio:`
+    <div style="width:100%;height:100%;overflow:hidden;border-radius:8px">
+      <iframe src="http://100.111.98.27:1705/" style="width:100%;height:100%;border:none;border-radius:8px" title="Content Studio - AI Content Creation" allow="clipboard-read;clipboard-write"></iframe>
+    </div>`,
+
+  slack:`
+    <div style="width:100%;height:100%;overflow:hidden;border-radius:8px">
+      <iframe src="/slack.html" style="width:100%;height:100%;border:none;background:#0a0a0f" title="AI Slack — Team Communication"></iframe>
+    </div>`,
+
+
+  goals:`
+    <div style="padding:0;display:flex;flex-direction:column;height:100%">
+      <div style="display:flex;gap:8px;align-items:center;padding:6px 12px;flex-shrink:0;border-bottom:1px solid var(--border)">
+        <h2 style="margin:0;font-size:14px;font-weight:600">🎯 Goal Mode</h2>
+        <span style="font-size:10px;color:var(--muted)">autonomous execution</span>
+        <span style="flex:1"></span>
+        <button class="btn" style="padding:4px 12px;font-size:11px;background:var(--accent);color:#fff;border-radius:6px" onclick="showGoalForm()">＋ New Goal</button>
+      </div>
+      <div id="goalList" style="flex:1;overflow-y:auto;padding:8px 12px;display:flex;flex-direction:column;gap:8px"></div>
+    </div>`,
+  secrets:`
+    <div style="padding:0;display:flex;flex-direction:column;height:100%">
+      <div style="display:flex;gap:8px;align-items:center;padding:6px 12px;flex-shrink:0;border-bottom:1px solid var(--border)">
+        <h2 style="margin:0;font-size:14px;font-weight:600">🔐 Secrets</h2>
+        <span style="font-size:10px;color:var(--muted)">encrypted at rest · AES-256</span>
+        <span style="flex:1"></span>
+        <input id="secSearch" placeholder="Search secrets…" style="padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:11px;width:140px;outline:none" oninput="renderSecrets()">
+        <span id="secStats" style="font-size:10px;color:var(--dim)"></span>
+        <button class="btn" style="padding:4px 12px;font-size:11px;background:var(--blue);color:#fff;border-radius:6px" onclick="showSecretForm()">＋ New Secret</button>
+      </div>
+      <div id="secList" style="flex:1;overflow-y:auto;padding:8px 12px"></div>
+    </div>
+    <!-- Secret Form Overlay -->
+    <div class="taskOverlay" id="secFormOverlay" onclick="if(event.target===this)closeSecretForm()">
+      <div class="taskPopup" style="max-width:440px" onclick="event.stopPropagation()">
+        <h3 id="secFormTitle">New Secret</h3>
+        <div style="display:grid;gap:8px;margin:12px 0">
+          <select id="secProject" style="padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:13px">
+            <option value="">Select project…</option>
+          </select>
+          <input id="secKey" type="text" placeholder="Key name (e.g. API_KEY, DB_PASSWORD, OPENAI_KEY)" style="padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:13px">
+          <div style="position:relative">
+            <input id="secValue" type="password" placeholder="Secret value (will be encrypted)" style="padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:13px;width:100%;padding-right:36px">
+            <button onclick="toggleSecVisibility()" style="position:absolute;right:4px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;padding:4px;font-size:14px" tabindex="-1">👁️</button>
+          </div>
+          <select id="secType" style="padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:13px">
+            <option value="api-key">🔑 API Key</option>
+            <option value="password">🔒 Password</option>
+            <option value="token">🪙 Token</option>
+            <option value="db">🗄️ Database</option>
+            <option value="other">📎 Other</option>
+          </select>
+          <input id="secNotes" type="text" placeholder="Optional notes / context" style="padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:13px">
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="btn" style="flex:1;background:var(--green);color:#fff" onclick="saveSecret()">💾 Save Encrypted</button>
+          <button class="btn alt" style="flex:0" onclick="closeSecretForm()">Cancel</button>
+        </div>
+      </div>
+    </div>``
+      <div class="card" style="flex-shrink:0;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <h3 style="margin:0;font-size:15px">🔔 Notifications</h3>
+        <span id="inboxCount" style="font-size:11px;color:var(--muted)">0 items</span>
+        <button class="btn alt" onclick="pushSetupClick()" id="inboxPushBtn" style="margin-left:auto;font-size:10px;padding:4px 10px">📲 Enable Push</button>
+        <button class="btn alt" onclick="markAllNotifRead()" style="font-size:10px;padding:4px 10px">✓ All read</button>
+      </div>
+      <div id="inboxList" style="flex:1;overflow-y:auto;min-height:0">
+        <div style="text-align:center;padding:40px;color:var(--dim);font-size:13px">🔔 No notifications yet. Activity will appear here.</div>
+      </div>
+    </div>`,
+
+  mindmap:`
+    <div style="width:100%;height:100%;overflow:hidden;border-radius:8px">
+      <iframe src="http://100.111.98.27:4444/" style="width:100%;height:100%;border:none;border-radius:8px" title="RAGmind Strategy Map"></iframe>
+    </div>`,
+
+  scrape:`
+    <div style="width:100%;height:100%;overflow:hidden;border-radius:8px">
+      <iframe src="https://scrape.ragmedium.com/" style="width:100%;height:100%;border:none;border-radius:8px" title="ScrapeGraphAI Web Scraper"></iframe>
+    </div>`,
+
+  workspace:`
+    <div style="width:100%;height:100%;overflow:hidden;border-radius:8px;display:flex;flex-direction:column;position:relative">
+      <div style="display:flex;gap:6px;position:absolute;top:8px;right:8px;z-index:10;font-size:10px;align-items:center">
+        <span id="ocDot" style="width:7px;height:7px;border-radius:50%;background:var(--amber);display:inline-block"></span>
+        <span id="ocLabel" style="color:var(--dim)">Connecting...</span>
+        <button onclick="reloadOC()" style="border:1px solid var(--line);background:var(--card);color:var(--muted);border-radius:6px;padding:3px 8px;cursor:pointer;font-size:10px">↻</button>
+        <a href="http://100.111.98.27:1704/" target="_blank" style="border:1px solid var(--line);background:var(--card);color:var(--blue);border-radius:6px;padding:3px 8px;cursor:pointer;font-size:10px;text-decoration:none">↗</a>
+      </div>
+      <div id="ocLoading" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:8px;color:var(--dim)">
+        <span style="font-size:24px">⌘</span>
+        <span style="font-size:13px">Loading workspace...</span>
+      </div>
+      <iframe id="ocFrame" src="about:blank" style="width:100%;height:100%;border:none;border-radius:8px"
+        sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+        title="OpenCode Workspace" allow="clipboard-read;clipboard-write"></iframe>
+    </div>`,
+
+  leads:`
+    <div style="width:100%;height:100%;overflow:hidden;border-radius:8px">
+      <iframe src="https://l.ragmedium.com/" style="width:100%;height:100%;border:none;border-radius:8px" title="Lead Database"></iframe>
+    </div>`,
+
+  vault:`
+    <div style="padding:0;display:flex;flex-direction:column;height:100%">
+      <div style="display:flex;gap:8px;align-items:center;padding:6px 12px;flex-shrink:0;border-bottom:1px solid var(--border)">
+        <h2 style="margin:0;font-size:14px;font-weight:600">🧠 Vault</h2>
+        <span style="flex:1"></span>
+        <div style="display:flex;gap:4px;align-items:center">
+          <input id="vaultSearch" placeholder="Filter graph…" style="padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:11px;width:120px;outline:none" oninput="vaultSearchChange(this.value)">
+          <input id="vaultRagSearch" placeholder="🔍 AI search all data…" style="padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:11px;width:140px;outline:none" onkeydown="if(event.key==='Enter')vaultRagSearch(this.value)">
+          <select id="vaultFilter" style="padding:4px 6px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:10px" onchange="vaultFilterChange(this.value)">
+            <option value="all">All</option>
+            <option value="chat">💬 Chats</option>
+            <option value="business">🏢 Businesses</option>
+            <option value="document">📄 Docs</option>
+            <option value="task">✅ Tasks</option>
+            <option value="post">📝 Posts</option>
+            <option value="account">🔗 Accounts</option>
+            <option value="persona">👤 Personas</option>
+          </select>
+          <span id="vaultStats" style="font-size:10px;color:var(--dim);min-width:60px;text-align:right"></span>
+        </div>
+      </div>
+      <div style="display:flex;flex:1;overflow:hidden">
+        <div id="vaultCanvasWrap" style="flex:1;position:relative;overflow:hidden;background:var(--bg);min-width:0">
+          <canvas id="vaultCanvas" style="width:100%;height:100%;display:block;image-rendering:optimizeQuality"></canvas>
+          <div id="vaultMiniMap" style="position:absolute;bottom:8px;right:8px;width:120px;height:80px;background:rgba(0,0,0,0.5);border:1px solid var(--border);border-radius:6px"></div>
+          <div id="vaultLoading" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:var(--muted);font-size:13px">Loading knowledge graph…</div>
+          <div id="vaultEmpty" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:var(--muted);font-size:13px;display:none;text-align:center;line-height:1.8">
+            No data yet. Start chatting,<br>add projects, or upload documents.
+          </div>
+        </div>
+        <div id="vaultDetail" style="width:0;overflow:hidden;transition:width 0.2s;background:var(--card);border-left:1px solid var(--border);display:flex;flex-direction:column">
+          <div style="padding:8px 10px;display:flex;align-items:center;gap:6px;border-bottom:1px solid var(--border);flex-shrink:0">
+            <span id="vaultDetailIcon" style="font-size:16px">📄</span>
+            <span id="vaultDetailTitle" style="font-size:13px;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Title</span>
+            <button onclick="closeVaultDetail()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:2px 6px">✕</button>
+          </div>
+          <div id="vaultDetailBody" style="flex:1;overflow-y:auto;padding:8px 10px;font-size:12px;color:var(--text);line-height:1.6"></div>
+        </div>
+      </div>
+    </div>`,
+
+  skills:`
+    <div style="padding:8px">
+      <div class="card"><h3 style="margin:0 0 8px">📋 Skills</h3>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+          <select id="skillFilter" style="padding:6px 12px;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:12px" onchange="renderSkills()">
+            <option value="all">All categories</option>
+          </select>
+          <input id="skillSearch" type="text" placeholder="Search skills..." style="flex:1;min-width:120px;padding:6px 12px;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:12px" oninput="renderSkills()">
+        </div>
+        <div id="skillGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px"></div>
+      </div>
+    </div>`,
+
+  docs:`
+    <div style="padding:8px">
+      <div class="card">
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
+          <h3 style="margin:0;font-size:15px">📄 Documents</h3>
+          <div style="display:flex;gap:4px;margin-left:auto">
+            <button id="docsTabBtn" class="btn" style="padding:4px 12px;font-size:11px;background:var(--blue);color:#fff;border-radius:6px" onclick="switchDocTab('docs')">📄 Docs</button>
+            <button id="galleryTabBtn" class="btn" style="padding:4px 12px;font-size:11px;border-radius:6px" onclick="switchDocTab('gallery')">🖼️ Gallery</button>
+          </div>
+        </div>
+        <div id="docsDocView">
+          <div style="display:flex;gap:8px;margin-bottom:12px">
+            <input id="docSearch" type="text" placeholder="Search documents..." style="flex:1;padding:8px 12px;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:13px" oninput="filterDocs(this.value)">
+          </div>
+          <div id="docUploadArea" style="border:2px dashed var(--line);border-radius:12px;padding:24px;text-align:center;margin-bottom:12px;cursor:pointer" onclick="document.getElementById('docFileInput').click()" ondragover="event.preventDefault()" ondrop="handleDocDrop(event)">
+            <div style="font-size:24px;margin-bottom:8px">📤</div>
+            <div style="font-size:13px;color:var(--muted)">Drop files here or click to upload</div>
+            <input id="docFileInput" type="file" multiple style="display:none" onchange="handleDocUpload(this.files)">
+          </div>
+          <div id="docStats" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;font-size:12px;color:var(--muted)"></div>
+          <div id="docList" style="display:grid;gap:6px"></div>
+        </div>
+        <div id="docsGalleryView" style="display:none">
+          <div id="galleryGridInline" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px"></div>
+        </div>
+      </div>
+    </div>`,
+
+  board:`
+    <div class="boardWrap">
+      <div class="boardFilter">
+        <select id="boardProjectFilter" onchange="renderBoard()"><option value="__all">All projects</option></select>
+        <select id="boardPriorityFilter" onchange="renderBoard()"><option value="__all">All priorities</option><option value="high">🔥 High</option><option value="medium">📌 Medium</option><option value="low">💤 Low</option></select>
+      </div>
+      <div class="boardCols" id="boardCols"></div>
+    </div>
+    <div class="taskOverlay" id="taskOverlay" onclick="closeTaskMenu(event)">
+      <div class="taskPopup" onclick="event.stopPropagation()">
+        <h3 id="tpTitle"></h3>
+        <div class="tpMeta" id="tpMeta"></div>
+        <div class="tpDescHeader">
+          <label>📝 Description</label>
+          <button class="btn ghost" id="tpEditBtn" onclick="toggleDescEdit()" style="padding:2px 10px;font-size:10px">✏️ Edit</button>
+        </div>
+        <div class="tpDesc" id="tpDesc"></div>
+        <textarea class="tpDescEdit" id="tpDescEdit" placeholder="Add notes, context, steps…"></textarea>
+        <button class="btn alt" id="tpSaveDesc" onclick="saveTaskDesc()" style="display:none;width:100%;margin-bottom:12px;font-size:11px">💾 Save description</button>
+        <div class="tpActions">
+          <div class="tpBtn" onclick="taskDone()"><span class="tpIcon">✅</span> <div>Mark done <span class="tpSub">— complete this task</span></div></div>
+          <div class="tpBtn" onclick="taskChat()"><span class="tpIcon">💬</span> <div>Discuss in Chat <span class="tpSub">— talk it through with Kaneki</span></div></div>
+          <div class="tpBtn" onclick="taskCode()"><span class="tpIcon">⌘</span> <div>Code mode <span class="tpSub">— build / implement / configure</span></div></div>
+        </div>
+        <button class="tpClose" onclick="closeTaskMenu()">Cancel</button>
+      </div>
+    </div>`,
+
+  gallery:`,
+  approvals:`    <div style="padding:8px;display:flex;flex-direction:column;height:100%">
+      <div class="card" style="flex-shrink:0;display:flex;gap:12px;align-items:center">
+        <h3 style="margin:0;font-size:15px">🖼️ Gallery</h3>
+        <span style="font-size:11px;color:var(--muted)">Photos & videos</span>
+        <span style="flex:1"></span>
+        <span id="galleryCount" style="font-size:10px;color:var(--dim)"></span>
+      </div>
+      <div class="card" style="flex:1;overflow-y:auto;min-height:0;padding:6px">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:4px" id="galleryGrid">
+          <div style="text-align:center;padding:40px;color:var(--dim);font-size:13px;grid-column:1/-1">
+            <div style="font-size:48px;margin-bottom:12px">🖼️</div>
+            <div>Loading gallery...</div>
+          </div>
+        </div>
+      </div>`,
+
+  legal:`
+    <div style="display:flex;flex-direction:column;height:100%">
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid var(--border);flex-shrink:0;min-height:42px">
+        <span style="font-size:16px">⚖️</span>
+        <span style="font-size:13px;font-weight:500;color:var(--fg);flex:1">Legal AI Assistant</span>
+        <span style="font-size:9px;color:var(--dim);background:var(--panel2);padding:2px 8px;border-radius:10px">⚠️ Not legal advice</span>
+      </div>
+      <div id="legalMsgList" style="flex:1;overflow-y:auto;padding:20px 16px 8px">
+        <div style="text-align:center;padding:40px 20px">
+          <div style="font-size:48px;margin-bottom:12px">⚖️</div>
+          <h3 style="margin:0 0 6px;font-size:16px;color:var(--fg)">Legal AI Assistant</h3>
+          <p style="margin:0 0 20px;color:var(--dim);font-size:12px">Ask me about contracts, business law, IP, GDPR, compliance, and more.<br>⚠️ I provide informational guidance, not legal advice.</p>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;max-width:500px;margin:0 auto">
+            <button onclick="sendLegalMsg('Review a standard NDA clause for freelancer contracts')" style="border:1px solid var(--border);background:var(--panel2);color:var(--fg);border-radius:12px;padding:6px 14px;cursor:pointer;font-size:10px">📄 Review NDA clause</button>
+            <button onclick="sendLegalMsg('What should a SaaS Terms of Service include?')" style="border:1px solid var(--border);background:var(--panel2);color:var(--fg);border-radius:12px;padding:6px 14px;cursor:pointer;font-size:10px">📋 SaaS Terms of Service</button>
+            <button onclick="sendLegalMsg('Explain GDPR requirements for a B2B SaaS based in Germany')" style="border:1px solid var(--border);background:var(--panel2);color:var(--fg);border-radius:12px;padding:6px 14px;cursor:pointer;font-size:10px">🔒 GDPR for B2B SaaS</button>
+            <button onclick="sendLegalMsg('What IP considerations for white-label software agreements?')" style="border:1px solid var(--border);background:var(--panel2);color:var(--fg);border-radius:12px;padding:6px 14px;cursor:pointer;font-size:10px">💡 IP & White-label</button>
+            <button onclick="sendLegalMsg('LLC vs UG vs GmbH in Germany — which is best for my startups?')" style="border:1px solid var(--border);background:var(--panel2);color:var(--fg);border-radius:12px;padding:6px 14px;cursor:pointer;font-size:10px">🏢 Entity formation</button>
+            <button onclick="sendLegalMsg('What are the key clauses in a software development agreement?')" style="border:1px solid var(--border);background:var(--panel2);color:var(--fg);border-radius:12px;padding:6px 14px;cursor:pointer;font-size:10px">⚙️ Dev agreement</button>
+          </div>
+        </div>
+      </div>
+      <div style="padding:8px 12px 12px;flex-shrink:0">
+        <div style="display:flex;align-items:flex-end;gap:8px;background:var(--panel2);border:1px solid var(--border);border-radius:16px;padding:8px 8px 8px 16px">
+          <textarea id="legalInput" placeholder="Ask about contracts, compliance, entity formation, IP..." style="flex:1;border:0;background:transparent;color:var(--text);font:inherit;font-size:14px;outline:none;resize:none;min-height:24px;max-height:120px;line-height:1.5;padding:4px 0" rows="1"></textarea>
+          <button onclick="sendLegalMsg()" style="border:0;background:var(--accent);color:#fff;border-radius:10px;width:36px;height:36px;cursor:pointer;font-size:16px;display:grid;place-items:center;flex-shrink:0">➤</button>
+        </div>
+      </div>
+    </div>`,
+  studio:`
+    <div style="width:100%;height:100%;overflow:hidden;border-radius:8px">
+      <iframe src="http://100.111.98.27:1705/" style="width:100%;height:100%;border:none;border-radius:8px" title="Content Studio - AI Content Creation" allow="clipboard-read;clipboard-write"></iframe>
+    </div>`,
+
+  slack:`
+    <div style="width:100%;height:100%;overflow:hidden;border-radius:8px">
+      <iframe src="/slack.html" style="width:100%;height:100%;border:none;background:#0a0a0f" title="AI Slack — Team Communication"></iframe>
+    </div>`,
+
+
+  goals:`
+    <div style="padding:0;display:flex;flex-direction:column;height:100%">
+      <div style="display:flex;gap:8px;align-items:center;padding:6px 12px;flex-shrink:0;border-bottom:1px solid var(--border)">
+        <h2 style="margin:0;font-size:14px;font-weight:600">🎯 Goal Mode</h2>
+        <span style="font-size:10px;color:var(--muted)">autonomous execution</span>
+        <span style="flex:1"></span>
+        <button class="btn" style="padding:4px 12px;font-size:11px;background:var(--accent);color:#fff;border-radius:6px" onclick="showGoalForm()">＋ New Goal</button>
+      </div>
+      <div id="goalList" style="flex:1;overflow-y:auto;padding:8px 12px;display:flex;flex-direction:column;gap:8px"></div>
+    </div>`,
+  secrets:`
+    <div style="padding:0;display:flex;flex-direction:column;height:100%">
+      <div style="display:flex;gap:8px;align-items:center;padding:6px 12px;flex-shrink:0;border-bottom:1px solid var(--border)">
+        <h2 style="margin:0;font-size:14px;font-weight:600">🔐 Secrets</h2>
+        <span style="font-size:10px;color:var(--muted)">encrypted at rest · AES-256</span>
+        <span style="flex:1"></span>
+        <input id="secSearch" placeholder="Search secrets…" style="padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:11px;width:140px;outline:none" oninput="renderSecrets()">
+        <span id="secStats" style="font-size:10px;color:var(--dim)"></span>
+        <button class="btn" style="padding:4px 12px;font-size:11px;background:var(--blue);color:#fff;border-radius:6px" onclick="showSecretForm()">＋ New Secret</button>
+      </div>
+      <div id="secList" style="flex:1;overflow-y:auto;padding:8px 12px"></div>
+    </div>
+    <!-- Secret Form Overlay -->
+    <div class="taskOverlay" id="secFormOverlay" onclick="if(event.target===this)closeSecretForm()">
+      <div class="taskPopup" style="max-width:440px" onclick="event.stopPropagation()">
+        <h3 id="secFormTitle">New Secret</h3>
+        <div style="display:grid;gap:8px;margin:12px 0">
+          <select id="secProject" style="padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:13px">
+            <option value="">Select project…</option>
+          </select>
+          <input id="secKey" type="text" placeholder="Key name (e.g. API_KEY, DB_PASSWORD, OPENAI_KEY)" style="padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:13px">
+          <div style="position:relative">
+            <input id="secValue" type="password" placeholder="Secret value (will be encrypted)" style="padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:13px;width:100%;padding-right:36px">
+            <button onclick="toggleSecVisibility()" style="position:absolute;right:4px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;padding:4px;font-size:14px" tabindex="-1">👁️</button>
+          </div>
+          <select id="secType" style="padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:13px">
+            <option value="api-key">🔑 API Key</option>
+            <option value="password">🔒 Password</option>
+            <option value="token">🪙 Token</option>
+            <option value="db">🗄️ Database</option>
+            <option value="other">📎 Other</option>
+          </select>
+          <input id="secNotes" type="text" placeholder="Optional notes / context" style="padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:13px">
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="btn" style="flex:1;background:var(--green);color:#fff" onclick="saveSecret()">💾 Save Encrypted</button>
+          <button class="btn alt" style="flex:0" onclick="closeSecretForm()">Cancel</button>
+        </div>
+      </div>
+    </div>``
+      <div class="card" style="flex-shrink:0;display:flex;gap:12px;align-items:center">
+        <h3 style="margin:0;font-size:15px">🖼️ Gallery</h3>
+        <span style="font-size:11px;color:var(--muted)">Photos & videos</span>
+        <span style="flex:1"></span>
+        <span id="galleryCount" style="font-size:10px;color:var(--dim)"></span>
+      </div>
+      <div class="card" style="flex:1;overflow-y:auto;min-height:0;padding:6px">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:4px" id="galleryGrid">
+          <div style="text-align:center;padding:40px;color:var(--dim);font-size:13px;grid-column:1/-1">
+            <div style="font-size:48px;margin-bottom:12px">🖼️</div>
+            <div>Loading gallery...</div>
+          </div>
+        </div>
+      </div>`,
+
+  legal:`
+    <div style="display:flex;flex-direction:column;height:100%">
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid var(--border);flex-shrink:0;min-height:42px">
+        <span style="font-size:16px">⚖️</span>
+        <span style="font-size:13px;font-weight:500;color:var(--fg);flex:1">Legal AI Assistant</span>
+        <span style="font-size:9px;color:var(--dim);background:var(--panel2);padding:2px 8px;border-radius:10px">⚠️ Not legal advice</span>
+      </div>
+      <div id="legalMsgList" style="flex:1;overflow-y:auto;padding:20px 16px 8px">
+        <div style="text-align:center;padding:40px 20px">
+          <div style="font-size:48px;margin-bottom:12px">⚖️</div>
+          <h3 style="margin:0 0 6px;font-size:16px;color:var(--fg)">Legal AI Assistant</h3>
+          <p style="margin:0 0 20px;color:var(--dim);font-size:12px">Ask me about contracts, business law, IP, GDPR, compliance, and more.<br>⚠️ I provide informational guidance, not legal advice.</p>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;max-width:500px;margin:0 auto">
+            <button onclick="sendLegalMsg('Review a standard NDA clause for freelancer contracts')" style="border:1px solid var(--border);background:var(--panel2);color:var(--fg);border-radius:12px;padding:6px 14px;cursor:pointer;font-size:10px">📄 Review NDA clause</button>
+            <button onclick="sendLegalMsg('What should a SaaS Terms of Service include?')" style="border:1px solid var(--border);background:var(--panel2);color:var(--fg);border-radius:12px;padding:6px 14px;cursor:pointer;font-size:10px">📋 SaaS Terms of Service</button>
+            <button onclick="sendLegalMsg('Explain GDPR requirements for a B2B SaaS based in Germany')" style="border:1px solid var(--border);background:var(--panel2);color:var(--fg);border-radius:12px;padding:6px 14px;cursor:pointer;font-size:10px">🔒 GDPR for B2B SaaS</button>
+            <button onclick="sendLegalMsg('What IP considerations for white-label software agreements?')" style="border:1px solid var(--border);background:var(--panel2);color:var(--fg);border-radius:12px;padding:6px 14px;cursor:pointer;font-size:10px">💡 IP & White-label</button>
+            <button onclick="sendLegalMsg('LLC vs UG vs GmbH in Germany — which is best for my startups?')" style="border:1px solid var(--border);background:var(--panel2);color:var(--fg);border-radius:12px;padding:6px 14px;cursor:pointer;font-size:10px">🏢 Entity formation</button>
+            <button onclick="sendLegalMsg('What are the key clauses in a software development agreement?')" style="border:1px solid var(--border);background:var(--panel2);color:var(--fg);border-radius:12px;padding:6px 14px;cursor:pointer;font-size:10px">⚙️ Dev agreement</button>
+          </div>
+        </div>
+      </div>
+      <div style="padding:8px 12px 12px;flex-shrink:0">
+        <div style="display:flex;align-items:flex-end;gap:8px;background:var(--panel2);border:1px solid var(--border);border-radius:16px;padding:8px 8px 8px 16px">
+          <textarea id="legalInput" placeholder="Ask about contracts, compliance, entity formation, IP..." style="flex:1;border:0;background:transparent;color:var(--text);font:inherit;font-size:14px;outline:none;resize:none;min-height:24px;max-height:120px;line-height:1.5;padding:4px 0" rows="1"></textarea>
+          <button onclick="sendLegalMsg()" style="border:0;background:var(--accent);color:#fff;border-radius:10px;width:36px;height:36px;cursor:pointer;font-size:16px;display:grid;place-items:center;flex-shrink:0">➤</button>
+        </div>
+      </div>
+    </div>`,
+  studio:`
+    <div style="width:100%;height:100%;overflow:hidden;border-radius:8px">
+      <iframe src="http://100.111.98.27:1705/" style="width:100%;height:100%;border:none;border-radius:8px" title="Content Studio - AI Content Creation" allow="clipboard-read;clipboard-write"></iframe>
+    </div>`,
+
+  slack:`
+    <div style="width:100%;height:100%;overflow:hidden;border-radius:8px">
+      <iframe src="/slack.html" style="width:100%;height:100%;border:none;background:#0a0a0f" title="AI Slack — Team Communication"></iframe>
+    </div>`,
+
+
+  goals:`
+    <div style="padding:0;display:flex;flex-direction:column;height:100%">
+      <div style="display:flex;gap:8px;align-items:center;padding:6px 12px;flex-shrink:0;border-bottom:1px solid var(--border)">
+        <h2 style="margin:0;font-size:14px;font-weight:600">🎯 Goal Mode</h2>
+        <span style="font-size:10px;color:var(--muted)">autonomous execution</span>
+        <span style="flex:1"></span>
+        <button class="btn" style="padding:4px 12px;font-size:11px;background:var(--accent);color:#fff;border-radius:6px" onclick="showGoalForm()">＋ New Goal</button>
+      </div>
+      <div id="goalList" style="flex:1;overflow-y:auto;padding:8px 12px;display:flex;flex-direction:column;gap:8px"></div>
+    </div>`,
+  secrets:`
+    <div style="padding:0;display:flex;flex-direction:column;height:100%">
+      <div style="display:flex;gap:8px;align-items:center;padding:6px 12px;flex-shrink:0;border-bottom:1px solid var(--border)">
+        <h2 style="margin:0;font-size:14px;font-weight:600">🔐 Secrets</h2>
+        <span style="font-size:10px;color:var(--muted)">encrypted at rest · AES-256</span>
+        <span style="flex:1"></span>
+        <input id="secSearch" placeholder="Search secrets…" style="padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:11px;width:140px;outline:none" oninput="renderSecrets()">
+        <span id="secStats" style="font-size:10px;color:var(--dim)"></span>
+        <button class="btn" style="padding:4px 12px;font-size:11px;background:var(--blue);color:#fff;border-radius:6px" onclick="showSecretForm()">＋ New Secret</button>
+      </div>
+      <div id="secList" style="flex:1;overflow-y:auto;padding:8px 12px"></div>
+    </div>
+    <!-- Secret Form Overlay -->
+    <div class="taskOverlay" id="secFormOverlay" onclick="if(event.target===this)closeSecretForm()">
+      <div class="taskPopup" style="max-width:440px" onclick="event.stopPropagation()">
+        <h3 id="secFormTitle">New Secret</h3>
+        <div style="display:grid;gap:8px;margin:12px 0">
+          <select id="secProject" style="padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:13px">
+            <option value="">Select project…</option>
+          </select>
+          <input id="secKey" type="text" placeholder="Key name (e.g. API_KEY, DB_PASSWORD, OPENAI_KEY)" style="padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:13px">
+          <div style="position:relative">
+            <input id="secValue" type="password" placeholder="Secret value (will be encrypted)" style="padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:13px;width:100%;padding-right:36px">
+            <button onclick="toggleSecVisibility()" style="position:absolute;right:4px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;padding:4px;font-size:14px" tabindex="-1">👁️</button>
+          </div>
+          <select id="secType" style="padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:13px">
+            <option value="api-key">🔑 API Key</option>
+            <option value="password">🔒 Password</option>
+            <option value="token">🪙 Token</option>
+            <option value="db">🗄️ Database</option>
+            <option value="other">📎 Other</option>
+          </select>
+          <input id="secNotes" type="text" placeholder="Optional notes / context" style="padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:13px">
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="btn" style="flex:1;background:var(--green);color:#fff" onclick="saveSecret()">💾 Save Encrypted</button>
+          <button class="btn alt" style="flex:0" onclick="closeSecretForm()">Cancel</button>
+        </div>
+      </div>
     </div>`
 ,
   galaxy:`
@@ -2048,49 +3532,11 @@ const pages={
       </div>
       <div id="agentTree" style="display:none;flex:1;overflow-y:auto;padding:8px 0"></div>
       <div id="agentList" style="display:none;flex:1;overflow-y:auto;padding:4px 0"></div>
-      <style>
-        .kanban-col{min-width:220px;max-width:280px;flex:1;display:flex;flex-direction:column;background:var(--panel2);border-radius:8px;overflow:hidden;border:1px solid var(--border)}
-        .kanban-hdr{padding:8px 12px;font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;color:var(--dim)}
-        .kanban-count{font-size:9px;padding:1px 6px;border-radius:10px;background:var(--bg);color:var(--dim)}
-        .kanban-items{flex:1;overflow-y:auto;padding:4px;display:flex;flex-direction:column;gap:4px;min-height:60px}
-        .kb-card{background:var(--card);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:11px;cursor:pointer;transition:all 0.15s;line-height:1.4}
-        .kb-card:hover{border-color:var(--blue);background:rgba(0,170,255,0.04)}
-        .kb-card .kb-agent{font-size:9px;color:var(--blue);margin-top:4px;display:flex;align-items:center;gap:4px}
-        .kb-card .kb-agent::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--blue)}
-        .kb-card .kb-priority{display:inline-block;font-size:8px;padding:1px 5px;border-radius:3px;margin-right:4px}
-        .kb-card .p-high{background:rgba(255,80,60,0.15);color:#ff503c}
-        .kb-card .p-med{background:rgba(255,180,60,0.15);color:#ffb43c}
-        .kb-card .p-low{background:rgba(100,200,255,0.12);color:#64c8ff}
-        .kb-empty{text-align:center;color:var(--dim);font-size:10px;padding:20px 8px;font-style:italic}
-        #agentKanban::-webkit-scrollbar{height:4px}#agentKanban::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
-        .tree-node{margin-left:16px;border-left:1px solid rgba(255,255,255,0.06);padding-left:12px;margin-bottom:2px}
-        .tree-node-root{margin-left:0;border-left:none;padding-left:0}
-        .tree-row{display:flex;align-items:center;gap:6px;padding:4px 8px;border-radius:6px;cursor:pointer;font-size:11px;transition:all 0.15s}
-        .tree-row:hover{background:rgba(255,255,255,0.03)}
-        .tree-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
-        .tree-dot.active{background:#22c55e;box-shadow:0 0 6px #22c55e55}
-        .tree-dot.idle{background:#eab308}
-        .tree-dot.off{background:#374151}
-        .tree-name{font-weight:500;white-space:nowrap}
-        .tree-role{font-size:9px;color:var(--dim);margin-left:4px}
-        .tree-count{font-size:9px;color:var(--dim);margin-left:auto}
-        .agent-list-row{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;font-size:11px;border-bottom:1px solid rgba(255,255,255,0.03)}
-        .agent-list-row:hover{background:rgba(255,255,255,0.02)}
-        .agent-list-col{flex:1;min-width:0}
-        .agent-list-col.head{font-size:9px;color:var(--dim);text-transform:uppercase}
-      </style>
+      
     </div>`
 ,
-  aiTeam:`\n    <div style="display:flex;flex-direction:column;height:100%;overflow:hidden">\n      <div style="padding:8px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-shrink:0">\n        <h3 style="margin:0;font-size:15px">🤖 AI Team</h3>\n        <span style="font-size:11px;color:var(--muted)" id="agentCount\">0 agents</span>\n        <button class="btn alt" onclick="renderAI Team()" style="margin-left:auto;font-size:10px;padding:4px 10px">↻ Refresh</button>\n      </div>\n      <div style="display:flex;flex:1;min-height:0">\n        <!-- Channel sidebar -->\n        <div style="width:140px;border-right:1px solid var(--border);overflow-y:auto;flex-shrink:0;padding:4px;display:flex;flex-direction:column;gap:2px">\n          <div class="tree-row" style="font-weight:600;color:var(--text);padding:6px 8px;font-size:11px" onclick="switchChannel('all',event)">📡 All Activity</div>\n          <div class="tree-row" style="padding:6px 8px;font-size:11px" onclick="switchChannel('exec',event)">🫡 Executive</div>\n          <div class="tree-row" style="padding:6px 8px;font-size:11px" onclick="switchChannel('dev',event)">⚙️ Development</div>\n          <div class="tree-row" style="padding:6px 8px;font-size:11px" onclick="switchChannel('content',event)">🎬 Content</div>\n          <div class="tree-row" style="padding:6px 8px;font-size:11px" onclick="switchChannel('research',event)">🔬 Research</div>\n          <div class="tree-row" style="padding:6px 8px;font-size:11px" onclick="switchChannel('ops',event)">📋 Operations</div>\n          <div class="tree-row" style="padding:6px 8px;font-size:11px" onclick="switchChannel('approvals',event)">✅ Approvals</div>\n        </div>\n        <!-- Main chat area -->\n        <div style="flex:1;display:flex;flex-direction:column;min-width:0">\n          <div id="aiTeamLog" style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;min-height:0">\n            <div style="text-align:center;padding:40px;color:var(--dim);font-size:13px">Loading team activity...</div>\n          </div>\n        </div>\n        <!-- Agent status sidebar -->\n        <div style="width:160px;border-left:1px solid var(--border);overflow-y:auto;flex-shrink:0;padding:4px;display:flex;flex-direction:column;gap:2px">\n          <div style="font-size:9px;color:var(--dim);text-transform:uppercase;padding:4px 8px;letter-spacing:1px">Agents Online</div>\n          <div id="agentStatusList"></div>\n        </div>\n      </div>\n    </div>`
-    <div style="padding:8px;display:flex;flex-direction:column;height:100%">
-      <div class="card" style="flex-shrink:0;display:flex;gap:8px;align-items:center;margin-bottom:12px">
-        <h3 style="margin:0;font-size:15px">✅ Approvals</h3>
-        <span style="font-size:11px;color:var(--muted)" id="approvalsCount">0 pending</span>
-        <button class="btn alt" onclick="renderApprovals()" style="margin-left:auto;font-size:10px;padding:4px 10px">↻ Refresh</button>
-      </div>
-      <div id="approvalsList" style="flex:1;overflow-y:auto;min-height:0;display:flex;flex-direction:column;gap:8px">
-        <div style="text-align:center;padding:40px;color:var(--dim);font-size:13px">Loading approvals...</div>
-      </div>
+  aiTeam:`\n    <div style="display:flex;flex-direction:column;height:100%;overflow:hidden">\n      <div style="padding:8px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-shrink:0">\n        <h3 style="margin:0;font-size:15px">🤖 AI Team</h3>\n        <span style="font-size:11px;color:var(--muted)" id="agentCount\">0 agents</span>\n        <button class="btn alt" onclick="renderAI Team()" style="margin-left:auto;font-size:10px;padding:4px 10px">↻ Refresh</button>\n      </div>\n      <div style="display:flex;flex:1;min-height:0">\n        <!-- Channel sidebar -->\n        <div style="width:140px;border-right:1px solid var(--border);overflow-y:auto;flex-shrink:0;padding:4px;display:flex;flex-direction:column;gap:2px">\n          <div class="tree-row" style="font-weight:600;color:var(--text);padding:6px 8px;font-size:11px" onclick="switchChannel('all',event)">📡 All Activity</div>\n          <div class="tree-row" style="padding:6px 8px;font-size:11px" onclick="switchChannel('exec',event)">🫡 Executive</div>\n          <div class="tree-row" style="padding:6px 8px;font-size:11px" onclick="switchChannel('dev',event)">⚙️ Development</div>\n          <div class="tree-row" style="padding:6px 8px;font-size:11px" onclick="switchChannel('content',event)">🎬 Content</div>\n          <div class="tree-row" style="padding:6px 8px;font-size:11px" onclick="switchChannel('research',event)">🔬 Research</div>\n          <div class="tree-row" style="padding:6px 8px;font-size:11px" onclick="switchChannel('ops',event)">📋 Operations</div>\n          <div class="tree-row" style="padding:6px 8px;font-size:11px" onclick="switchChannel('approvals',event)">✅ Approvals</div>\n        </div>\n        <!-- Main chat area -->\n        <div style="flex:1;display:flex;flex-direction:column;min-width:0">\n          <div id="aiTeamLog" style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;min-height:0">\n            <div style="text-align:center;padding:40px;color:var(--dim);font-size:13px">Loading team activity...</div>\n          </div>\n        </div>\n        <!-- Agent status sidebar -->\n        <div style="width:160px;border-left:1px solid var(--border);overflow-y:auto;flex-shrink:0;padding:4px;display:flex;flex-direction:column;gap:2px">\n          <div style="font-size:9px;color:var(--dim);text-transform:uppercase;padding:4px 8px;letter-spacing:1px">Agents Online</div>\n          <div id="agentStatusList"></div>\n        </div>\n      </div>\n    </div>`,
+  approvals:
     </div>`
 };
 
@@ -2108,7 +3554,7 @@ function renderPage(id){
   if(target){target.classList.add('active');target.style.display='flex'}
   navButtons();
   // Render specific page
-  if(id==='home'){/* home page is galaxy iframe, no brain dashboard */}
+  if(id==='home'){renderHomeStats();}
   if(id==='todo')renderTodos();
   if(id==='board')renderBoard();
   if(id==='projects')renderProjects();
@@ -2316,47 +3762,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   const callWidget=document.createElement('div');
   callWidget.id='callWidget';
   callWidget.innerHTML=`
-<style>
-#callWidget{position:fixed;bottom:20px;right:20px;z-index:999;font-family:var(--g-font)}
-#callBtn{width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#22c55e,#16a34a);border:none;color:#fff;font-size:24px;cursor:pointer;box-shadow:0 4px 20px rgba(34,197,94,0.4);transition:all .3s;display:flex;align-items:center;justify-content:center}
-#callBtn:hover{transform:scale(1.1)}
-#callBtn.listening{background:linear-gradient(135deg,#ef4444,#dc2626);animation:pulse 1.5s infinite}
-#callBtn.processing{background:linear-gradient(135deg,#f59e0b,#d97706);animation:pulse 1s infinite}
-#callPanel{display:none;position:fixed;bottom:90px;right:20px;width:380px;height:600px;max-height:80vh;background:rgba(13,17,23,.98);border:1px solid rgba(255,255,255,.08);border-radius:16px;backdrop-filter:blur(20px);flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.5)}
-#callPanel.open{display:flex}
-#callHeader{padding:16px 20px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
-#callHeader h3{font-size:14px;font-weight:600;color:#e2e8f0;margin:0;display:flex;align-items:center;gap:8px}
-#callStatus{font-size:11px;color:#6b7280;font-weight:400}
-#callHeader .close{background:none;border:none;color:#6b7280;cursor:pointer;font-size:18px;padding:4px}
-#callLog{flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:10px;min-height:0}
-#callLog .msg{padding:10px 14px;border-radius:12px;font-size:13px;line-height:1.5;max-width:85%;animation:fadeIn .3s}
-#callLog .user-msg{background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.2);align-self:flex-end;border-bottom-right-radius:4px;color:#e2e8f0}
-#callLog .ai-msg{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);align-self:flex-start;border-bottom-left-radius:4px;border-left:3px solid #f97316;color:#e2e8f0}
-#callLog .msg-label{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:1px;opacity:.5;margin-bottom:4px}
-#callLog .sys-msg{text-align:center;font-size:11px;color:#6b7280;padding:8px;max-width:100%;background:rgba(255,255,255,.02);border-radius:8px}
-#callFooter{padding:12px 16px;border-top:1px solid rgba(255,255,255,.06);display:flex;gap:8px;align-items:center;flex-shrink:0}
-#callFooter .wave{flex:1;height:40px;display:flex;align-items:center;justify-content:center;gap:2px}
-#callFooter .wave span{width:3px;background:#22c55e;border-radius:3px;animation:wave .8s infinite;display:none}
-#callFooter .wave.listening span{display:block}
-#callFooter .wave span:nth-child(1){height:12px;animation-delay:0s}
-#callFooter .wave span:nth-child(2){height:20px;animation-delay:.1s}
-#callFooter .wave span:nth-child(3){height:28px;animation-delay:.2s}
-#callFooter .wave span:nth-child(4){height:20px;animation-delay:.3s}
-#callFooter .wave span:nth-child(5){height:12px;animation-delay:.4s}
-#callFooter .actions{display:flex;gap:6px}
-#callFooter button{width:36px;height:36px;border-radius:50%;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.03);color:#e2e8f0;cursor:pointer;font-size:14px;transition:all .2s;display:flex;align-items:center;justify-content:center}
-#callFooter button:hover{background:rgba(255,255,255,.08)}
-#callFooter button.active{background:rgba(34,197,94,.15);border-color:rgba(34,197,94,.3)}
-#callFooter button.end-call{background:rgba(239,68,68,.2);border-color:rgba(239,68,68,.3);color:#ef4444;width:40px;height:40px;font-size:16px}
-#callFooter button.end-call:hover{background:rgba(239,68,68,.3)}
-.call-timer{font-size:11px;font-variant-numeric:tabular-nums;color:#6b7280;font-family:ui-monospace,monospace}
-#callSensitivity{display:flex;align-items:center;gap:6px;padding:6px 16px;border-top:1px solid rgba(255,255,255,.04);font-size:10px;color:#6b7280}
-#callSensitivity input[type=range]{flex:1;height:4px;-webkit-appearance:none;background:rgba(255,255,255,.1);border-radius:2px;outline:none}
-#callSensitivity input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;background:#22c55e;cursor:pointer}
-@keyframes pulse{0%{box-shadow:0 4px 20px rgba(239,68,68,.4)}50%{box-shadow:0 4px 30px rgba(239,68,68,.7)}100%{box-shadow:0 4px 20px rgba(239,68,68,.4)}}
-@keyframes wave{0%,100%{transform:scaleY(.3)}50%{transform:scaleY(1)}}
-@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-</style>
+
 <button id="callBtn" title="AI Call">🎤</button>
 <div id="callPanel">
   <div id="callHeader">
@@ -2813,7 +4219,7 @@ function renderBrainModules(){
         <span class="bm-label">${m.label}</span>
         <button class="bm-pin ${m.pinned?'pinned':''}" onclick="event.stopPropagation();toggleBrainPin('${m.id}')" title="Pin">📌</button>
       </div>
-      <div class="bm-body" id="bmBody_${m.id}">
+      <div class="bm-body" id="bmBody_${m.id}" onclick="event.stopPropagation();focusBrainModule('${m.id}')">
         <div style="text-align:center;padding:8px;color:var(--dim);font-size:10px">⟳ Loading...</div>
       </div>
       <div class="bm-resize" onmousedown="brainResizeStart(event,'${m.id}')"></div>
@@ -4728,7 +6134,7 @@ function toggleBarCollapse(){
   const preview=$('barChatPreview');
   if(collapsed)collapsed.style.display=barCollapsed?'block':'none';
   if(inputRow)inputRow.style.display=barCollapsed?'none':'flex';
-  if(preview)preview.style.display=barCollapsed?'none';
+  if(preview)preview.style.display=barCollapsed?'none':'flex';
 }
 
 function closeBarPreview(){
@@ -6685,22 +8091,12 @@ async function load(skipPageRender){
 
 // ─── INIT ─────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded',()=>{
-  try{
-    var lm=document.getElementById('loadingMsg');
-    if(lm)lm.style.display='none';
-    var main=document.getElementById('appMain');
-    if(main)main.style.display='block';
-    navButtons();
-    renderPage('chat');
-    checkOpenCodeStatus();
-    setupChatPaste();
-    initNotifications();
-    load().catch(function(e){console.error('Load failed:',e);});
-  }catch(e){
-    console.error('Init error:',e);
-    var lm=document.getElementById('loadingMsg');
-    if(lm){lm.style.display='block';lm.innerHTML='<div style="color:red;padding:20px;font-size:14px">Error: '+e.message+'</div>';}
-  }
+  navButtons();
+  renderPage('chat');
+  checkOpenCodeStatus();
+  setupChatPaste();
+  initNotifications();
+  load().catch(function(e){console.error('Load failed:',e);});
 });
 
 // Auto-resize chat textarea
@@ -6974,7 +8370,7 @@ function createNewChat(){
   renderChatHist();renderChat();
 }
 // Page-aware thread map — each page gets its own thread
-const pageThreads={};
+pageThreads={};
 async function refreshChat(){
   // Visual feedback: spin the refresh button briefly
   const btn = document.querySelector('[title="Refresh chat view"]');
