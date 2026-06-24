@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Linux Desktop</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#111;color:#fff;font-family:system-ui,sans-serif}
+#container{width:100%;height:100%;display:flex;flex-direction:column}
+#status{text-align:center;padding:8px;font-size:13px;background:#1a1a2e;border-bottom:1px solid #333;flex-shrink:0;min-height:36px}
+#screen{flex:1;overflow:hidden;display:flex;align-items:center;justify-content:center;position:relative}
+#screen canvas{display:block;image-rendering:pixelated}
+#toolbar{display:flex;gap:6px;padding:6px 10px;background:#1a1a2e;border-top:1px solid #333;flex-shrink:0;flex-wrap:wrap;align-items:center}
+#toolbar button{border:1px solid #444;background:#222;color:#ccc;padding:4px 12px;border-radius:4px;cursor:pointer;font-size:12px}
+#toolbar button:hover{background:#333;color:#fff}
+#toolbar .spacer{flex:1}
+</style>
+</head>
+<body>
+<div id="container">
+  <div id="status">🔄 Connecting to desktop...</div>
+  <div id="screen"><canvas id="vnc"></canvas></div>
+  <div id="toolbar">
+    <button onclick="sendKey(0xFFE3)">Ctrl</button>
+    <button onclick="sendKey(0xFFE9)">Alt</button>
+    <button onclick="sendKey(0xFFEB)">Super</button>
+    <button onclick="sendKey(0xFF09)">Tab</button>
+    <button onclick="sendKey(0xFF1B)">Esc</button>
+    <button onclick="sendCtrlAltDel()">Ctrl+Alt+Del</button>
+    <span class="spacer"></span>
+    <button onclick="toggleFullscreen()">⛶ Full</button>
+  </div>
+</div>
+<script>
+// Simple VNC viewer using WebSocket → websockify → VNC
+const canvas = document.getElementById('vnc');
+const ctx = canvas.getContext('2d');
+const statusEl = document.getElementById('status');
+let ws, fb, fbWidth = 0, fbHeight = 0, rfb = null;
+
+function setStatus(msg, isError) {
+  statusEl.textContent = msg;
+  statusEl.style.color = isError ? '#ff6b6b' : '#69db7c';
+}
+
+function connect() {
+  setStatus('🔄 Connecting...');
+  ws = new WebSocket('ws://100.111.98.27:2090/');
+  ws.binaryType = 'arraybuffer';
+
+  ws.onopen = () => {
+    setStatus('✅ Connected');
+    // Initiate VNC handshake (RFB protocol)
+    ws.send(new Uint8Array([82, 70, 66, 32, 48, 48, 51, 0]));
+  };
+
+  ws.onmessage = (e) => {
+    const data = new Uint8Array(e.data);
+    if (data[0] === 82 && data[1] === 70 && data[2] === 66 && !fb) {
+      handleRFBHandshake(data);
+    } else if (rfb) {
+      handleRFBMessage(data);
+    }
+  };
+
+  ws.onclose = () => {
+    setStatus('❌ Disconnected. Retrying in 5s...', true);
+    fb = null; rfb = null;
+    setTimeout(connect, 5000);
+  };
+
+  ws.onerror = () => {
+    setStatus('❌ Connection error', true);
+  };
+}
+
+connect();
+
+// Simplified RFB handling
+function handleRFBHandshake(data) {
+  const text = new TextDecoder().decode(data.slice(0, 12));
+  const ver = data.slice(12, 12+12);
+  // We're RFB 003.003
+  ws.send(new Uint8Array([82, 70, 66, 32, 48, 48, 51, 46, 48, 48, 51, 0]));
+  // After version negotiation, server sends auth type
+  // Security: 1 = None
+  fb = true;
+}
+
+function handleRFBMessage(data) {
+  if (data.length < 4) return;
+  const msgType = data[0];
+  
+  if (msgType === 0) { // Framebuffer update
+    let pos = 4; // Skip padding + number of rects
+    const numRects = (data[2] << 8) | data[3];
+    for (let r = 0; r < numRects; r++) {
+      const x = (data[pos] << 8) | data[pos+1];
+      const y = (data[pos+2] << 8) | data[pos+3];
+      const w = (data[pos+4] << 8) | data[pos+5];
+      const h = (data[pos+6] << 8) | data[pos+7];
+      const enc = (data[pos+8] << 24) | (data[pos+9] << 16) | (data[pos+10] << 8) | data[pos+11];
+      pos += 12;
+      if (enc === 0) { // Raw encoding
+        if (!fbWidth) {
+          fbWidth = w; fbHeight = h;
+          canvas.width = w; canvas.height = h;
+        }
+        const imageData = ctx.createImageData(w, h);
+        let src = pos;
+        for (let i = 0; i < w * h * 4; i += 4) {
+          imageData.data[i+2] = data[src++]; // R
+          imageData.data[i+1] = data[src++]; // G
+          imageData.data[i]   = data[src++]; // B
+          imageData.data[i+3] = 255;
+        }
+        ctx.putImageData(imageData, x, y);
+        pos = src;
+      } else if (enc === -239) { // DesktopSize
+        fbWidth = w; fbHeight = h;
+        canvas.width = w; canvas.height = h;
+      }
+    }
+  }
+}
+
+// Keyboard
+function sendKey(keysym) {
+  if (!ws || ws.readyState !== WebSocket.OPEN) return;
+  const msg = new Uint8Array(8);
+  msg[0] = 4; // Key event
+  msg[1] = 1; // Down
+  msg[4] = (keysym >> 24) & 0xFF;
+  msg[5] = (keysym >> 16) & 0xFF;
+  msg[6] = (keysym >> 8) & 0xFF;
+  msg[7] = keysym & 0xFF;
+  ws.send(msg);
+}
+
+function sendCtrlAltDel() {
+  sendKey(0xFFE3); // Ctrl
+  sendKey(0xFFE9); // Alt
+  sendKey(0xFFFF); // Delete
+  setTimeout(() => { sendKey(0xFFFF); sendKey(0xFFE9); sendKey(0xFFE3); }, 100);
+}
+
+function toggleFullscreen() {
+  if (!document.fullscreenElement) {
+    document.getElementById('container').requestFullscreen();
+  } else {
+    document.exitFullscreen();
+  }
+}
+</script>
+</body>
+</html>

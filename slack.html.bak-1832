@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Slack — Team Communication</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0f;color:#e2e8f0;font-family:Inter,system-ui,sans-serif;display:flex;height:100vh;overflow:hidden}
+#sidebar{width:260px;background:#0d1117;border-right:1px solid rgba(255,255,255,0.06);display:flex;flex-direction:column;flex-shrink:0}
+#sidebar-header{padding:18px 20px;border-bottom:1px solid rgba(255,255,255,0.06);font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px}
+#sidebar-header span{color:#f97316}
+#tabs{display:flex;border-bottom:1px solid rgba(255,255,255,0.06)}
+.tab{flex:1;padding:10px;text-align:center;font-size:10px;cursor:pointer;color:#6b7280;transition:all 0.2s;border-bottom:2px solid transparent;background:none;border-left:none;border-right:none;border-top:none;font-family:inherit}
+.tab:hover{color:#e2e8f0}
+.tab.active{color:#f97316;border-bottom-color:#f97316}
+#list{flex:1;overflow-y:auto;padding:8px}
+.item{padding:10px 12px;border-radius:8px;cursor:pointer;margin-bottom:2px;transition:all 0.15s;display:flex;align-items:center;gap:8px;font-size:12px}
+.item:hover{background:rgba(255,255,255,0.04)}
+.item.active{background:rgba(249,115,22,0.12);border:1px solid rgba(249,115,22,0.2)}
+.item-emoji{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;background:rgba(255,255,255,0.05)}
+.item-info{flex:1;min-width:0}
+.item-name{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item-sub{font-size:10px;color:#6b7280;margin-top:1px}
+.item-badge{font-size:9px;padding:2px 6px;border-radius:8px;flex-shrink:0}
+.badge-active{background:rgba(34,197,94,0.15);color:#22c55e}
+.badge-idle{background:rgba(234,179,8,0.15);color:#eab308}
+#main{flex:1;display:flex;flex-direction:column}
+#chat-header{padding:14px 20px;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;gap:10px}
+#chat-header h2{font-size:15px;font-weight:600}
+#chat-header .sub{font-size:11px;color:#6b7280}
+#messages{flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:12px}
+.msg{padding:12px 14px;border-radius:10px;font-size:12px;line-height:1.5;max-width:85%}
+.msg.agent-msg{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-left:3px solid #f97316}
+.msg.system-msg{background:rgba(255,255,255,0.01);font-size:10px;color:#6b7280;text-align:center;border:none;max-width:100%}
+.msg-header{display:flex;align-items:center;gap:6px;margin-bottom:4px}
+.msg-from{font-size:11px;font-weight:600}
+.msg-to{font-size:10px;color:#6b7280}
+.msg-time{font-size:10px;color:#6b7280;margin-left:auto}
+.msg-body{white-space:pre-wrap;word-break:break-word;color:rgba(255,255,255,0.7)}
+.empty-state{flex:1;display:flex;align-items:center;justify-content:center;color:#6b7280;font-size:13px;text-align:center;padding:40px}
+#refresh{position:fixed;bottom:16px;right:16px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:#e2e8f0;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:11px;font-family:inherit;z-index:5}
+#refresh:hover{background:rgba(249,115,22,0.12)}
+</style>
+</head>
+<body>
+<div id="sidebar">
+  <div id="sidebar-header">⚡ AI <span>Slack</span></div>
+  <div id="tabs">
+    <button class="tab active" onclick="switchTab('agents')">AGENTS</button>
+    <button class="tab" onclick="switchTab('groups')">GROUPS</button>
+    <button class="tab" onclick="switchTab('cobweb')">🕸️</button>
+  </div>
+  <div id="list"></div>
+</div>
+<div id="main">
+  <div id="chat-header">
+    <div style="font-size:24px" id="chat-emoji">🤖</div>
+    <div>
+      <h2 id="chat-title">Select an agent or group</h2>
+      <div class="sub" id="chat-subtitle"></div>
+    </div>
+  </div>
+  <div id="messages"><div class="empty-state">👈 Select an agent or group to view conversations</div></div>
+</div>
+<button id="refresh" onclick="load()">🔄 Refresh</button>
+
+<script>
+const AGENTS=[
+  {id:'kaneki',name:'Kaneki Ken',role:'Chief AI',emoji:'🫡',color:'#f97316',tier:'T1',group:'exec'},
+  {id:'cmo',name:'CMO',role:'Chief Marketing Officer',emoji:'📣',color:'#8b5cf6',tier:'T2',group:'csuite'},
+  {id:'cto',name:'CTO',role:'Chief Technology Officer',emoji:'⚙️',color:'#3b82f6',tier:'T2',group:'csuite'},
+  {id:'cfo',name:'CFO',role:'Chief Financial Officer',emoji:'💰',color:'#22c55e',tier:'T2',group:'csuite'},
+  {id:'lamatrader-lead',name:'LamaTrader Lead',role:'Trading Platform',emoji:'📈',color:'#f59e0b',tier:'T3',group:'lamatrader'},
+  {id:'grademy-lead',name:'Grademy Lead',role:'EdTech Launch',emoji:'🎓',color:'#a855f7',tier:'T3',group:'grademy'},
+  {id:'pripitch-lead',name:'Pripitch Lead',role:'Revival Sprint',emoji:'🎤',color:'#ec4899',tier:'T3',group:'pripitch'},
+  {id:'outreach-head',name:'Outreach Head',role:'Email+LinkedIn+SMS',emoji:'📨',color:'#14b8a6',tier:'T3',group:'outreach'},
+  {id:'content-director',name:'Content Director',role:'Content Ops+Distribution',emoji:'📣',color:'#f97316',tier:'T3',group:'content'},
+  {id:'rema-lead',name:'Remit Lead',role:'Construction Ops',emoji:'🏠',color:'#06b6d4',tier:'T3',group:'rema'},
+  {id:'ventures-pm',name:'Ventures PM',role:'Client Projects',emoji:'🌐',color:'#64748b',tier:'T3',group:'ventures'},
+];
+
+const GROUPS=[
+  {id:'exec',name:'Executive',desc:'Amir + Kaneki — Command decisions',members:['kaneki'],emoji:'👑'},
+  {id:'csuite',name:'C-Suite',desc:'CMO · CTO · CFO — Strategy layer',members:['cmo','cto','cfo'],emoji:'🏛️'},
+  {id:'lamatrader',name:'LamaTrader Team',desc:'Trading platform + lead gen',members:['lamatrader-lead'],emoji:'📈'},
+  {id:'grademy',name:'Grademy Team',desc:'EdTech launch squad',members:['grademy-lead'],emoji:'🎓'},
+  {id:'pripitch',name:'Pripitch Revival',desc:'Sprint team — revival mode',members:['pripitch-lead'],emoji:'🎤'},
+  {id:'outreach',name:'Outreach Ops',desc:'Email·LinkedIn·SMS campaigns',members:['outreach-head'],emoji:'📨'},
+  {id:'content',name:'Content Empire',desc:'Content + Brogen + Video',members:['content-director'],emoji:'📣'},
+  {id:'rema',name:'Remit Exteriors',desc:'Construction projects',members:['rema-lead'],emoji:'🏠'},
+  {id:'ventures',name:'Client Ventures',desc:'Halal Booking·CinematicX·Unitas·Waterspring',members:['ventures-pm'],emoji:'🌐'},
+];
+
+let TAB='agents',ACTIVE=null,DATA={outputs:{},_cronJobs:[]};
+
+function switchTab(t){TAB=t;document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));event.target.classList.add('active');ACTIVE=null;renderList();document.getElementById('messages').innerHTML='<div class="empty-state">👈 Select an item to view</div>';}
+
+async function load(){
+  try{const r=await fetch('/api/agents/status');DATA=await r.json();}catch(e){}
+  if(TAB==='cobweb'){renderCobweb();return;}
+  renderList();
+  if(ACTIVE&&TAB==='agents')showAgent(ACTIVE);
+  if(ACTIVE&&TAB==='groups')showGroup(ACTIVE);
+}
+
+function renderList(){
+  const list=document.getElementById('list');
+  if(TAB==='agents'){
+    const tiers={T1:'EXECUTIVE',T2:'C-SUITE',T3:'TEAM LEADS'};
+    let lt='',h='';
+    AGENTS.forEach(a=>{
+      if(tiers[a.tier]!==lt){h+=`<div style="font-size:9px;color:rgba(255,255,255,0.2);padding:8px 12px 4px;text-transform:uppercase;letter-spacing:1px">${tiers[a.tier]}</div>`;lt=tiers[a.tier];}
+      const st=getStatus(a.id);
+      h+=`<div class="item${ACTIVE===a.id?' active':''}" onclick="showAgent('${a.id}')">
+        <div class="item-emoji">${a.emoji}</div>
+        <div class="item-info"><div class="item-name">${a.name}</div><div class="item-sub">${a.role}</div></div>
+        <span class="item-badge ${st==='active'?'badge-active':'badge-idle'}">${st==='active'?'●':'○'}</span>
+      </div>`;
+    });
+    list.innerHTML=h;
+  }else{
+    list.innerHTML=GROUPS.map(g=>{
+      const activeMembers=g.members.filter(m=>getStatus(m)==='active').length;
+      return `<div class="item${ACTIVE===g.id?' active':''}" onclick="showGroup('${g.id}')">
+        <div class="item-emoji">${g.emoji}</div>
+        <div class="item-info"><div class="item-name">${g.name}</div><div class="item-sub">${g.members.length} members · ${activeMembers} active</div></div>
+      </div>`;
+    }).join('');
+  }
+}
+
+function getStatus(id){
+  const job=DATA._cronJobs?.find(j=>j.name?.toLowerCase().includes(id.replace('-lead','')));
+  if(job)return job.lastStatus==='ok'?'active':'idle';
+  if(id==='kaneki')return'active';
+  return'idle';
+}
+
+function showAgent(id){
+  ACTIVE=id;TAB='agents';
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab')[0].classList.add('active');
+  renderList();
+  const a=AGENTS.find(x=>x.id===id)||{name:id,emoji:'🤖',role:''};
+  document.getElementById('chat-emoji').textContent=a.emoji;
+  document.getElementById('chat-title').textContent=a.name;
+  document.getElementById('chat-subtitle').textContent=a.role||'';
+  const msgs=document.getElementById('messages');
+  const outputs=DATA.outputs?.[id]||[];
+  if(!outputs.length){msgs.innerHTML=`<div class="empty-state"><div style="font-size:40px;margin-bottom:8px">${a.emoji}</div><div>No outputs yet. Reports will appear when this agent runs.</div></div>`;return;}
+  msgs.innerHTML=outputs.slice(-10).map(o=>`
+    <div class="msg agent-msg">
+      <div class="msg-header"><span class="msg-from">${a.emoji} ${a.name}</span><span class="msg-time">${o.time?.slice(11,16)||''}</span></div>
+      <div class="msg-body">${o.text||'(empty)'}</div>
+    </div>
+  `).join('');
+}
+
+function showGroup(id){
+  ACTIVE=id;TAB='groups';
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab')[1].classList.add('active');
+  renderList();
+  const g=GROUPS.find(x=>x.id===id)||{name:id,emoji:'👥',desc:'',members:[]};
+  document.getElementById('chat-emoji').textContent=g.emoji;
+  document.getElementById('chat-title').textContent=g.name;
+  document.getElementById('chat-subtitle').textContent=g.desc||'';
+  const msgs=document.getElementById('messages');
+  // Collect outputs from all group members
+  let allOutputs=[];
+  g.members.forEach(mid=>{
+    (DATA.outputs?.[mid]||[]).forEach(o=>allOutputs.push({...o,agent:mid}));
+  });
+  allOutputs.sort((a,b)=>new Date(b.time||0)-new Date(a.time||0));
+  if(!allOutputs.length){msgs.innerHTML=`<div class="empty-state"><div style="font-size:40px;margin-bottom:8px">${g.emoji}</div><div>Group chat will populate when team members start reporting.</div></div>`;return;}
+  msgs.innerHTML=allOutputs.slice(-15).map(o=>{
+    const a=AGENTS.find(x=>x.id===o.agent)||{name:o.agent,emoji:'🤖'};
+    return `<div class="msg agent-msg">
+      <div class="msg-header"><span class="msg-from">${a.emoji} ${a.name}</span><span class="msg-time">${o.time?.slice(11,16)||''}</span></div>
+      <div class="msg-body">${o.text||'(empty)'}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderCobweb(){
+  document.getElementById('chat-emoji').textContent='🕸️';
+  document.getElementById('chat-title').textContent='Connector Cobweb';
+  document.getElementById('chat-subtitle').textContent='Inter-agent communication map';
+  const msgs=document.getElementById('messages');
+  // Build connector map
+  let html='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px">';
+  GROUPS.forEach(g=>{
+    html+=`<div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:10px;padding:14px">
+      <div style="font-weight:600;font-size:13px;margin-bottom:8px">${g.emoji} ${g.name}</div>
+      <div style="font-size:10px;color:#6b7280;margin-bottom:8px">${g.desc}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:4px">
+        ${g.members.map(m=>{
+          const a=AGENTS.find(x=>x.id===m)||{name:m,emoji:'🤖',color:'#6b7280'};
+          const st=getStatus(m);
+          return `<span style="font-size:10px;padding:3px 8px;border-radius:6px;background:${a.color}15;color:${a.color};border:1px solid ${a.color}30;display:inline-flex;align-items:center;gap:4px">
+            <span style="width:5px;height:5px;border-radius:50%;background:${st==='active'?'#22c55e':'#eab308'}"></span>
+            ${a.emoji} ${a.name}
+          </span>`;
+        }).join('')}
+      </div>
+    </div>`;
+  });
+  html+='</div>';
+  // Add connector legend
+  html+=`<div style="margin-top:16px;padding:12px;background:rgba(255,255,255,0.01);border:1px solid rgba(255,255,255,0.04);border-radius:10px;font-size:10px;color:#6b7280">
+    🟢 Active · 🟡 Idle · ─── Connected (shared project)  ·  C-Suite ↔ Team Managers  ·  Team Managers ↔ Workers
+  </div>`;
+  msgs.innerHTML=html;
+}
+
+load();
+setInterval(load,20000);
+</script>
+</body>
+</html>

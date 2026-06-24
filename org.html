@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Company Tree — AI Organization</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0f;color:#e2e8f0;font-family:Inter,system-ui,sans-serif;min-height:100vh;overflow-x:hidden}
+#header{padding:24px 32px;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;gap:12px}
+#header h1{font-size:18px;font-weight:700;letter-spacing:-0.3px}
+#header span{color:#f97316}
+#tree{display:flex;flex-direction:column;align-items:center;padding:40px 20px 80px;gap:0}
+.org-node{text-align:center;position:relative}
+.org-card{display:inline-block;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px 20px;min-width:140px;cursor:pointer;transition:all 0.2s}
+.org-card:hover{background:rgba(255,255,255,0.06);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,0.4)}
+.org-card.ceo{background:rgba(249,115,22,0.12);border-color:rgba(249,115,22,0.3);min-width:180px}
+.org-card.chief{background:rgba(249,115,22,0.08);border-color:rgba(249,115,22,0.2)}
+.org-card.csuite{border-left:3px solid}
+.org-card.lead{border-left:3px solid;padding:10px 16px;min-width:120px}
+.org-card.worker{border-left:2px solid;padding:8px 14px;min-width:100px;font-size:11px}
+.org-name{font-weight:600;font-size:13px;margin-bottom:2px}
+.org-name.ceo-name{font-size:16px;color:#f59e0b}
+.org-role{font-size:10px;color:#6b7280}
+.org-emoji{font-size:16px;margin-bottom:4px}
+.org-row{display:flex;gap:40px;justify-content:center;flex-wrap:wrap}
+.org-line{width:2px;height:30px;background:rgba(255,255,255,0.08);margin:0 auto}
+.org-hline{height:2px;background:rgba(255,255,255,0.06);position:absolute;top:-30px}
+.org-tier-label{font-size:10px;color:rgba(255,255,255,0.2);text-transform:uppercase;letter-spacing:2px;margin:30px 0 10px;text-align:center;width:100%}
+</style>
+</head>
+<body>
+<div id="header">
+  <h1>🏢 Company <span>TREE</span></h1>
+  <a href="/" style="margin-left:auto;color:#6b7280;text-decoration:none;font-size:12px">← Dashboard</a>
+  <a href="/galaxy-3d" style="color:#6b7280;text-decoration:none;font-size:12px">Galaxy →</a>
+  <a href="/slack" style="color:#6b7280;text-decoration:none;font-size:12px">Slack →</a>
+</div>
+<div id="tree">
+
+  <!-- TIER 0: CEO -->
+  <div class="org-node">
+    <div class="org-card ceo">
+      <div class="org-emoji">👑</div>
+      <div class="org-name ceo-name">AMIR</div>
+      <div class="org-role">CEO — Master Sign-Off</div>
+    </div>
+  </div>
+  <div class="org-line"></div>
+
+  <!-- TIER 1: Chief AI -->
+  <div class="org-node">
+    <div class="org-card chief">
+      <div class="org-emoji">🫡</div>
+      <div class="org-name">KANEKI</div>
+      <div class="org-role">Chief AI — Right Hand</div>
+    </div>
+  </div>
+  <div class="org-line"></div>
+
+  <!-- TIER 2: C-Suite -->
+  <div class="org-tier-label">C-Suite • V4 Pro • 9 AM Daily</div>
+  <div class="org-row">
+    <div class="org-node">
+      <div class="org-card csuite" style="border-color:#8b5cf6">
+        <div class="org-emoji">📣</div>
+        <div class="org-name">CMO</div>
+        <div class="org-role">Marketing, Outreach, Content</div>
+      </div>
+    </div>
+    <div class="org-node">
+      <div class="org-card csuite" style="border-color:#3b82f6">
+        <div class="org-emoji">⚙️</div>
+        <div class="org-name">CTO</div>
+        <div class="org-role">Technology, Dev, Infrastructure</div>
+      </div>
+    </div>
+    <div class="org-node">
+      <div class="org-card csuite" style="border-color:#22c55e">
+        <div class="org-emoji">💰</div>
+        <div class="org-name">CFO</div>
+        <div class="org-role">Revenue, Expenses, Billing</div>
+      </div>
+    </div>
+  </div>
+  <div class="org-line"></div>
+
+  <!-- TIER 3: Team Managers -->
+  <div class="org-tier-label">Team Managers • V4 Pro • 8 AM Daily</div>
+  <div class="org-row" style="gap:24px">
+    <!-- Under CMO -->
+    <div style="display:flex;flex-direction:column;align-items:center;gap:8px">
+      <div style="font-size:9px;color:rgba(255,255,255,0.15)">← CMO</div>
+      <div class="org-card lead" style="border-color:#14b8a6" onclick="window.open('/slack','_blank')">
+        <div class="org-emoji">📨</div>
+        <div class="org-name">Outreach Head</div>
+        <div class="org-role">Cold Email · LinkedIn · SMS</div>
+      </div>
+      <div class="org-card lead" style="border-color:#f97316" onclick="window.open('/slack','_blank')">
+        <div class="org-emoji">📣</div>
+        <div class="org-name">Content Director</div>
+        <div class="org-role">Content Ops · Brogen · Video</div>
+      </div>
+    </div>
+
+    <!-- Under CTO -->
+    <div style="display:flex;flex-direction:column;align-items:center;gap:8px">
+      <div style="font-size:9px;color:rgba(255,255,255,0.15)">← CTO</div>
+      <div class="org-card lead" style="border-color:#f59e0b" onclick="window.open('/slack','_blank')">
+        <div class="org-emoji">📈</div>
+        <div class="org-name">LamaTrader Lead</div>
+        <div class="org-role">Trading Platform · Broker Leads</div>
+      </div>
+      <div class="org-card lead" style="border-color:#a855f7" onclick="window.open('/slack','_blank')">
+        <div class="org-emoji">🎓</div>
+        <div class="org-name">Grademy Lead</div>
+        <div class="org-role">EdTech · UCL Pilot · Sept Launch</div>
+      </div>
+      <div class="org-card lead" style="border-color:#ec4899" onclick="window.open('/slack','_blank')">
+        <div class="org-emoji">🎤</div>
+        <div class="org-name">Pripitch Lead</div>
+        <div class="org-role">Revival Sprint · Aug Launch</div>
+      </div>
+      <div class="org-card lead" style="border-color:#06b6d4" onclick="window.open('/slack','_blank')">
+        <div class="org-emoji">🏠</div>
+        <div class="org-name">Remit Lead</div>
+        <div class="org-role">Construction Operations</div>
+      </div>
+    </div>
+
+    <!-- Under CFO -->
+    <div style="display:flex;flex-direction:column;align-items:center;gap:8px">
+      <div style="font-size:9px;color:rgba(255,255,255,0.15)">← CFO</div>
+      <div class="org-card lead" style="border-color:#64748b" onclick="window.open('/slack','_blank')">
+        <div class="org-emoji">🌐</div>
+        <div class="org-name">Ventures PM</div>
+        <div class="org-role">Client Projects</div>
+      </div>
+    </div>
+  </div>
+  <div class="org-line"></div>
+
+  <!-- TIER 4: Workers -->
+  <div class="org-tier-label">Workers • V4 Flash • On-Demand</div>
+  <div class="org-row" style="gap:16px">
+    <div class="org-card worker" style="border-color:#14b8a6">
+      <div class="org-name">✉️ Cold Email Specialist</div>
+      <div class="org-role">ai.ragmedium Sequences</div>
+    </div>
+    <div class="org-card worker" style="border-color:#0ea5e9">
+      <div class="org-name">🔗 LinkedIn Specialist</div>
+      <div class="org-role">l.ragmedium DM Campaigns</div>
+    </div>
+    <div class="org-card worker" style="border-color:#84cc16">
+      <div class="org-name">🔍 SEO Agent</div>
+      <div class="org-role">Review Sites · Keywords</div>
+    </div>
+    <div class="org-card worker" style="border-color:#f59e0b">
+      <div class="org-name">🎯 Lead Gen Specialist</div>
+      <div class="org-role">Broker Ecosystem</div>
+    </div>
+    <div class="org-card worker" style="border-color:#a855f7">
+      <div class="org-name">💻 Dev (Flash)</div>
+      <div class="org-role">Code Fixes · Features</div>
+    </div>
+    <div class="org-card worker" style="border-color:#f97316">
+      <div class="org-name">✍️ Writer (Flash)</div>
+      <div class="org-role">Content · Copy · Scripts</div>
+    </div>
+    <div class="org-card worker" style="border-color:#ec4899">
+      <div class="org-name">🐦 Brogen Poster</div>
+      <div class="org-role">X Farm Content (paused)</div>
+    </div>
+  </div>
+
+  <!-- Projects -->
+  <div class="org-tier-label" style="margin-top:40px">Projects & Platforms</div>
+  <div class="org-row" style="gap:16px">
+    <div class="org-card" style="border-color:#f59e0b;border:1px solid rgba(245,158,11,0.2)">
+      <div class="org-name">📈 LamaTrader</div>
+      <div class="org-role">Live Beta · lamatrader.com</div>
+    </div>
+    <div class="org-card" style="border-color:#a855f7;border:1px solid rgba(168,85,247,0.2)">
+      <div class="org-name">🎓 Grademy.work</div>
+      <div class="org-role">EdTech · Sept 2026</div>
+    </div>
+    <div class="org-card" style="border-color:#ec4899;border:1px solid rgba(236,72,153,0.2)">
+      <div class="org-name">🎤 Pripitch</div>
+      <div class="org-role">Revival Sprint</div>
+    </div>
+    <div class="org-card" style="border-color:#06b6d4;border:1px solid rgba(6,182,212,0.2)">
+      <div class="org-name">🏠 Remit Exteriors</div>
+      <div class="org-role">Construction</div>
+    </div>
+    <div class="org-card" style="border-color:#f97316;border:1px solid rgba(249,115,22,0.2)">
+      <div class="org-name">📣 Content Empire</div>
+      <div class="org-role">X Farm · Studio · Video</div>
+    </div>
+    <div class="org-card" style="border-color:#14b8a6;border:1px solid rgba(20,184,166,0.2)">
+      <div class="org-name">📨 ai.ragmedium</div>
+      <div class="org-role">B2C Platform · SMS · Email</div>
+    </div>
+    <div class="org-card" style="border-color:#64748b;border:1px solid rgba(100,116,139,0.2)">
+      <div class="org-name">🌐 Client Projects</div>
+      <div class="org-role">Halal Booking · CinematicX · Unitas · Waterspring</div>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="org-tier-label" style="margin-top:40px">System Stats</div>
+  <div class="org-row" style="gap:20px">
+    <div class="org-card" style="border:none;background:rgba(34,197,94,0.08)">
+      <div class="org-name" style="color:#22c55e">10</div>
+      <div class="org-role">Agents Online</div>
+    </div>
+    <div class="org-card" style="border:none;background:rgba(59,130,246,0.08)">
+      <div class="org-name" style="color:#3b82f6">10</div>
+      <div class="org-role">PM2 Services</div>
+    </div>
+    <div class="org-card" style="border:none;background:rgba(139,92,246,0.08)">
+      <div class="org-name" style="color:#8b5cf6">707</div>
+      <div class="org-role">RAG Chunks</div>
+    </div>
+    <div class="org-card" style="border:none;background:rgba(249,115,22,0.08)">
+      <div class="org-name" style="color:#f97316">12</div>
+      <div class="org-role">Projects + Clients</div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>JARVIS GALAXY — Command Center</title>
+<script type="importmap">
+{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}
+</script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#0a0a14;font-family:'Inter','Segoe UI',system-ui,sans-serif;color:#c0c0d0}
+#c{position:fixed;top:0;left:0;width:100%;height:100%;z-index:1}
+
+/* ─── Scan Line Overlay ─── */
+#scanlines{position:fixed;top:0;left:0;width:100%;height:100%;z-index:2;pointer-events:none;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,200,255,0.015) 2px,rgba(0,200,255,0.015) 4px)}
+#vignette{position:fixed;top:0;left:0;width:100%;height:100%;z-index:2;pointer-events:none;
+  background:radial-gradient(ellipse at center,transparent 40%,rgba(0,0,0,0.6) 100%)}
+
+/* ─── Top HUD ─── */
+#hud{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:10;pointer-events:none;text-align:center}
+#hud h1{font-size:11px;font-weight:400;letter-spacing:6px;color:rgba(0,200,255,0.3);text-transform:uppercase}
+#hud .status{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:4px;font-size:9px;color:rgba(0,200,255,0.2);letter-spacing:2px}
+
+/* ─── Left Sidebar ─── */
+#sidebar-left{position:fixed;top:0;left:0;width:220px;height:100vh;z-index:20;
+  background:linear-gradient(90deg,rgba(10,10,30,0.92) 0%,rgba(10,10,30,0.7) 80%,transparent 100%);
+  border-right:1px solid rgba(0,200,255,0.06);padding:70px 0 20px 0;overflow-y:auto;backdrop-filter:blur(10px)}
+#sidebar-left::-webkit-scrollbar{width:2px}
+#sidebar-left::-webkit-scrollbar-thumb{background:rgba(0,200,255,0.15);border-radius:2px}
+#sidebar-left .stitle{font-size:8px;letter-spacing:4px;color:rgba(0,200,255,0.25);padding:0 16px 12px;text-transform:uppercase}
+.sb-item{display:flex;align-items:center;gap:8px;padding:6px 16px;cursor:pointer;transition:all 0.2s;border-left:2px solid transparent;font-size:11px}
+.sb-item:hover{background:rgba(0,200,255,0.04);border-left-color:rgba(0,200,255,0.3);color:#fff}
+.sb-item.active{background:rgba(0,200,255,0.06);border-left-color:#00c8ff;color:#fff}
+.sb-item .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.sb-item .lbl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ─── Right Sidebar ─── */
+#sidebar-right{position:fixed;top:0;right:0;width:220px;height:100vh;z-index:20;
+  background:linear-gradient(270deg,rgba(10,10,30,0.92) 0%,rgba(10,10,30,0.7) 80%,transparent 100%);
+  border-left:1px solid rgba(0,200,255,0.06);padding:70px 0 20px 0;overflow-y:auto;backdrop-filter:blur(10px)}
+#sidebar-right::-webkit-scrollbar{width:2px}
+#sidebar-right::-webkit-scrollbar-thumb{background:rgba(0,200,255,0.15);border-radius:2px}
+#sidebar-right .stitle{font-size:8px;letter-spacing:4px;color:rgba(0,200,255,0.25);padding:0 16px 12px;text-transform:uppercase}
+.sb-agent{display:flex;align-items:center;gap:8px;padding:5px 16px;cursor:pointer;transition:all 0.2s;font-size:10px}
+.sb-agent:hover{background:rgba(0,200,255,0.04);color:#fff}
+.sb-agent .stat{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+.sb-agent .aname{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sb-agent .atask{font-size:8px;color:rgba(255,255,255,0.25);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80px}
+
+/* ─── Full-Screen Dashboard Modal ─── */
+#dash-modal{position:fixed;top:0;left:0;width:100%;height:100%;z-index:100;display:none;
+  background:rgba(5,5,20,0.92);backdrop-filter:blur(20px);overflow-y:auto}
+#dash-modal.open{display:block}
+#dash-inner{max-width:900px;margin:0 auto;padding:40px 60px 80px}
+#dash-close{position:fixed;top:20px;right:30px;z-index:101;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);
+  color:#888;width:36px;height:36px;border-radius:50%;cursor:pointer;font-size:16px;transition:all 0.2s;display:flex;align-items:center;justify-content:center}
+#dash-close:hover{background:rgba(255,255,255,0.1);color:#fff}
+.dash-header{margin-bottom:30px}
+.dash-header h2{font-size:24px;font-weight:300;letter-spacing:2px;color:#fff;margin-bottom:4px}
+.dash-header .sub{font-size:11px;color:rgba(0,200,255,0.4);letter-spacing:1px}
+.dash-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:30px}
+.dash-card{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.04);border-radius:12px;padding:16px}
+.dash-card .lbl{font-size:8px;letter-spacing:2px;color:rgba(255,255,255,0.25);text-transform:uppercase;margin-bottom:4px}
+.dash-card .val{font-size:22px;font-weight:600;color:#fff}
+.dash-card .val.small{font-size:13px;font-weight:400}
+.dash-section{margin-bottom:24px}
+.dash-section h3{font-size:10px;letter-spacing:3px;color:rgba(0,200,255,0.35);text-transform:uppercase;margin-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.04);padding-bottom:6px}
+.dash-list{list-style:none}
+.dash-list li{padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.02);font-size:12px;color:rgba(255,255,255,0.6);display:flex;align-items:center;gap:8px}
+.dash-list li::before{content:'›';color:rgba(0,200,255,0.3)}
+
+/* ─── Chat Bar ─── */
+#chat-bar{position:fixed;bottom:0;left:0;width:100%;height:52px;z-index:30;
+  background:linear-gradient(0deg,rgba(10,10,30,0.95) 0%,rgba(10,10,30,0.8) 100%);
+  border-top:1px solid rgba(0,200,255,0.06);display:flex;align-items:center;padding:0 240px;backdrop-filter:blur(10px)}
+#chat-input{flex:1;height:32px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:6px;
+  padding:0 12px;color:#c0c0d0;font-size:12px;outline:none;font-family:inherit;transition:border-color 0.2s}
+#chat-input:focus{border-color:rgba(0,200,255,0.2)}
+#chat-input::placeholder{color:rgba(255,255,255,0.15)}
+#chat-send,#chat-mic{background:none;border:none;color:rgba(255,255,255,0.2);cursor:pointer;padding:0 10px;font-size:14px;transition:color 0.2s}
+#chat-send:hover,#chat-mic:hover{color:rgba(0,200,255,0.6)}
+#chat-think{display:none;align-items:center;gap:8px;font-size:9px;color:rgba(0,200,255,0.3);letter-spacing:2px;padding:0 12px}
+#chat-think.active{display:flex}
+#chat-think .spinner{width:10px;height:10px;border:1px solid rgba(0,200,255,0.2);border-top-color:#00c8ff;border-radius:50%;animation:spin 0.8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ─── Hint ─── */
+#hint{position:fixed;bottom:60px;left:50%;transform:translateX(-50%);z-index:10;font-size:9px;color:rgba(255,255,255,0.1);letter-spacing:2px;pointer-events:none;text-align:center}
+
+/* ─── Hover highlight ─── */
+#hover-label{position:fixed;pointer-events:none;z-index:15;font-size:10px;color:#00c8ff;letter-spacing:2px;
+  text-shadow:0 0 20px rgba(0,200,255,0.5);display:none;background:rgba(0,0,0,0.6);padding:2px 8px;border-radius:4px;
+  border:1px solid rgba(0,200,255,0.2)}
+
+/* ─── Responsive ─── */
+@media(max-width:900px){#sidebar-left,#sidebar-right{width:160px}#chat-bar{padding:0 170px}}
+@media(max-width:700px){#sidebar-left{width:50px}#sidebar-left .lbl{display:none}#sidebar-right{display:none}#chat-bar{padding:0 16px}.dash-grid{grid-template-columns:1fr}#dash-inner{padding:30px 20px 80px}}
+</style>
+</head>
+<body>
+<div id="c"></div>
+<div id="scanlines"></div>
+<div id="vignette"></div>
+
+<div id="hud"><h1>// JARVIS GALAXY</h1><div class="status">● DASHBOARD ONLINE</div></div>
+<div id="hover-label"></div>
+
+<!-- Left Sidebar: Projects -->
+<div id="sidebar-left">
+  <div class="stitle">PROJECTS</div>
+  <div id="project-list"></div>
+</div>
+
+<!-- Right Sidebar: Agents -->
+<div id="sidebar-right">
+  <div class="stitle">AGENTS</div>
+  <div id="agent-list"></div>
+</div>
+
+<!-- Dashboard Modal -->
+<div id="dash-modal">
+  <button id="dash-close">✕</button>
+  <div id="dash-inner"></div>
+</div>
+
+<!-- Chat -->
+<div id="chat-bar">
+  <div id="chat-think"><div class="spinner"></div>PROCESSING</div>
+  <input id="chat-input" type="text" placeholder="Command galaxy..." autocomplete="off">
+  <button id="chat-mic">🎤</button>
+  <button id="chat-send">⏎</button>
+</div>
+
+<div id="hint">DRAG TO NAVIGATE · SCROLL TO ZOOM · CLICK TO FOCUS</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
+// ─── Scene Setup ───
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(50, innerWidth/innerHeight, 0.5, 2000);
+camera.position.set(50, 180, 280);
+
+const renderer = new THREE.WebGLRenderer({antialias:true,alpha:true});
+renderer.setSize(innerWidth,innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.0;
+document.getElementById('c').appendChild(renderer.domElement);
+
+const labelRenderer = new CSS2DRenderer();
+labelRenderer.setSize(innerWidth,innerHeight);
+labelRenderer.domElement.style.position='fixed';labelRenderer.domElement.style.top='0';
+labelRenderer.domElement.style.pointerEvents='none';labelRenderer.domElement.style.left='0';
+labelRenderer.domElement.style.zIndex='3';
+document.body.appendChild(labelRenderer.domElement);
+
+const controls = new OrbitControls(camera,renderer.domElement);
+controls.enableDamping=true;controls.dampingFactor=0.06;
+controls.minDistance=40;controls.maxDistance=600;
+controls.target.set(0,0,0);controls.update();
+
+// ─── Lighting ───
+scene.add(new THREE.AmbientLight(0x1a1a3e,0.8));
+const cl = new THREE.PointLight(0xff8800,400,250);cl.position.set(0,0,0);scene.add(cl);
+const al = new THREE.DirectionalLight(0x4488ff,0.5);al.position.set(100,200,100);scene.add(al);
+scene.add(new THREE.PointLight(0x3388ff,80,200));
+
+// ─── Stars ───
+const sg=new THREE.BufferGeometry();const sv=[];
+for(let i=0;i<5000;i++){const r=400+Math.random()*600;const t=Math.random()*Math.PI*2;const p=Math.acos(2*Math.random()-1);
+  sv.push(r*Math.sin(p)*Math.cos(t),r*Math.sin(p)*Math.sin(t),r*Math.cos(p));}
+sg.setAttribute('position',new THREE.Float32BufferAttribute(sv,3));
+scene.add(new THREE.Points(sg,new THREE.PointsMaterial({color:0xffffff,size:0.3,transparent:true,opacity:0.6,blending:THREE.AdditiveBlending,depthWrite:false})));
+
+// ─── Wireframe Sphere Grid ───
+const sphereWireGeo = new THREE.SphereGeometry(160,24,18);
+const sphereWireMat = new THREE.MeshBasicMaterial({color:0x00aaff,wireframe:true,transparent:true,opacity:0.04,depthWrite:false});
+const sphereWire = new THREE.Mesh(sphereWireGeo,sphereWireMat);scene.add(sphereWire);
+// Inner shells
+const innerShell = new THREE.Mesh(new THREE.SphereGeometry(90,16,12),sphereWireMat.clone());innerShell.material.opacity=0.025;scene.add(innerShell);
+const innerShell2 = new THREE.Mesh(new THREE.SphereGeometry(60,16,12),sphereWireMat.clone());innerShell2.material.opacity=0.015;scene.add(innerShell2);
+
+// ─── Entity Data ───
+const COLORS = {
+  amir:0xffaa00, mindset:0xaabbcc, ventures:0x00cccc,
+  'content-empire':0xff44ff, lamatree:0x44ff88, grademy:0xaa44ff,
+  lamabroker:0xff8800, pripitch:0xff3344, 'great-dami':0xffd700, rema:0x44dd66,
+  lamatrader:0xffdd00, ragmedium:0x00eeff, ragx:0x44aaff,
+  syneticx:0x8844cc, unitas:0x4488ff, waterspring:0x44ddff
+};
+
+const entities = [
+  // Center
+  {id:'amir',label:'AMIR',radius:0,color:'amir',shape:'sun',size:12,level:0,tag:'Commander'},
+  // Inner ring R~40
+  {id:'mindset',label:'MINDSET',radius:40,color:'mindset',shape:'circle',size:7,level:1,tag:'Discipline'},
+  {id:'ventures',label:'VENTURES',radius:40,color:'ventures',shape:'diamond',size:7,level:1,tag:'Ideas'},
+  // Mid-inner R~70
+  {id:'content-empire',label:'CONTENT EMPIRE',radius:70,color:'content-empire',shape:'play',size:9,level:2,tag:'Media'},
+  {id:'lamatree',label:'LAMATREE',radius:70,color:'lamatree',shape:'tree',size:9,level:2,tag:'Referral'},
+  {id:'grademy',label:'GRADEMY',radius:70,color:'grademy',shape:'pyramid',size:9,level:2,tag:'EdTech'},
+  // Mid R~100
+  {id:'lamabroker',label:'LAMABROKER',radius:100,color:'lamabroker',shape:'blocks',size:11,level:3,tag:'Brokerage'},
+  {id:'pripitch',label:'PRIPITCH',radius:100,color:'pripitch',shape:'rocket',size:11,level:3,tag:'Pitch AI'},
+  {id:'great-dami',label:'GREAT DAMI',radius:100,color:'great-dami',shape:'star',size:11,level:3,tag:'Startup'},
+  {id:'rema',label:'REMA',radius:100,color:'rema',shape:'house',size:11,level:3,tag:'Exteriors'},
+  // Outer R~140
+  {id:'lamatrader',label:'LAMATRADER',radius:140,color:'lamatrader',shape:'barchart',size:15,level:4,tag:'ITE'},
+  {id:'ragmedium',label:'RAGMEDIUM',radius:140,color:'ragmedium',shape:'network',size:15,level:4,tag:'AI Enrich'},
+  {id:'ragx',label:'RAGX',radius:140,color:'ragx',shape:'nodes',size:15,level:4,tag:'Outreach'},
+  {id:'syneticx',label:'SYNETICX',radius:140,color:'syneticx',shape:'hexagon',size:14,level:3,tag:'Client'},
+  {id:'unitas',label:'UNITAS',radius:140,color:'unitas',shape:'rings',size:14,level:3,tag:'Client'},
+  {id:'waterspring',label:'WATERSPRING',radius:140,color:'waterspring',shape:'droplet',size:14,level:3,tag:'Client'}
+];
+
+// ─── Fibonacci Sphere Placement ───
+function placeOnSphere(idx,total,radius,yOffset=0){
+  if(radius===0)return{x:0,y:0,z:0};
+  const goldenRatio=(1+Math.sqrt(5))/2;
+  const theta=2*Math.PI*idx/goldenRatio;
+  const phi=Math.acos(1-2*(idx+0.5)/total);
+  const x=radius*Math.sin(phi)*Math.cos(theta);
+  const y=radius*Math.sin(phi)*Math.sin(theta);
+  const z=radius*Math.cos(phi);
+  return {x,y,z};
+}
+
+// ─── Shape Builders ───
+function makeMat(color,opacity=0.5,emissiveIntensity=0.4){
+  return new THREE.MeshPhysicalMaterial({
+    color,emissive:color,emissiveIntensity,roughness:0.2,metalness:0.1,
+    transparent:true,opacity,clearcoat:0.3,side:THREE.DoubleSide
+  });
+}
+function wireframeOverlay(geo,color){
+  const edges=new THREE.EdgesGeometry(geo);
+  return new THREE.LineSegments(edges,new THREE.LineBasicMaterial({color,transparent:true,opacity:0.3}));
+}
+
+function buildSun(color,size){
+  const g=new THREE.Group();
+  const c=new THREE.Color(color);
+  const m=makeMat(c,0.9,0.8);
+  const sphere=new THREE.Mesh(new THREE.SphereGeometry(size,48,48),m);g.add(sphere);
+  g.add(wireframeOverlay(new THREE.SphereGeometry(size*1.02,24,24),c));
+  // Glow aura
+  const aura=new THREE.Mesh(new THREE.SphereGeometry(size*1.8,24,24),
+    new THREE.ShaderMaterial({uniforms:{c:{value:c}},vertexShader:'varying vec3 vN;varying vec3 vP;void main(){vN=normalize(normalMatrix*normal);vec4 p=modelViewMatrix*vec4(position,1.);vP=p.xyz;gl_Position=projectionMatrix*p;}',
+    fragmentShader:'uniform vec3 c;varying vec3 vN;varying vec3 vP;void main(){vec3 v=normalize(-vP);float i=pow(0.6-dot(vN,v),3.);gl_FragColor=vec4(c,i*0.4);}',
+    transparent:true,depthWrite:false,blending:THREE.AdditiveBlending}));
+  g.add(aura);
+  return g;
+}
+
+function buildCircle(color,size){
+  const g=new THREE.Group();const c=new THREE.Color(color);
+  const m=makeMat(c);const s=new THREE.Mesh(new THREE.SphereGeometry(size,32,32),m);g.add(s);
+  g.add(wireframeOverlay(new THREE.SphereGeometry(size*1.05,16,16),c));
+  return g;
+}
+
+function buildDiamond(color,size){
+  const g=new THREE.Group();const c=new THREE.Color(color);
+  const m=makeMat(c,0.6,0.5);
+  const geo=new THREE.OctahedronGeometry(size,0);
+  g.add(new THREE.Mesh(geo,m));
+  g.add(wireframeOverlay(geo.clone(),c));
+  return g;
+}
+
+function buildPlayButton(color,size){
+  const g=new THREE.Group();const c=new THREE.Color(color);
+  const m=makeMat(c,0.5,0.4);
+  // Triangle
+  const sh=new THREE.Shape();sh.moveTo(0,-size*0.9);sh.lineTo(size*1.0,0);sh.lineTo(0,size*0.9);sh.closePath();
+  const ext=new THREE.ExtrudeGeometry(sh,{depth:size*0.4,bevelEnabled:false});
+  g.add(new THREE.Mesh(ext,m));
+  g.add(wireframeOverlay(ext.clone(),c));
+  // Ring around it
+  const ring=new THREE.Mesh(new THREE.TorusGeometry(size*1.2,0.15,8,32),new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:0.3}));
+  ring.rotation.x=Math.PI/2;g.add(ring);
+  return g;
+}
+
+function buildTree(color,size){
+  const g=new THREE.Group();const c=new THREE.Color(color);const m=makeMat(c,0.5,0.4);
+  const trunk=new THREE.Mesh(new THREE.CylinderGeometry(size*0.15,size*0.25,size*0.8,8),m);
+  trunk.position.y=-size*0.4;g.add(trunk);
+  for(let i=0;i<3;i++){
+    const r=size*(0.7-i*0.2);const h=size*(0.6-i*0.15);const y=size*(0.1+i*0.35);
+    const cone=new THREE.Mesh(new THREE.ConeGeometry(r,h,12),m);cone.position.y=y;g.add(cone);
+    g.add(wireframeOverlay(new THREE.ConeGeometry(r*1.05,h*1.05,12),c));
+  }
+  return g;
+}
+
+function buildPyramid(color,size){
+  const g=new THREE.Group();const c=new THREE.Color(color);const m=makeMat(c,0.5,0.4);
+  const cone=new THREE.Mesh(new THREE.ConeGeometry(size*0.8,size*1.2,4),m);g.add(cone);
+  g.add(wireframeOverlay(new THREE.ConeGeometry(size*0.85,size*1.25,4),c));
+  return g;
+}
+
+function buildBlocks(color,size){
+  const g=new THREE.Group();const c=new THREE.Color(color);const m=makeMat(c,0.5,0.4);
+  const w=size*0.6;
+  for(let i=0;i<3;i++){
+    const h=size*(0.4+i*0.3);const box=new THREE.Mesh(new THREE.BoxGeometry(w,h*0.7,w),m);
+    box.position.set(-w/2+i*w/2,h*0.35,0);g.add(box);
+    g.add(wireframeOverlay(new THREE.BoxGeometry(w*1.05,h*0.75,w*1.05),c));
+  }
+  return g;
+}
+
+function buildRocket(color,size){
+  const g=new THREE.Group();const c=new THREE.Color(color);const m=makeMat(c,0.6,0.5);
+  const body=new THREE.Mesh(new THREE.CylinderGeometry(size*0.2,size*0.35,size*1.0,12),m);
+  body.position.y=0;g.add(body);
+  const nose=new THREE.Mesh(new THREE.ConeGeometry(size*0.25,size*0.4,12),m);
+  nose.position.y=size*0.7;g.add(nose);
+  // Fins
+  for(let i=0;i<3;i++){
+    const a=i*Math.PI*2/3;const fin=new THREE.Mesh(new THREE.BoxGeometry(size*0.05,size*0.3,size*0.25),m);
+    fin.position.set(Math.sin(a)*size*0.35,-size*0.4,Math.cos(a)*size*0.35);
+    fin.rotation.y=-a;g.add(fin);
+  }
+  // Thruster glow
+  const glow=new THREE.Mesh(new THREE.SphereGeometry(size*0.2,8,8),
+    new THREE.MeshBasicMaterial({color:0xff6600,transparent:true,opacity:0.6}));
+  glow.position.y=-size*0.6;g.add(glow);
+  g.add(wireframeOverlay(new THREE.CylinderGeometry(size*0.22,size*0.37,size*1.0,12),c));
+  return g;
+}
+
+function buildStar(color,size){
+  const g=new THREE.Group();const c=new THREE.Color(color);const m=makeMat(c,0.6,0.5);
+  const pts=5;const outer=size;const inner=size*0.4;
+  const sh=new THREE.Shape();
+  for(let i=0;i<pts*2;i++){
+    const r=i%2===0?outer:inner;const a=i/pts*Math.PI-Math.PI/2;
+    i===0?sh.moveTo(r*Math.cos(a),r*Math.sin(a)):sh.lineTo(r*Math.cos(a),r*Math.sin(a));
+  }sh.closePath();
+  const ext=new THREE.ExtrudeGeometry(sh,{depth:size*0.4,bevelEnabled:false});
+  g.add(new THREE.Mesh(ext,m));g.add(wireframeOverlay(ext.clone(),c));
+  return g;
+}
+
+function buildHouse(color,size){
+  const g=new THREE.Group();const c=new THREE.Color(color);const m=makeMat(c,0.5,0.4);
+  const wall=new THREE.Mesh(new THREE.BoxGeometry(size*1.0,size*0.6,size*0.8),m);
+  wall.position.y=-size*0.1;g.add(wall);
+  const roof=new THREE.Mesh(new THREE.ConeGeometry(size*0.8,size*0.6,4),m);
+  roof.position.y=size*0.4;roof.rotation.y=Math.PI/4;g.add(roof);
+  g.add(wireframeOverlay(new THREE.BoxGeometry(size*1.05,size*0.65,size*0.85),c));
+  g.add(wireframeOverlay(new THREE.ConeGeometry(size*0.85,size*0.6,4),c));
+  return g;
+}
+
+function buildBarChart(color,size){
+  const g=new THREE.Group();const c=new THREE.Color(color);const m=makeMat(c,0.5,0.4);
+  const w=size*0.25;
+  for(let i=0;i<3;i++){
+    const h=size*(0.4+i*0.35);const b=new THREE.Mesh(new THREE.BoxGeometry(w,h,w),m);
+    b.position.set((i-1)*w*1.5,h/2,0);g.add(b);
+    g.add(wireframeOverlay(new THREE.BoxGeometry(w*1.05,h*1.05,w*1.05),c));
+  }
+  return g;
+}
+
+function buildNetwork(color,size){
+  const g=new THREE.Group();const c=new THREE.Color(color);const m=makeMat(c,0.5,0.4);
+  const center=new THREE.Mesh(new THREE.SphereGeometry(size*0.3,24,24),m);g.add(center);
+  // Orbital rings
+  for(let i=0;i<2;i++){
+    const r=size*(0.6+i*0.25);const ring=new THREE.Mesh(new THREE.TorusGeometry(r,0.05,8,32),
+      new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:0.3}));
+    ring.rotation.x=i*Math.PI/3;ring.rotation.z=i*0.5;g.add(ring);
+  }
+  return g;
+}
+
+function buildNodes(color,size){
+  const g=new THREE.Group();const c=new THREE.Color(color);const m=makeMat(c,0.5,0.4);
+  const off=size*0.3;
+  for(let i=0;i<2;i++){
+    const s=new THREE.Mesh(new THREE.SphereGeometry(size*0.25,16,16),m);
+    s.position.set((i-0.5)*off*2,0,0);g.add(s);
+  }
+  const bar=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,off*2,6),new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:0.3}));
+  bar.rotation.z=Math.PI/2;g.add(bar);
+  return g;
+}
+
+function buildHexagon(color,size){
+  const g=new THREE.Group();const c=new THREE.Color(color);const m=makeMat(c,0.5,0.4);
+  const sh=new THREE.Shape();
+  for(let i=0;i<6;i++){const a=i/6*Math.PI*2;const x=Math.cos(a)*size;const y=Math.sin(a)*size*0.8;
+    i===0?sh.moveTo(x,y):sh.lineTo(x,y);}sh.closePath();
+  const ext=new THREE.ExtrudeGeometry(sh,{depth:size*0.5,bevelEnabled:false});
+  g.add(new THREE.Mesh(ext,m));g.add(wireframeOverlay(ext.clone(),c));
+  return g;
+}
+
+function buildRings(color,size){
+  const g=new THREE.Group();const c=new THREE.Color(color);const m=makeMat(c,0.5,0.4);
+  const center=new THREE.Mesh(new THREE.SphereGeometry(size*0.2,16,16),m);g.add(center);
+  for(let i=0;i<3;i++){
+    const r=size*(0.4+i*0.25);const ring=new THREE.Mesh(new THREE.TorusGeometry(r,0.06,8,32),
+      new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:0.3}));
+    ring.rotation.x=i*0.8;ring.rotation.z=i*0.3;g.add(ring);
+  }
+  return g;
+}
+
+function buildDroplet(color,size){
+  const g=new THREE.Group();const c=new THREE.Color(color);const m=makeMat(c,0.5,0.4);
+  const pts=[];
+  for(let i=0;i<20;i++){
+    const t=i/19*Math.PI;
+    const r=i<10?size*Math.sin(t*1.5)*0.8:size*(1-Math.pow(i-10,2)/100)*0.6;
+    pts.push(new THREE.Vector2(Math.sin(t)*r*0.5,t*size*0.5));
+  }
+  const lathe=new THREE.LatheGeometry(pts,16);
+  g.add(new THREE.Mesh(lathe,m));g.add(wireframeOverlay(lathe.clone(),c));
+  return g;
+}
+
+const shapeBuilders={
+  sun:buildSun,circle:buildCircle,diamond:buildDiamond,play:buildPlayButton,
+  tree:buildTree,pyramid:buildPyramid,blocks:buildBlocks,rocket:buildRocket,
+  star:buildStar,house:buildHouse,barchart:buildBarChart,network:buildNetwork,
+  nodes:buildNodes,hexagon:buildHexagon,rings:buildRings,droplet:buildDroplet
+};
+
+// ─── Create Entities ───
+const entityMeshes={};
+const entityLabels={};
+const entityPositions={};
+const clickTargets=[];
+
+entities.forEach((ent,i)=>{
+  const colorVal=COLORS[ent.color];
+  // Position on sphere
+  const rings={};entities.forEach(e=>{
+    if(!rings[e.radius])rings[e.radius]=[];
+    rings[e.radius].push(e);
+  });
+  // Find my index within my radius group
+  const myRing=rings[ent.radius];
+  const ringIdx=myRing.indexOf(ent);
+  const pos=placeOnSphere(ringIdx,myRing.length,ent.radius);
+  if(ent.radius===0){pos.x=0;pos.y=0;pos.z=0;}
+  entityPositions[ent.id]=pos;
+
+  // Build shape
+  const builder=shapeBuilders[ent.shape];
+  const meshGroup=builder?builder(colorVal,ent.size):buildCircle(colorVal,ent.size);
+  meshGroup.position.set(pos.x,pos.y,pos.z);
+  meshGroup.userData={entityId:ent.id,isEntity:true};
+  scene.add(meshGroup);
+  entityMeshes[ent.id]=meshGroup;
+  clickTargets.push(meshGroup);
+
+  // Label (hidden by default, inside the planet)
+  const lblDiv=document.createElement('div');
+  lblDiv.textContent=ent.label;
+  lblDiv.style.cssText='color:rgba(255,255,255,0.8);font-size:9px;font-weight:600;letter-spacing:1px;font-family:monospace;'+
+    'background:transparent;padding:1px 4px;border-radius:2px;pointer-events:none;text-shadow:0 0 8px rgba(0,200,255,0.3);'+
+    'transition:opacity 0.3s;opacity:0';
+  const label=new CSS2DObject(lblDiv);
+  label.position.set(pos.x,pos.y,pos.z);
+  scene.add(label);
+  entityLabels[ent.id]=label;
+});
+
+// ─── Radial Connections ───
+function makeConnection(from,to,color,opacity=0.06){
+  const f=entityPositions[from];const t=entityPositions[to];
+  if(!f||!t)return;
+  const mid=new THREE.Vector3().addVectors(new THREE.Vector3(f.x,f.y,f.z),new THREE.Vector3(t.x,t.y,t.z)).multiplyScalar(0.5);
+  const curve=new THREE.QuadraticBezierCurve3(new THREE.Vector3(f.x,f.y,f.z),mid,new THREE.Vector3(t.x,t.y,t.z));
+  const pts=curve.getPoints(20);
+  const geo=new THREE.BufferGeometry().setFromPoints(pts);
+  const line=new THREE.Line(geo,new THREE.LineBasicMaterial({color,transparent:true,opacity,depthWrite:false}));
+  scene.add(line);
+}
+
+// Connect center to all
+entities.forEach(e=>{if(e.id!=='amir')makeConnection('amir',e.id,0x4488ff,0.08);});
+// RAGmedium ↔ RAGx
+makeConnection('ragmedium','ragx',0x00eeff,0.15);
+// Clients group
+makeConnection('syneticx','unitas',0x8844cc,0.1);
+makeConnection('syneticx','waterspring',0x8844cc,0.1);
+makeConnection('unitas','waterspring',0x4488ff,0.1);
+// Startups
+makeConnection('pripitch','great-dami',0xffd700,0.1);
+
+// ─── Glow Particles around Center ───
+const pCount=200;const pg=new THREE.BufferGeometry();const ppos=[],psizes=[];
+for(let i=0;i<pCount;i++){
+  const r=15+Math.random()*25;const t=Math.random()*Math.PI*2;const p=Math.acos(2*Math.random()-1);
+  ppos.push(r*Math.sin(p)*Math.cos(t),r*Math.sin(p)*Math.sin(t),r*Math.cos(p));
+  psizes.push(0.5+Math.random()*1.5);
+}
+pg.setAttribute('position',new THREE.Float32BufferAttribute(ppos,3));
+pg.setAttribute('size',new THREE.Float32BufferAttribute(psizes,1));
+const pMat=new THREE.PointsMaterial({color:0xff8800,size:0.15,transparent:true,opacity:0.5,
+  blending:THREE.AdditiveBlending,depthWrite:false});
+const particles=new THREE.Points(pg,pMat);scene.add(particles);
+
+console.log('[Galaxy] Scene initialized with',entities.length,'entities');
+
+// ─── Ships (Agents) ───
+const agents=[
+  {id:'kaneki',name:'Kaneki',level:0,div:'exec',task:'Orchestrating',target:'lamatrader',status:'active',color:0xf59e0b},
+  {id:'enrich-dir',name:'Enrichment Dir',level:1,div:'leadgen',task:'Scouting leads',target:'ragmedium',status:'active',color:0x06b6d4},
+  {id:'content-dir',name:'Content Dir',level:1,div:'content',task:'Calendar planning',target:'content-empire',status:'active',color:0xd946ef},
+  {id:'dev-dir',name:'Dev Dir',level:1,div:'dev',task:'Architecture',target:'ragx',status:'active',color:0x60a5fa},
+  {id:'research-dir',name:'Research Dir',level:1,div:'research',task:'Analysis',target:'grademy',status:'active',color:0x34d399},
+  {id:'marketing-dir',name:'Marketing Dir',level:1,div:'marketing',task:'Campaigns',target:'lamatrader',status:'resting',color:0xf97316},
+  {id:'scout-1',name:'Scout Alpha',level:2,div:'leadgen',task:'Searching',target:'lamatrader',status:'active',color:0x06b6d4},
+  {id:'scout-2',name:'Scout Beta',level:2,div:'leadgen',task:'Verifying',target:'ragmedium',status:'active',color:0x06b6d4},
+  {id:'writer-1',name:'Writer A',level:2,div:'content',task:'Drafting post',target:'content-empire',status:'active',color:0xd946ef},
+  {id:'writer-2',name:'Writer B',level:2,div:'content',task:'Editing',target:'content-empire',status:'resting',color:0xd946ef},
+  {id:'dev-1',name:'Frontend Dev',level:2,div:'dev',task:'UI polish',target:'ragx',status:'active',color:0x60a5fa},
+  {id:'dev-2',name:'Backend Dev',level:2,div:'dev',task:'API build',target:'lamatrader',status:'active',color:0x60a5fa},
+  {id:'analyst-1',name:'Analyst',level:2,div:'research',task:'Report',target:'grademy',status:'stuck',color:0x34d399},
+  {id:'camp-1',name:'Campaign Mgr',level:2,div:'marketing',task:'Sequence',target:'lamatrader',status:'active',color:0xf97316},
+  {id:'camp-2',name:'SDR',level:2,div:'marketing',task:'Outreach',target:'ragmedium',status:'resting',color:0xf97316},
+];
+
+function buildShip(agent,size,color){
+  const g=new THREE.Group();const c=new THREE.Color(color);
+  const m=new THREE.MeshPhysicalMaterial({color,emissive:color,emissiveIntensity:0.3,roughness:0.3,metalness:0.7});
+  // Hull
+  const hull=new THREE.Mesh(new THREE.ConeGeometry(size*0.3,size*1.2,8),m);
+  hull.rotation.x=Math.PI/2;g.add(hull);
+  // Cockpit
+  const cockpit=new THREE.Mesh(new THREE.SphereGeometry(size*0.2,8,8),
+    new THREE.MeshBasicMaterial({color:0x88ccff,transparent:true,opacity:0.6}));
+  cockpit.position.set(0,0,size*0.4);g.add(cockpit);
+  // Wings
+  const wing=new THREE.Mesh(new THREE.BoxGeometry(size*1.0,size*0.05,size*0.1),m);
+  wing.position.set(0,0,0);g.add(wing);
+  // Engine glow
+  const glow=new THREE.Mesh(new THREE.SphereGeometry(size*0.15,6,6),
+    new THREE.MeshBasicMaterial({color:0x44aaff,transparent:true,opacity:0.5,blending:THREE.AdditiveBlending}));
+  glow.position.set(0,0,-size*0.6);g.add(glow);
+  return g;
+}
+
+function buildMothership(size,color){
+  const g=new THREE.Group();const c=new THREE.Color(color);
+  const m=new THREE.MeshPhysicalMaterial({color,emissive:color,emissiveIntensity:0.5,roughness:0.2,metalness:0.8});
+  // Main body
+  const body=new THREE.Mesh(new THREE.CylinderGeometry(size*0.6,size,size*0.4,8),m);
+  g.add(body);
+  // Ring
+  const ring=new THREE.Mesh(new THREE.TorusGeometry(size*0.8,0.08,8,32),
+    new THREE.MeshBasicMaterial({color,transparent:true,opacity:0.4}));
+  ring.rotation.x=Math.PI/3;g.add(ring);
+  const ring2=ring.clone();ring2.rotation.x=-Math.PI/4;g.add(ring2);
+  // Core glow
+  const core=new THREE.Mesh(new THREE.SphereGeometry(size*0.4,16,16),
+    new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0.3}));
+  g.add(core);
+  return g;
+}
+
+const ships=[];
+const shipLabels={};
+
+agents.forEach((agent,i)=>{
+  const targetEnt=entities.find(e=>e.id===agent.target);
+  if(!targetEnt)return;
+  const tPos=entityPositions[agent.target];
+  const size=agent.level===0?3:agent.level===1?1.8:0.9;
+  const group=agent.level===0?buildMothership(size,agent.color):buildShip(agent,size,agent.color);
+  
+  // Start position near target
+  const angle=Math.random()*Math.PI*2;
+  const yOff=(Math.random()-0.5)*6;
+  group.position.set(tPos.x+Math.cos(angle)*4,tPos.y+yOff,tPos.z+Math.sin(angle)*4);
+  group.userData={agent,targetId:agent.target,speed:0.3+Math.random()*0.2,angle:Math.random()*Math.PI*2,orbitRadius:3+Math.random()*4,yOffset:yOff};
+  scene.add(group);
+  ships.push(group);
+  clickTargets.push(group);
+  
+  // Hover label
+  const l=document.createElement('div');
+  l.textContent=agent.name;
+  l.style.cssText='color:rgba(255,255,255,0.5);font-size:7px;letter-spacing:1px;font-family:monospace;'+
+    'transition:opacity 0.2s;opacity:0;pointer-events:none;background:rgba(0,0,0,0.5);padding:1px 4px;border-radius:2px;white-space:nowrap';
+  const lbl=new CSS2DObject(l);
+  lbl.position.copy(group.position);lbl.position.y+=size*1.5;
+  scene.add(lbl);
+  shipLabels[agent.id]=lbl;
+});
+
+// ─── Repair Yard ───
+const repairGroup=new THREE.Group();
+const rPos={x:-100,y:30,z:80};
+repairGroup.position.set(rPos.x,rPos.y,rPos.z);
+const pad=new THREE.Mesh(new THREE.CircleGeometry(12,24),
+  new THREE.MeshBasicMaterial({color:0x00aaff,transparent:true,opacity:0.05,side:THREE.DoubleSide}));
+pad.rotation.x=-Math.PI/2;repairGroup.add(pad);
+const ringR=new THREE.Mesh(new THREE.TorusGeometry(12,0.08,8,32),
+  new THREE.MeshBasicMaterial({color:0x00aaff,transparent:true,opacity:0.15}));
+repairGroup.add(ringR);
+const rLabel=document.createElement('div');
+rLabel.textContent='⚕ REPAIR YARD';
+rLabel.style.cssText='color:rgba(0,200,255,0.2);font-size:8px;letter-spacing:3px;font-family:monospace';
+const rLblObj=new CSS2DObject(rLabel);rLblObj.position.set(0,14,0);
+scene.add(rLblObj);
+scene.add(repairGroup);
+
+// ─── Interaction ───
+const raycaster=new THREE.Raycaster();
+const pointer=new THREE.Vector2();
+let selectedEntity=null;
+const hoverLabel=document.getElementById('hover-label');
+let hoveredObj=null;
+
+renderer.domElement.addEventListener('pointermove',(e)=>{
+  pointer.x=(e.clientX/innerWidth)*2-1;
+  pointer.y=-(e.clientY/innerHeight)*2+1;
+});
+
+renderer.domElement.addEventListener('click',(e)=>{
+  pointer.x=(e.clientX/innerWidth)*2-1;
+  pointer.y=-(e.clientY/innerHeight)*2+1;
+  raycaster.setFromCamera(pointer,camera);
+  const intersects=raycaster.intersectObjects(scene.children,true);
+  for(const hit of intersects){
+    let obj=hit.object;
+    while(obj.parent&&!(obj.userData?.isEntity||obj.userData?.agent)){
+      obj=obj.parent;
+    }
+    if(obj.userData?.isEntity){
+      focusEntity(obj.userData.entityId);
+      openDashboard(obj.userData.entityId);
+      return;
+    }
+    if(obj.userData?.agent){
+      focusAgent(obj.userData.agent);
+      return;
+    }
+  }
+});
+
+function focusEntity(id){
+  const pos=entityPositions[id];
+  if(!pos)return;
+  selectedEntity=id;
+  controls.target.set(pos.x,pos.y,pos.z);
+  // Highlight label
+  Object.keys(entityLabels).forEach(k=>{
+    entityLabels[k].element.style.opacity=k===id?'1':'0';
+  });
+}
+
+function focusAgent(agent){
+  const ship=ships.find(s=>s.userData.agent?.id===agent.id);
+  if(!ship)return;
+  controls.target.copy(ship.position);
+  openAgentPanel(agent);
+}
+
+// ─── Dashboard Modal ───
+function openDashboard(id){
+  const ent=entities.find(e=>e.id===id);
+  if(!ent)return;
+  const modal=document.getElementById('dash-modal');
+  const inner=document.getElementById('dash-inner');
+  const color='#'+new THREE.Color(COLORS[ent.color]).getHexString();
+  
+  inner.innerHTML=`
+    <div class="dash-header">
+      <h2 style="color:${color}">${ent.label}</h2>
+      <div class="sub">// ${ent.tag} · Radial ${ent.level}</div>
+    </div>
+    <div class="dash-grid">
+      <div class="dash-card"><div class="lbl">Status</div><div class="val small">Active</div></div>
+      <div class="dash-card"><div class="lbl">Agents</div><div class="val">${agents.filter(a=>a.target===id).length}</div></div>
+      <div class="dash-card"><div class="lbl">Priority</div><div class="val small">${ent.level>=3?'High':ent.level>=2?'Medium':'Normal'}</div></div>
+    </div>
+    <div class="dash-section">
+      <h3>AI Suggestions</h3>
+      <ul class="dash-list">
+        <li>Prioritise ${ent.label} deliverables for this week</li>
+        <li>Review ${ent.label} agent assignments — ${agents.filter(a=>a.target===id).map(a=>a.name).join(', ')||'none assigned'}</li>
+        <li>${ent.label} could benefit from a focused sprint</li>
+      </ul>
+    </div>
+    <div class="dash-section">
+      <h3>Next Steps</h3>
+      <ul class="dash-list">
+        <li>Check ${ent.label} current status</li>
+        <li>Review backlog and update priorities</li>
+        <li>Sync with team on deliverables</li>
+      </ul>
+    </div>
+    <div class="dash-section">
+      <h3>Active Agents</h3>
+      <ul class="dash-list">
+        ${agents.filter(a=>a.target===id).map(a=>`<li>${a.name} — ${a.task} [${a.status}]</li>`).join('')||'<li>No agents assigned</li>'}
+      </ul>
+    </div>`;
+  modal.classList.add('open');
+}
+
+function openAgentPanel(agent){
+  const modal=document.getElementById('dash-modal');
+  const inner=document.getElementById('dash-inner');
+  const c='#'+new THREE.Color(agent.color).getHexString();
+  inner.innerHTML=`
+    <div class="dash-header">
+      <h2 style="color:${c}">${agent.name}</h2>
+      <div class="sub">// ${agent.task} · Level ${agent.level}</div>
+    </div>
+    <div class="dash-grid">
+      <div class="dash-card"><div class="lbl">Status</div><div class="val small">${agent.status}</div></div>
+      <div class="dash-card"><div class="lbl">Current Task</div><div class="val small">${agent.task}</div></div>
+      <div class="dash-card"><div class="lbl">Assigned To</div><div class="val small">${agent.target}</div></div>
+    </div>
+    <div class="dash-section">
+      <h3>Action Items</h3>
+      <ul class="dash-list">
+        <li>Complete current ${agent.task}</li>
+        <li>Report results to command</li>
+        <li>${agent.status==='stuck'?'⚠️ Needs intervention — reassign or unblock':'Standing by for next directive'}</li>
+      </ul>
+    </div>`;
+  modal.classList.add('open');
+}
+
+document.getElementById('dash-close').addEventListener('click',()=>{
+  document.getElementById('dash-modal').classList.remove('open');
+});
+
+// ─── Sidebar Population ───
+function populateSidebars(){
+  const pl=document.getElementById('project-list');
+  entities.forEach(e=>{
+    if(e.id==='amir')return;
+    const c='#'+new THREE.Color(COLORS[e.color]).getHexString();
+    const item=document.createElement('div');item.className='sb-item';
+    item.innerHTML=`<span class="dot" style="background:${c}"></span><span class="lbl">${e.label}</span>`;
+    item.addEventListener('click',()=>{focusEntity(e.id);openDashboard(e.id);});
+    pl.appendChild(item);
+  });
+  
+  const al=document.getElementById('agent-list');
+  agents.forEach(a=>{
+    const s=a.status==='active'?'#34d399':a.status==='resting'?'#fbbf24':'#ef4444';
+    const item=document.createElement('div');item.className='sb-agent';
+    item.innerHTML=`<span class="stat" style="background:${s}"></span><span class="aname">${a.name}</span><span class="atask">${a.task}</span>`;
+    item.addEventListener('click',()=>{focusAgent(a);});
+    al.appendChild(item);
+  });
+}
+populateSidebars();
+
+// ─── Chat ───
+const chatInput=document.getElementById('chat-input');
+const chatSend=document.getElementById('chat-send');
+const chatThink=document.getElementById('chat-think');
+let chatPending=false;
+
+chatSend.addEventListener('click',sendChat);
+chatInput.addEventListener('keydown',(e)=>{if(e.key==='Enter')sendChat();});
+
+async function sendChat(){
+  const text=chatInput.value.trim();
+  if(!text||chatPending)return;
+  chatInput.value='';
+  chatPending=true;
+  chatThink.classList.add('active');
+  try{
+    const res=await fetch('/api/assistant/chat',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({message:text})
+    });
+    const data=await res.json();
+    if(data.ok&&data.reply){
+      // Brief flash feedback
+      chatInput.placeholder='✓ Command sent';
+      setTimeout(()=>chatInput.placeholder='Command galaxy...',2000);
+    }
+  }catch(e){
+    chatInput.placeholder='✗ Failed to reach gateway';
+    setTimeout(()=>chatInput.placeholder='Command galaxy...',3000);
+  }
+  chatPending=false;
+  chatThink.classList.remove('active');
+}
+
+// Mic button (placeholder)
+document.getElementById('chat-mic').addEventListener('click',()=>{
+  alert('🎤 Voice mode coming soon — speak your command');
+});
+
+// ─── Animation ───
+const clock=new THREE.Clock();
+
+function animate(){
+  requestAnimationFrame(animate);
+  const dt=Math.min(clock.getDelta(),0.05);
+  const t=performance.now()*0.001;
+  
+  controls.update();
+  
+  // Rotate core particles
+  particles.rotation.y+=0.003;
+  particles.rotation.x+=0.001;
+  
+  // Animate ship orbits
+  ships.forEach(ship=>{
+    const ud=ship.userData;
+    const tPos=entityPositions[ud.targetId];
+    if(!tPos)return;
+    ud.angle+=ud.speed*dt;
+    const x=Math.cos(ud.angle)*ud.orbitRadius;
+    const z=Math.sin(ud.angle)*ud.orbitRadius;
+    ship.position.x=tPos.x+x;
+    ship.position.z=tPos.z+z;
+    ship.position.y=tPos.y+ud.yOffset;
+    ship.rotation.y+=0.5*dt;
+    // Update label
+    const lbl=shipLabels[ud.agent.id];
+    if(lbl){
+      lbl.position.copy(ship.position);
+      lbl.position.y+=ud.agent.level===0?5:2.5;
+    }
+  });
+  
+  // Hover label
+  raycaster.setFromCamera(pointer,camera);
+  const hits=raycaster.intersectObjects(scene.children,true);
+  let found=null;
+  for(const hit of hits){
+    let obj=hit.object;
+    while(obj.parent&&!(obj.userData?.isEntity||obj.userData?.agent))obj=obj.parent;
+    if(obj.userData?.isEntity||obj.userData?.agent){
+      found=obj;break;
+    }
+  }
+  if(found){
+    const id=found.userData?.entityId||found.userData?.agent?.id;
+    const name=found.userData?.entityId?entities.find(e=>e.id===id)?.label:found.userData?.agent?.name;
+    if(name){
+      hoverLabel.textContent=found.userData?.entityId?'◈ '+name:'▸ '+name;
+      hoverLabel.style.display='block';
+      hoverLabel.style.left=(pointer.x*0.5+0.5)*innerWidth+15+'px';
+      hoverLabel.style.top=(pointer.y*-0.5+0.5)*innerHeight-20+'px';
+    }
+  }else{
+    hoverLabel.style.display='none';
+  }
+  
+  // Render
+  renderer.render(scene,camera);
+  labelRenderer.render(scene,camera);
+}
+animate();
+
+// ─── Resize ───
+addEventListener('resize',()=>{
+  camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+  labelRenderer.setSize(innerWidth,innerHeight);
+});
+</script>
+</body>
+</html>

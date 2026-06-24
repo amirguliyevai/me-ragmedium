@@ -1,15 +1,107 @@
-/home/admin/.openclaw/workspace/productivity-dashboard/server.js:264
-  const codeRules=\`You are in **CODE/CONSTRUCTION mode**. Your primary job is to IMPLEMENT features, WRITE code, and BUILD things.\n\nCORE BEHAVIOR:\n- DO NOT just add tasks or suggest ideas -- actually PRODUCE working code and solutions.\n- When given a coding task, respond with: 1) The file(s) you propose to create/modify 2) The actual code/content in markdown code blocks 3) Clear instructions to test/run it.\n- Be the active builder, not a passive suggester. Show real code, real file paths, real implementations.\n- If you don't know the existing codebase, propose a file structure and ask if it looks right before proceeding.\n- For complex features: break into sequential steps, implement step 1 first, then wait for feedback before proceeding.\n\nFILE OPERATIONS:\n- You have access to the workspace at /home/admin/.openclaw/workspace/\n- Use the write tool to write files when the user confirms.\n- Reference relevant project files from the workspace when giving context.\n\nTONE:\n- Keep Kaneki's motivational edge: direct, scarred-discipline, Johnny Silverhand energy.\n- Show you're fully present and actively building -- not just generating static pages.\n- Use the \ud83e\udd73 emoji to show commitment to the build.\n\nCURRENT CODING TASK:\nThe user just sent you a coding request. If it's asking for implementation, write actual code. If there's a specific task, say "On it" and start producing.\n\`;
-                  ^
+[server] Galaxy pre-loaded: head 5029 bytes, body 62007 bytes
+Mastermind dashboard http://0.0.0.0:1702
+[opencode] Starting...
+[gateway] Socket open
+[gateway] Disconnected
+node:events:497
+      throw er; // Unhandled 'error' event
+      ^
 
-SyntaxError: Invalid or unexpected token
-    at internalCompileFunction (node:internal/vm:73:18)
-    at wrapSafe (node:internal/modules/cjs/loader:1274:20)
-    at Module._compile (node:internal/modules/cjs/loader:1320:27)
-    at Module._extensions..js (node:internal/modules/cjs/loader:1414:10)
-    at Module.load (node:internal/modules/cjs/loader:1197:32)
-    at Module._load (node:internal/modules/cjs/loader:1013:12)
-    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12)
-    at node:internal/main/run_main_module:28:49
+Error: listen EADDRINUSE: address already in use 0.0.0.0:1704
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at node:net:2206:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1976:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -98,
+  syscall: 'listen',
+  address: '0.0.0.0',
+  port: 1704
+}
 
-Node.js v18.19.1
+Node.js v22.22.0
+[oc-proxy] Exited: 1
+node:events:497
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use 100.111.98.27:2089
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at node:net:2206:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1976:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -98,
+  syscall: 'listen',
+  address: '100.111.98.27',
+  port: 2089
+}
+
+Node.js v22.22.0
+[kasm-proxy] Exited: 1
+[opencode] Exited: 1
+[opencode] Port check OK
+[gateway] Socket open
+[gateway] Disconnected
+[gateway] Socket open
+[gateway] Disconnected
+[gateway] Socket open
+[gateway] Disconnected
+[gateway] Socket open
+[gateway] Disconnected
+[gateway] Socket open
+[gateway] Disconnected
+[gateway] Socket open
+[gateway] Disconnected
+[gateway] Socket open
+[gateway] Disconnected
+[gateway] Socket open
+[gateway] Disconnected
+[gateway] Socket open
+[gateway] Disconnected
+[gateway] Socket open
+[gateway] Disconnected
+[gateway] Socket open
+[gateway] Disconnected
+[gateway] Socket open
+[gateway] Disconnected
+[gateway] Socket open
+[gateway] Disconnected
+[gateway] Socket open
+[gateway] Disconnected
+[gateway] Socket open
+[gateway] Disconnected
+[gateway] Socket open
+[gateway] Disconnected
+[gateway] Socket open
+[gateway] Disconnected
+[gateway] Socket open
+[gateway] Disconnected
+[gateway] Socket open
+[gateway] Disconnected
+[gateway] Socket open
+[gateway] Disconnected
+[gateway] Socket open
+[gateway] Disconnected
+[gateway] Socket open
+[gateway] Disconnected
+[gateway] Socket open
+[gateway] Disconnected
+[gateway] Socket open
+[gateway] Disconnected
+[gateway] Socket open
+[gateway] Disconnected
+[gateway] Socket open
+[gateway] Disconnected
+[gateway] Socket open
+[gateway] Disconnected
+[gateway] Socket open
+[gateway] Disconnected
+[gateway] Socket open
+[gateway] Connected and authenticated

@@ -93,9 +93,18 @@ a{color:var(--g-accent);text-decoration:none}
 /* Sidebar toggle - always fixed top-left as a tab-like button */
 #sidebarToggle{position:fixed;top:8px;left:8px;z-index:200;width:36px;height:36px;border-radius:8px;border:1px solid var(--g-glass-border);background:var(--g-glass);backdrop-filter:var(--g-blur);-webkit-backdrop-filter:var(--g-blur);color:var(--g-text-secondary);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all 0.3s cubic-bezier(0.16,1,0.3,1);padding:0;line-height:1;gap:4px}
 #sidebarToggle:hover{background:var(--g-accent);color:#fff;border-color:var(--g-accent)}
+@media(max-width:600px){
+  #sidebarToggle:hover{background:var(--bg2);color:var(--fg)}
+}
 
 /* When sidebar is hidden - bookmark tab style */
 #sidebar.hidden~#sidebarToggle:hover{background:var(--bg2);color:var(--fg)}
+#sidebar.mobile-open~#sidebarToggle{left:calc(var(--sidebar-w) - 32px)!important;top:12px;width:24px!important;height:24px!important;font-size:10px!important;border-radius:6px!important;opacity:0.85!important;padding:0!important}
+#sidebar.mobile-open~#sidebarToggle span{display:none!important}
+.sidebar-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:99;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);transition:opacity .2s ease;opacity:0}
+@media(max-width:600px){
+  #sidebar.mobile-open~.sidebar-backdrop{display:block;opacity:1}
+}
 
 /* When sidebar is visible - push the toggle inside the sidebar header */
 #sidebar:not(.hidden)~#sidebarToggle{left:calc(var(--sidebar-w) - 32px);top:12px;width:24px;height:24px;font-size:10px;border-radius:6px;opacity:0.85;overflow:hidden}
@@ -384,6 +393,7 @@ a{color:var(--g-accent);text-decoration:none}
 .calDay .calNum{font-size:10px;font-weight:700;color:var(--muted);margin-bottom:1px;width:18px;height:18px;display:flex;align-items:center;justify-content:center;border-radius:50%}
 .calDay.today .calNum{background:var(--blue);color:var(--bg)}
 .calDay .calPreview{font-size:9px;line-height:1.3;color:var(--dim);overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;word-break:break-word;margin-top:1px}
+@media(max-width:600px){.calDay .calPreview{-webkit-line-clamp:2;font-size:8px}}
 .calDay .calPreview .cpItem{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;padding:0 1px}
 .calDay .calPreview .cpUrgent{color:var(--red);font-weight:600}
 .calDay .calPreview .cpDeadline{color:var(--amber)}
@@ -465,7 +475,8 @@ a{color:var(--g-accent);text-decoration:none}
 .calSync .syncErr{color:var(--red)}
 
 /* Timetable */
-.timelineWrap{height:400px;overflow-y:auto;position:relative}
+.timelineWrap{height:400px;overflow-y:auto;position:relative;overflow-x:hidden}
+@media(max-width:600px){.timelineWrap{height:300px}}
 .timeline{position:relative}
 .timelineHour{position:absolute;left:0;font-size:10px;color:var(--dim)}
 .timelineLine{position:absolute;left:40px;right:0;border-top:1px solid var(--line)}
@@ -533,6 +544,7 @@ a{color:var(--g-accent);text-decoration:none}
 .chatOverlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:105;background:rgba(0,0,0,.5)}
 .chatOverlay.open{display:block}
 .chatPanel{position:fixed;bottom:56px;left:8px;right:8px;max-height:60dvh;max-height:-webkit-fill-available;background:var(--card);border:1px solid var(--line);border-radius:var(--radius-xl) var(--radius-xl) var(--radius-lg) var(--radius-lg);display:flex;flex-direction:column;overflow:hidden;box-shadow:var(--shadow)}
+@media(max-width:600px){.chatPanel{bottom:60px;left:4px;right:4px;max-height:70dvh;border-radius:var(--radius-lg)}}
 .chatPanelHead{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line);flex-shrink:0}
 .chatDragHandle{height:8px;cursor:ns-resize;background:var(--line);border-radius:0 0 4px 4px;margin:0 40%;flex-shrink:0;transition:background .15s;touch-action:none}
 .chatDragHandle:hover,.chatDragHandle:active{background:var(--blue)}
@@ -558,6 +570,25 @@ a{color:var(--g-accent);text-decoration:none}
   .menuGrid{gap:10px}.menuTile{padding:20px 12px}.projects{grid-template-columns:1fr}
   .kanbanCol{min-width:220px}.boardCol{min-width:240px}
   .notifMiniPop{width:calc(100vw - 24px);right:8px;left:8px}
+}
+@media(max-width:600px){
+  #sidebar{transform:translateX(-100%);opacity:0;pointer-events:none}
+  #sidebar.mobile-open{transform:translateX(0);opacity:1;pointer-events:auto}
+  #appWrap{margin-left:0;width:100%}
+  .chatBar{left:0;width:100%;padding:6px 8px env(safe-area-inset-bottom)}
+  #sidebarToggle{left:0!important;top:8px;width:auto;height:32px;border-radius:0 8px 8px 0;background:var(--g-glass);backdrop-filter:var(--g-blur);-webkit-backdrop-filter:var(--g-blur);border:1px solid var(--g-glass-border);border-left:0;font-size:13px;padding:0 12px 0 8px;opacity:0.9}
+  #sidebarToggle span{display:inline}
+  .kpi-strip{grid-template-columns:repeat(3,1fr)!important}
+  .boardCols{gap:6px}
+  .notifPop{width:calc(100vw - 16px);left:8px!important;right:8px!important}
+  .historyPane{left:0;width:85%;max-width:320px;z-index:102}
+  #appMain{padding:12px 12px 80px}
+  .menuTile{padding:16px 10px;font-size:13px}
+  .btn{padding:6px 12px;font-size:12px}
+  .taskCard{padding:10px}
+  .nav-item{min-height:36px;padding:8px 12px}
+  .btn{min-height:36px}
+  .kanbanCol{min-width:220px}
 }
 @media(max-width:767px){
   .historyPane{left:0;width:80%;max-width:300px;z-index:102}
@@ -587,8 +618,8 @@ a{color:var(--g-accent);text-decoration:none}
 /* ─── BRAIN DASHBOARD ─── */
 .brain-dash{position:relative;width:100%;height:100%;min-height:400px;overflow:hidden;margin-bottom:0}
 .brain-conn{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0}
-.brain-center{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:2;cursor:pointer;text-align:center;width:160px;height:160px;display:flex;flex-direction:column;align-items:center;justify-content:center}
-.brain-center .bc-core{width:130px;height:130px;border-radius:50%;background:radial-gradient(circle at 35% 35%,rgba(97,175,239,.25),var(--panel) 70%);border:2px solid rgba(97,175,239,.4);box-shadow:0 0 40px rgba(97,175,239,.25),0 0 80px rgba(97,175,239,.1),inset 0 0 30px rgba(97,175,239,.08);display:flex;flex-direction:column;align-items:center;justify-content:center;animation:brainPulse 4s ease-in-out infinite;position:relative}
+.brain-center{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:2;cursor:pointer;text-align:center;width:140px;height:140px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.brain-center .bc-core{width:110px;height:110px;border-radius:50%;background:radial-gradient(circle at 35% 35%,rgba(97,175,239,.25),var(--panel) 70%);border:2px solid rgba(97,175,239,.4);box-shadow:0 0 40px rgba(97,175,239,.25),0 0 80px rgba(97,175,239,.1),inset 0 0 30px rgba(97,175,239,.08);display:flex;flex-direction:column;align-items:center;justify-content:center;animation:brainPulse 4s ease-in-out infinite;position:relative}
 .brain-center .bc-core .bc-icon{font-size:28px;margin-bottom:2px}
 .brain-center .bc-core .bc-label{font-size:10px;font-weight:700;color:var(--blue);letter-spacing:2px;text-transform:uppercase}
 .brain-center .bc-core .bc-sub{font-size:8px;color:var(--muted);margin-top:1px}
@@ -654,9 +685,12 @@ a{color:var(--g-accent);text-decoration:none}
 .brain-module .nnlabel{font-size:10px}
 
 @media(max-width:768px){
-  .brain-module{position:static!important;margin-bottom:6px;width:100%!important}
-  .brain-dash{min-height:auto;overflow-y:auto;min-height:500px}
-  .brain-center{position:relative;transform:none;margin:16px auto;text-align:center}
+  .brain-module{position:static!important;margin-bottom:6px;width:100%!important;max-width:100%!important}
+  .brain-dash{min-height:auto;overflow-y:auto;overflow-x:hidden;min-height:500px}
+  .brain-center{position:relative;transform:none;margin:16px auto;text-align:center;width:120px;height:120px}
+  .brain-center .bc-core{width:90px;height:90px}
+  .brain-center .bc-core .bc-icon{font-size:22px}
+  .brain-center .bc-ring{display:none}
   .brain-conn{display:none}
   #brainDashModules{display:flex;flex-direction:column;gap:6px;padding:6px}
   .bf-card{width:95vw;max-height:90vh}
@@ -811,6 +845,7 @@ camp-section{max-height:220px;overflow-y:auto}
     </div>
   </div>
 </aside>
+<div class="sidebar-backdrop" onclick="toggleSidebar()"></div>
 <button id="sidebarToggle" onclick="toggleSidebar()">☰ <span>Menu</span></button>
 
 <!-- Main Area -->
@@ -6700,26 +6735,45 @@ function setModel(id){
   const codeBtn=$('codeModelBtn');
   if(codeBtn)codeBtn.textContent=models.find(m=>m.id===activeModel)?.short||'⚡';
 }
-let sidebarHidden=false;
 function toggleSidebar(){
   const sb=$('sidebar');
   const btn=$('sidebarToggle');
   if(!sb)return;
-  sidebarHidden=!sidebarHidden;
-  sb.classList.toggle('hidden');
+  const isMobile=window.innerWidth<=600;
+  if(isMobile){
+    sb.classList.toggle('mobile-open');
+    sidebarHidden=sb.classList.contains('mobile-open')?false:true;
+  } else {
+    sidebarHidden=!sidebarHidden;
+    sb.classList.toggle('hidden');
+    sb.classList.remove('mobile-open');
+  }
   if(btn){
-    if(sidebarHidden){
-      btn.innerHTML='☰';
-      btn.title='Open menu';
+    if(isMobile){
+      btn.innerHTML=sb.classList.contains('mobile-open')?'×':'☰';
+      btn.title=sb.classList.contains('mobile-open')?'Close menu':'Open menu';
     } else {
-      btn.innerHTML='☰ <span>Menu</span>';
-      btn.title='Close menu';
+      if(sidebarHidden){
+        btn.innerHTML='☰';
+        btn.title='Open menu';
+      } else {
+        btn.innerHTML='☰ <span>Menu</span>';
+        btn.title='Close menu';
+      }
     }
   }
   // Force layout recalculation for chatBar position
   window.dispatchEvent(new Event('resize'));
   if(activePage==='vault')renderVaultGraph();
 }
+// Auto-close mobile sidebar if resized to desktop
+window.addEventListener('resize',function(){
+  const sb=$('sidebar');
+  if(sb&&window.innerWidth>600&&sb.classList.contains('mobile-open')){
+    sb.classList.remove('mobile-open');
+    sidebarHidden=false;
+  }
+});
 function toggleCodeModelPicker(){
   const pop=$('codeModelPop');
   if(!pop)return;

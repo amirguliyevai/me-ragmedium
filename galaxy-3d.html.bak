@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>JARVIS GALAXY — 3D Brain</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#000}
+#c{position:fixed;top:0;left:0;width:100%;height:100%}
+#ui{position:fixed;top:16px;left:16px;z-index:10;pointer-events:none}
+#ui h1{font-size:13px;font-weight:600;letter-spacing:4px;color:rgba(255,255,255,0.5);text-transform:uppercase;margin-bottom:4px}
+#ui .live{font-size:10px;color:#34d399;display:flex;align-items:center;gap:6px}
+#ui .live::before{content:'';width:5px;height:5px;background:#34d399;border-radius:50%;animation:pulse 2s infinite}
+#detail{position:fixed;right:20px;top:50%;transform:translateY(-50%);z-index:10;width:340px;max-height:70vh;background:rgba(6,6,12,0.94);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:20px;color:#ccc;font-family:system-ui,sans-serif;backdrop-filter:blur(20px);transition:all 0.3s;opacity:0;pointer-events:none;overflow-y:auto}
+#detail.active{opacity:1;pointer-events:all}
+#detail h2{font-size:16px;font-weight:600;margin-bottom:2px;display:flex;align-items:center;gap:8px}
+#detail .role{font-size:11px;color:#888;margin-bottom:14px}
+#detail .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+#detail .field{background:rgba(255,255,255,0.03);border-radius:8px;padding:8px}
+#detail .field .lbl{font-size:9px;color:#555;text-transform:uppercase;letter-spacing:1px}
+#detail .field .val{font-size:13px;font-weight:600;color:#ddd;margin-top:2px}
+#detail .ships{margin-top:8px}
+#detail .ships h3{font-size:11px;color:#666;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+#detail .ship{display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid rgba(255,255,255,0.04);font-size:12px}
+#detail .ship .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+#detail .close{width:100%;padding:8px;margin-top:14px;background:rgba(255,255,255,0.06);border:none;color:#aaa;border-radius:8px;cursor:pointer;font-size:12px}
+#detail .close:hover{background:rgba(255,255,255,0.1);color:#fff}
+#legend{position:fixed;bottom:24px;left:24px;z-index:10;display:flex;gap:12px;font-size:10px;color:#444}
+#legend span{display:flex;align-items:center;gap:4px}
+.ldot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+#hint{position:fixed;bottom:24px;right:24px;z-index:10;font-size:10px;color:#444;text-align:right;transition:color 0.3s}
+#hint.active{color:#34d399}
+#hand-toggle{position:fixed;top:16px;right:16px;z-index:20;background:rgba(15,15,25,0.9);border:1px solid rgba(255,255,255,0.12);color:#aaa;padding:8px 14px;border-radius:20px;cursor:pointer;font-size:11px;font-family:system-ui,sans-serif;transition:all 0.2s;backdrop-filter:blur(10px)}
+#hand-toggle:hover{color:#fff;border-color:rgba(255,255,255,0.3)}
+#hand-toggle.on{color:#34d399;border-color:#34d399;box-shadow:0 0 12px rgba(52,211,153,0.2)}
+#hand-debug{position:fixed;bottom:100px;left:50%;transform:translateX(-50%);z-index:10;display:none;gap:12px;font-size:10px;color:#555;font-family:monospace}
+#hand-debug.show{display:flex}
+#cam-preview{position:fixed;bottom:16px;right:16px;z-index:15;width:120px;height:90px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);overflow:hidden;opacity:0;transition:opacity 0.3s}
+#cam-preview.on{opacity:0.5}
+#cam-preview video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+</style>
+</head>
+<body>
+<div id="ui"><div class="live">JARVIS GALAXY</div></div>
+<div id="detail"><div id="detail-content"></div><button class="close" onclick="closeDetail()">Close</button></div>
+<div id="legend">
+  <span><span class="ldot" style="background:#f59e0b"></span>Executive</span>
+  <span><span class="ldot" style="background:#06b6d4"></span>Lead Gen</span>
+  <span><span class="ldot" style="background:#d946ef"></span>Content</span>
+  <span><span class="ldot" style="background:#60a5fa"></span>Dev</span>
+  <span><span class="ldot" style="background:#34d399"></span>Research</span>
+  <span><span class="ldot" style="background:#f97316"></span>Marketing</span>
+</div>
+<div id="hint">drag to rotate · scroll to zoom<br>click planets for details</div>
+<button id="hand-toggle" onclick="toggleHandTracking()">🖐️ Hand Control</button>
+<div id="hand-debug"><span id="hd-gesture">idle</span><span id="hd-pos">0,0</span></div>
+<div id="cam-preview"><video id="cam-video" autoplay playsinline></video></div>
+<script type="importmap">
+{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// ─── Scene ───
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(55, innerWidth/innerHeight, 0.5, 2000);
+camera.position.set(0, 80, 180);
+camera.lookAt(0, 0, -20);
+
+const renderer = new THREE.WebGLRenderer({antialias:true,alpha:true});
+renderer.setSize(innerWidth,innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.2;
+document.body.prepend(renderer.domElement);
+
+const controls = new OrbitControls(camera,renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.minDistance = 30;
+controls.maxDistance = 500;
+controls.target.set(0,0,-20);
+controls.update();
+
+// ─── Lighting ───
+scene.add(new THREE.AmbientLight(0x1a1a3e, 1.5));
+const sun = new THREE.PointLight(0xffaa33, 800, 300);
+sun.position.set(0,0,-20); scene.add(sun);
+scene.add(new THREE.PointLight(0x3388ff, 200, 200, 0, 0, 40));
+scene.add(new THREE.PointLight(0xff3366, 150, 200, 0, 0, -60));
+
+// ─── Stars ───
+const starGeo = new THREE.BufferGeometry();
+const starVerts = [];
+for (let i=0;i<4000;i++){
+  const r = 300 + Math.random()*700;
+  const theta = Math.random()*Math.PI*2;
+  const phi = Math.acos(2*Math.random()-1);
+  starVerts.push(r*Math.sin(phi)*Math.cos(theta), r*Math.sin(phi)*Math.sin(theta), r*Math.cos(phi));
+}
+starGeo.setAttribute('position',new THREE.Float32BufferAttribute(starVerts,3));
+const starMat = new THREE.PointsMaterial({color:0xffffff,size:0.4,transparent:true,opacity:0.7,blending:THREE.AdditiveBlending,depthWrite:false});
+scene.add(new THREE.Points(starGeo,starMat));
+
+// ─── Central Sun ───
+const sunGeo = new THREE.SphereGeometry(5,64,64);
+const sunMesh = new THREE.Mesh(sunGeo, new THREE.MeshBasicMaterial({color:0xffaa22}));
+sunMesh.position.set(0,0,-20); scene.add(sunMesh);
+const sunGlowGeo = new THREE.SphereGeometry(8,32,32);
+const sunGlowMat = new THREE.ShaderMaterial({
+  uniforms:{c:{value:new THREE.Color(0xffaa33)}},
+  vertexShader:`varying vec3 vN;varying vec3 vP;void main(){vN=normalize(normalMatrix*normal);vec4 p=modelViewMatrix*vec4(position,1.);vP=p.xyz;gl_Position=projectionMatrix*p;}`,
+  fragmentShader:`uniform vec3 c;varying vec3 vN;varying vec3 vP;void main(){vec3 v=normalize(vP);float i=pow(0.65-dot(vN,v),3.5);gl_FragColor=vec4(c,i*0.4);}`,
+  transparent:true,depthWrite:false,blending:THREE.AdditiveBlending
+});
+scene.add(new THREE.Mesh(sunGlowGeo, sunGlowMat));
+
+// ─── Galaxy Ring ───
+const ringGeo = new THREE.RingGeometry(25,26,128);
+const ringMat = new THREE.MeshBasicMaterial({color:0xffaa33,side:THREE.DoubleSide,transparent:true,opacity:0.15,depthWrite:false});
+const ring = new THREE.Mesh(ringGeo,ringMat);
+ring.rotation.x = Math.PI/2; ring.position.z = -20; scene.add(ring);
+
+// ─── Planet Data ───
+const DIV_COLORS = { executive: 0xf59e0b, 'lead-gen': 0x06b6d4, content: 0xd946ef, dev: 0x60a5fa, research: 0x34d399, marketing: 0xf97316, ops: 0x888888 };
+
+const planets = [
+  {id:'lamatrader',label:'LamaTrader',sub:'ITE · Beta · 150 leads',div:'lead-gen',orbit:45,speed:0.08,size:2.2,level:1,angle:0},
+  {id:'ragmedium',label:'RAGmedium',sub:'AI · Live · 1.25M leads',div:'marketing',orbit:50,speed:0.07,size:2.4,level:1,angle:1.2},
+  {id:'ragx',label:'RAGx',sub:'WF Auto · Live · 1.8K accts',div:'dev',orbit:42,speed:0.09,size:2.0,level:1,angle:2.4},
+  {id:'rema',label:'Rema Ext.',sub:'Construction · Live',div:'ops',orbit:38,speed:0.1,size:1.8,level:1,angle:3.6},
+  {id:'grademy',label:'Grademy',sub:'EdTech · Beta',div:'research',orbit:47,speed:0.075,size:2.0,level:1,angle:4.8},
+  {id:'ventures',label:'Ventures',sub:'7 Projects · Pre',div:'content',orbit:35,speed:0.11,size:1.5,level:1,angle:5.5},
+  {id:'div-exec',label:'Executive',sub:'Amir + Kaneki',div:'executive',orbit:75,speed:0.04,size:1.8,level:0,angle:0.3},
+  {id:'div-lg',label:'Lead Gen',sub:'Enrichment Dir',div:'lead-gen',orbit:80,speed:0.038,size:1.5,level:2,angle:1.0},
+  {id:'div-content',label:'Content',sub:'Content Dir',div:'content',orbit:78,speed:0.042,size:1.5,level:2,angle:2.0},
+  {id:'div-dev',label:'Dev',sub:'Dev Dir',div:'dev',orbit:82,speed:0.036,size:1.5,level:2,angle:3.0},
+  {id:'div-research',label:'Research',sub:'Research Dir',div:'research',orbit:76,speed:0.044,size:1.5,level:2,angle:4.0},
+  {id:'div-marketing',label:'Marketing',sub:'Marketing Dir',div:'marketing',orbit:79,speed:0.04,size:1.5,level:2,angle:5.0},
+];
+
+const planetMeshes = [];
+
+function createPlanet(p) {
+  const group = new THREE.Group();
+  const col = new THREE.Color(DIV_COLORS[p.div] || 0x888888);
+  const geo = new THREE.SphereGeometry(p.size, 48, 48);
+  group.add(new THREE.Mesh(geo, new THREE.MeshStandardMaterial({color:col,roughness:0.4,metalness:0.3})));
+  
+  const atmoGeo = new THREE.SphereGeometry(p.size*1.35,32,32);
+  const atmoMat = new THREE.ShaderMaterial({
+    uniforms:{c:{value:col}},
+    vertexShader:`varying vec3 vN;varying vec3 vP;void main(){vN=normalize(normalMatrix*normal);vec4 pos=modelViewMatrix*vec4(position,1.);vP=pos.xyz;gl_Position=projectionMatrix*pos;}`,
+    fragmentShader:`uniform vec3 c;varying vec3 vN;varying vec3 vP;void main(){vec3 v=normalize(vP);float i=pow(0.7-dot(vN,v),3.);gl_FragColor=vec4(c,i*0.3);}`,
+    transparent:true,depthWrite:false,blending:THREE.AdditiveBlending
+  });
+  group.add(new THREE.Mesh(atmoGeo, atmoMat));
+
+  if (p.level === 1) {
+    const rGeo = new THREE.TorusGeometry(p.size*1.5, 0.06, 16, 64);
+    const rMesh = new THREE.Mesh(rGeo, new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:0.4}));
+    rMesh.rotation.x = Math.PI/3; group.add(rMesh);
+  }
+  if (p.level <= 1) {
+    for (let i=0;i<3;i++) {
+      const mGeo = new THREE.SphereGeometry(0.2,8,8);
+      const moon = new THREE.Mesh(mGeo, new THREE.MeshBasicMaterial({color:col}));
+      moon.userData = {angle:Math.random()*Math.PI*2,speed:0.02+Math.random()*0.03,dist:p.size*2.5+Math.random()*2};
+      moon.name = 'moon'; group.add(moon);
+    }
+  }
+  group.userData = {planet:p, orbit:[]};
+  group.position.z = -20;
+  scene.add(group);
+  planetMeshes.push(group);
+  return group;
+}
+planets.forEach(p => createPlanet(p));
+
+// ─── Ships ───
+const ships = [];
+const SHIP_TYPES = {0:{size:0.8,color:0xf59e0b},1:{size:0.5,color:0x06b6d4},2:{size:0.35,color:0xffffff}};
+
+function createShip(agent) {
+  const group = new THREE.Group();
+  const st = SHIP_TYPES[agent.level] || SHIP_TYPES[2];
+  const bodyGeo = new THREE.ConeGeometry(st.size*0.4, st.size*2, 8);
+  const bodyMat = new THREE.MeshStandardMaterial({color:st.color,roughness:0.3,metalness:0.8,emissive:st.color,emissiveIntensity:0.3});
+  const body = new THREE.Mesh(bodyGeo, bodyMat); body.rotation.x = Math.PI/2; group.add(body);
+  const engGeo = new THREE.SphereGeometry(st.size*0.2,8,8);
+  const eng = new THREE.Mesh(engGeo, new THREE.MeshBasicMaterial({color:0x44aaff})); eng.position.y = -st.size*0.8; group.add(eng);
+  const wing = new THREE.Mesh(new THREE.BoxGeometry(st.size*0.8, st.size*0.15, st.size*0.3), bodyMat); group.add(wing);
+  
+  group.userData = { agent, targetPlanet: null, orbitAngle: Math.random()*Math.PI*2, orbitSpeed: 0.02+Math.random()*0.04, orbitDist: 1, traveling: false, travelProgress: 0 };
+  group.position.z = -20;
+  scene.add(group); ships.push(group); return group;
+}
+
+const demoAgents = [
+  {id:'kaneki',name:'Kaneki',level:0,div:'executive',task:'Orchestrating',target:'ragmedium'},
+  {id:'enrich1',name:'Enrichment Dir',level:1,div:'lead-gen',task:'Scouting leads',target:'lamatrader'},
+  {id:'content1',name:'Content Dir',level:1,div:'content',task:'Calendar',target:'ragmedium'},
+  {id:'dev1',name:'Dev Dir',level:1,div:'dev',task:'Building',target:'ragx'},
+  {id:'research1',name:'Research Dir',level:1,div:'research',task:'Analyzing',target:'grademy'},
+  {id:'marketing1',name:'Marketing Dir',level:1,div:'marketing',task:'Campaign',target:'rema'},
+  {id:'scout1',name:'Scout',level:2,div:'lead-gen',task:'Searching',target:'lamatrader'},
+  {id:'scout2',name:'Verifier',level:2,div:'lead-gen',task:'Checking',target:'lamatrader'},
+  {id:'writer1',name:'Writer',level:2,div:'content',task:'Drafting',target:'ragmedium'},
+  {id:'dev2',name:'Frontend',level:2,div:'dev',task:'UI work',target:'ragx'},
+  {id:'analyst1',name:'Analyst',level:2,div:'research',task:'Report',target:'grademy'},
+  {id:'camp1',name:'Campaign Mgr',level:2,div:'marketing',task:'Sequence',target:'rema'},
+];
+demoAgents.forEach(a => {
+  const targetIdx = planets.findIndex(p=>p.id===a.target);
+  const ship = createShip(a);
+  if (targetIdx>=0) { ship.userData.targetPlanet = targetIdx; ship.userData.orbitDist = planets[targetIdx].size*2.5; }
+});
+
+// ─── Animation ───
+const clock = new THREE.Clock();
+let detailOpen = null;
+
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = Math.min(clock.getDelta(), 0.1);
+  const t = performance.now() * 0.001;
+  
+  controls.update();
+  updateHandControl(dt);
+
+  planetMeshes.forEach((group, i) => {
+    const p = planets[i]; if (!p) return;
+    p.angle += p.speed * dt;
+    const px = Math.cos(p.angle) * p.orbit;
+    const py = Math.sin(p.angle*2) * p.orbit * 0.25;
+    group.position.x += (px - group.position.x) * 0.1;
+    group.position.y += (py - group.position.y) * 0.1;
+    group.rotation.y += 0.2 * dt;
+    group.children.forEach(child => {
+      if (child.name === 'moon') {
+        child.userData.angle += child.userData.speed * dt;
+        child.position.set(Math.cos(child.userData.angle)*child.userData.dist, 0, Math.sin(child.userData.angle)*child.userData.dist);
+      }
+    });
+  });
+
+  ships.forEach(ship => {
+    const ud = ship.userData;
+    if (ud.targetPlanet === null && ud.targetPlanet !== 0) return;
+    const tp = planets[ud.targetPlanet]; if (!tp) return;
+    ud.orbitAngle += ud.orbitSpeed * dt;
+    const tpPos = planetMeshes[ud.targetPlanet]?.position || new THREE.Vector3(Math.cos(tp.angle)*tp.orbit, Math.sin(tp.angle*2)*tp.orbit*0.25, -20);
+    const sx = tpPos.x + Math.cos(ud.orbitAngle) * ud.orbitDist;
+    const sy = tpPos.y + Math.sin(ud.orbitAngle*1.5) * ud.orbitDist * 0.6;
+    const sz = tpPos.z + Math.cos(ud.orbitAngle + 1) * ud.orbitDist * 0.5;
+    ship.position.lerp(new THREE.Vector3(sx,sy,sz), 0.05);
+    const dir = new THREE.Vector3(-Math.sin(ud.orbitAngle), Math.cos(ud.orbitAngle)*0.3, Math.sin(ud.orbitAngle+0.5)*0.3).normalize();
+    ship.lookAt(ship.position.clone().add(dir));
+  });
+
+  ring.rotation.z += 0.02 * dt;
+  sunMesh.rotation.y += 0.1 * dt;
+  renderer.render(scene, camera);
+}
+
+// ─── Click Detection ───
+const raycaster = new THREE.Raycaster();
+renderer.domElement.addEventListener('click', (e) => {
+  const mouse = new THREE.Vector2((e.clientX/window.innerWidth)*2-1, -(e.clientY/window.innerHeight)*2+1);
+  raycaster.setFromCamera(mouse, camera);
+  const hits = raycaster.intersectObjects(planetMeshes, true);
+  if (hits.length > 0) {
+    let obj = hits[0].object;
+    while (obj && !obj.userData.planet) obj = obj.parent;
+    if (obj?.userData.planet) openDetail(obj.userData.planet);
+  }
+});
+
+function openDetail(p) {
+  detailOpen = p;
+  const shipsHere = ships.filter(s => s.userData.targetPlanet === planets.indexOf(p));
+  const content = document.getElementById('detail-content');
+  content.innerHTML = `<h2>${p.sub ? p.sub.split('·')[0] : ''} ${p.label}</h2>
+    <div class="role">${p.sub||''}</div>
+    <div class="grid">
+      <div class="field"><div class="lbl">Division</div><div class="val">${p.div}</div></div>
+      <div class="field"><div class="lbl">Orbit</div><div class="val">${p.orbit} AU</div></div>
+    </div>
+    <div class="ships"><h3>Ships Orbiting</h3>
+      ${shipsHere.length ? shipsHere.map(s => `<div class="ship"><span class="dot" style="background:#${SHIP_TYPES[s.userData.agent.level]?.color?.toString(16).padStart(6,'0')||'fff'}"></span>${s.userData.agent.name} · ${s.userData.agent.task}</div>`).join('') : '<div class="ship">No ships assigned</div>'}
+    </div>`;
+  document.getElementById('detail').classList.add('active');
+}
+function closeDetail() { document.getElementById('detail').classList.remove('active'); detailOpen = null; }
+
+window.openDetail = openDetail;
+window.closeDetail = closeDetail;
+
+// ─── HAND TRACKING INTEGRATION ───
+let handTracking = false;
+let handLandmarks = null;
+let prevPinchDist = null;
+let prevHandX = null;
+let prevHandY = null;
+const SMOOTH = 0.3;
+
+function toggleHandTracking() {
+  handTracking = !handTracking;
+  const btn = document.getElementById('hand-toggle');
+  const hint = document.getElementById('hint');
+  const cam = document.getElementById('cam-preview');
+  
+  if (handTracking) {
+    btn.textContent = '🖐️ Hand Control ON';
+    btn.classList.add('on');
+    hint.textContent = '✊ pinch to zoom · ✋ drag to rotate';
+    hint.classList.add('active');
+    cam.classList.add('on');
+    startHandTracking();
+  } else {
+    btn.textContent = '🖐️ Hand Control';
+    btn.classList.remove('on');
+    hint.textContent = 'drag to rotate · scroll to zoom\nclick planets for details';
+    hint.classList.remove('active');
+    cam.classList.remove('on');
+    stopHandTracking();
+    controls.enabled = true;
+  }
+}
+
+async function startHandTracking() {
+  try {
+    const { HandLandmarker, FilesetResolver } = await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/+esm');
+    const vision = await FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/wasm');
+    const handLandmarker = await HandLandmarker.createFromOptions(vision, {
+      baseOptions: { modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/latest/hand_landmarker.task', delegate: 'GPU' },
+      runningMode: 'VIDEO', numHands: 1
+    });
+    
+    const video = document.getElementById('cam-video');
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { width:640, height:480, facingMode:'user' } });
+    video.srcObject = stream;
+    await video.play();
+    
+    controls.enabled = false;
+    
+    let lastTime = performance.now();
+    async function detectFrame() {
+      if (!handTracking) return;
+      const now = performance.now();
+      if (now - lastTime < 50) { requestAnimationFrame(detectFrame); return; }
+      lastTime = now;
+      try {
+        const results = handLandmarker.detectForVideo(video, performance.now());
+        handLandmarks = results.landmarks?.[0] || null;
+      } catch(e) { handLandmarks = null; }
+      requestAnimationFrame(detectFrame);
+    }
+    detectFrame();
+  } catch(e) {
+    console.warn('Hand tracking unavailable:', e.message);
+    document.getElementById('hand-toggle').textContent = '🖐️ Camera denied';
+    handTracking = false;
+  }
+}
+
+function stopHandTracking() {
+  const video = document.getElementById('cam-video');
+  if (video.srcObject) { video.srcObject.getTracks().forEach(t => t.stop()); video.srcObject = null; }
+  handLandmarks = null; prevPinchDist = null; prevHandX = null; prevHandY = null;
+}
+
+function updateHandControl(dt) {
+  if (!handTracking || !handLandmarks) return;
+  
+  const lm = handLandmarks;
+  const thumb = lm[4], index = lm[8], middle = lm[12], wrist = lm[0];
+  
+  // Normalize to screen space (0-1)
+  const tx = 1 - thumb.x, ty = thumb.y;
+  const ix = 1 - index.x, iy = index.y;
+  const wx = 1 - wrist.x, wy = wrist.y;
+  
+  // Pinch distance
+  const pinchDist = Math.hypot(thumb.x - index.x, thumb.y - index.y, (thumb.z||0) - (index.z||0));
+  const fingersOpen = Math.hypot(middle.x - wrist.x, middle.y - wrist.y);
+  
+  const debugEl = document.getElementById('hand-debug');
+  const gesEl = document.getElementById('hd-gesture');
+  const posEl = document.getElementById('hd-pos');
+  
+  if (pinchDist < 0.08) {
+    // PINCH = zoom in/out
+    gesEl.textContent = 'PINCH';
+    posEl.textContent = `${pinchDist.toFixed(3)}`;
+    if (prevPinchDist !== null) {
+      const delta = prevPinchDist - pinchDist;
+      const zoomSpeed = 300 * dt;
+      camera.position.multiplyScalar(1 + delta * zoomSpeed);
+      camera.position.clampLength(30, 500);
+    }
+    prevPinchDist = pinchDist;
+    prevHandX = null; prevHandY = null;
+  } else if (fingersOpen > 0.15 && pinchDist > 0.15) {
+    // OPEN HAND = drag rotate
+    gesEl.textContent = 'DRAG';
+    posEl.textContent = `${wx.toFixed(2)},${wy.toFixed(2)}`;
+    if (prevHandX !== null && prevHandY !== null) {
+      const dx = wx - prevHandX;
+      const dy = wy - prevHandY;
+      const rotSpeed = 3.0;
+      const camPos = camera.position.clone().sub(controls.target);
+      const spherical = new THREE.Spherical().setFromVector3(camPos);
+      spherical.theta -= dx * rotSpeed;
+      spherical.phi -= dy * rotSpeed;
+      spherical.phi = Math.max(0.1, Math.min(Math.PI - 0.1, spherical.phi));
+      spherical.makeSafe();
+      camera.position.copy(controls.target).add(new THREE.Vector3().setFromSpherical(spherical));
+      camera.lookAt(controls.target);
+    }
+    prevHandX = wx; prevHandY = wy;
+    prevPinchDist = null;
+  } else {
+    gesEl.textContent = 'idle';
+    prevPinchDist = null; prevHandX = null; prevHandY = null;
+  }
+}
+
+window.toggleHandTracking = toggleHandTracking;
+
+// ─── Resize ───
+window.addEventListener('resize', () => {
+  camera.aspect = innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+animate();
+</script>
+</body>
+</html>

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Galaxy Test v2</title>
+<script type="importmap">
+{"imports":{"three":"./three-lib/build/three.module.js","three/addons/":"./three-lib/examples/jsm/"}}
+</script>
+<style>body{margin:0;background:#0a0a1a;overflow:hidden}#msg{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);color:#0ff;font:14px monospace;z-index:100;text-align:center}</style>
+</head>
+<body>
+<div id="msg">Loading...</div>
+<script type="module">
+const msg = document.getElementById('msg');
+import * as THREE from 'three';
+msg.textContent = 'THREE v' + THREE.REVISION + ' loaded ✓';
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(innerWidth,innerHeight);
+document.body.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(50,innerWidth/innerHeight,0.5,2000);
+camera.position.set(0,50,200);
+scene.add(new THREE.AmbientLight(0x335588,2));
+const sg=new THREE.BufferGeometry();const sv=[];
+for(let i=0;i<2000;i++){const r=300+Math.random()*600,t=Math.random()*Math.PI*2,p=Math.acos(2*Math.random()-1);sv.push(r*Math.sin(p)*Math.cos(t),r*Math.sin(p)*Math.sin(t),r*Math.cos(p));}
+sg.setAttribute('position',new THREE.Float32BufferAttribute(sv,3));
+scene.add(new THREE.Points(sg,new THREE.PointsMaterial({color:0xffffff,size:1.5,transparent:true,opacity:0.7,blending:THREE.AdditiveBlending})));
+const g=new THREE.SphereGeometry(150,24,18);
+scene.add(new THREE.Mesh(g,new THREE.MeshBasicMaterial({color:0x00aaff,wireframe:true,transparent:true,opacity:0.03})));
+function animate(){requestAnimationFrame(animate);renderer.render(scene,camera);camera.position.x=Math.sin(Date.now()*0.0001)*50;}
+animate();
+msg.textContent='✅ SCENE RENDERING — stars + wireframe sphere';
+setTimeout(()=>{msg.style.transition='opacity 3s';msg.style.opacity='0'},3000);
+</script>
+</body>
+</html>

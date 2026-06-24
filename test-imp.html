@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Importmap Test</title>
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js" } }
+</script>
+</head><body>
+<div id="msg" style="color:#0f0;font:16px monospace;padding:20px">Testing importmap...</div>
+<script type="module">
+import * as THREE from 'three';
+document.getElementById('msg').textContent = 'THREE loaded! v' + THREE.REVISION;
+</script>
+</body></html>
