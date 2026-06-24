@@ -2,7 +2,8 @@
 Grademy Study Session Engine
 ============================
 Core orchestrator for the AI tutoring system.
-Spaced repetition, personalization, cognitive load balancing, and real-time adaptation.
+Spaced repetition, personalization, cognitive load balancing, real-time adaptation,
+session composition optimization, quality prediction, gamification, and mode selection.
 """
 
 from __future__ import annotations
@@ -26,6 +27,11 @@ from engine.cognitive_load import CognitiveLoadBalancer
 from engine.adaptation import AdaptationEngine
 from engine.analytics import SessionAnalytics
 from engine.gemini_integration import GeminiTutor
+from engine.forgetting_curve import PersonalizedForgettingCurve
+from engine.composition_optimizer import SessionCompositionOptimizer
+from engine.quality_predictor import SessionQualityPredictor, PredictionInput
+from engine.gamification import GamificationEngine
+from engine.mode_selector import ModeSelectionOptimizer
 
 
 # ── Session Engine ────────────────────────────────────────────────────────────
@@ -34,14 +40,17 @@ class StudySessionEngine:
     """
     Orchestrates the full study session lifecycle:
     1. Initialize session with personalization
-    2. Select activities (spaced repetition + interleaving)
-    3. Monitor cognitive load and engagement
-    4. Adapt in real-time
-    5. Generate content via Gemini
-    6. Track analytics
+    2. Predict session quality (pre-session)
+    3. Select activities (spaced repetition + interleaving + mode selection)
+    4. Optimize composition (cognitive load wave, warm-up/cool-down)
+    5. Monitor cognitive load and engagement
+    6. Adapt in real-time
+    7. Generate content via Gemini
+    8. Track analytics
+    9. Record gamification
     """
 
-    VERSION = "1.0.0"
+    VERSION = "2.0.0"
     SESSION_GRACE_SECONDS = 300  # 5 min gap within same session
 
     def __init__(self, config_path: Optional[Path] = None):
@@ -52,6 +61,11 @@ class StudySessionEngine:
         self.adaptation = AdaptationEngine(self.config.get("adaptation", {}))
         self.analytics = SessionAnalytics(self.config.get("analytics", {}))
         self.gemini = GeminiTutor(self.config.get("gemini", {}))
+        self.forgetting_curve = PersonalizedForgettingCurve(self.config.get("forgetting_curve", {}))
+        self.composition_optimizer = SessionCompositionOptimizer(self.config.get("composition", {}))
+        self.quality_predictor = SessionQualityPredictor(self.config.get("quality_predictor", {}))
+        self.gamification = GamificationEngine(self.config.get("gamification", {}))
+        self.mode_selector = ModeSelectionOptimizer(self.config.get("mode_selector", {}))
         self._active_sessions: dict[str, StudySession] = {}
         self._student_store: dict[str, Student] = {}
 
@@ -61,10 +75,69 @@ class StudySessionEngine:
         self._student_store[student.id] = student
         self.personalization.init_profile(student)
         self.sr_engine.init_student(student.id)
+        self.forgetting_curve.init_student(student.id)
+        self.gamification.init_student(student.id)
         return student
 
     def get_student(self, student_id: str) -> Optional[Student]:
         return self._student_store.get(student_id)
+
+    # ── Session Quality Prediction (Pre-Session) ───────────────────────────
+
+    def predict_session_quality(
+        self,
+        student_id: str,
+        planned_activity_count: int = 10,
+        avg_activity_load: float = 0.5,
+        days_until_exam: Optional[int] = None,
+    ) -> dict[str, Any]:
+        """
+        Predict session quality BEFORE it starts.
+        Uses 7-factor model to forecast engagement and provide recommendations.
+        """
+        student = self._student_store.get(student_id)
+        if not student:
+            raise ValueError(f"Student {student_id} not found.")
+
+        profile = self.personalization.get_profile(student_id)
+        momentum = self.personalization.get_momentum_score(student_id)
+        forgetting_profile = self.forgetting_curve._profiles.get(student_id)
+        gamification_state = self.gamification._states.get(student_id)
+
+        # Calculate session recency
+        session_recency_hours = 48.0
+        if profile and profile.last_session_at:
+            session_recency_hours = (
+                datetime.utcnow() - datetime.fromisoformat(profile.last_session_at)
+            ).total_seconds() / 3600
+
+        input_data = PredictionInput(
+            student_id=student_id,
+            time_of_day=datetime.utcnow().hour,
+            momentum_score=momentum,
+            session_recency_hours=session_recency_hours,
+            planned_activity_count=planned_activity_count,
+            avg_activity_load=avg_activity_load,
+            forgetting_stability_days=(
+                forgetting_profile.stability_days if forgetting_profile else 10.0
+            ),
+            days_until_exam=days_until_exam,
+            total_sessions_completed=gamification_state.total_sessions if gamification_state else 0,
+            current_streak=profile.streak_days if profile else 0,
+            recent_accuracy=self.personalization.recent_performance(student_id) or 0.7,
+            recent_engagement=self.personalization.get_engagement(student_id).current_score if self.personalization.get_engagement(student_id) else 0.6,
+        )
+
+        prediction = self.quality_predictor.predict(input_data)
+        return {
+            "predicted_score": prediction.predicted_score,
+            "engagement_curve": prediction.engagement_curve,
+            "confidence": prediction.confidence,
+            "recommendations": prediction.recommendations,
+            "optimal_duration_minutes": prediction.optimal_duration_minutes,
+            "optimal_difficulty": prediction.optimal_difficulty,
+            "risk_factors": prediction.risk_factors,
+        }
 
     # ── Session Lifecycle ───────────────────────────────────────────────────
 
@@ -74,6 +147,7 @@ class StudySessionEngine:
         mode: SessionMode = SessionMode.PRACTICE,
         topic: Optional[str] = None,
         duration_minutes: int = 30,
+        days_until_exam: Optional[int] = None,
     ) -> StudySession:
         student = self._student_store.get(student_id)
         if not student:
@@ -113,6 +187,9 @@ class StudySessionEngine:
                 )
                 activities.append(activity)
 
+        # Apply mode selection optimization
+        activities = self._apply_mode_selection(activities, student)
+
         # Apply interleaving: mix topics
         if len(activities) > 3:
             activities = self._interleave(activities)
@@ -122,7 +199,14 @@ class StudySessionEngine:
             activities, target_load
         )
 
-        session.activities = activities
+        # Apply composition optimizer (warm-up, cool-down, wave pattern)
+        composition_result = self.composition_optimizer.optimize(
+            activities, target_duration_minutes=duration_minutes
+        )
+        session.activities = composition_result.activities
+        session._composition_metrics = composition_result.metrics
+        session._break_points = composition_result.break_points
+
         self._active_sessions[session_id] = session
 
         return session
@@ -152,6 +236,30 @@ class StudySessionEngine:
                 quality=response.quality,
                 response_time_ms=response.response_time_ms,
                 confidence=response.confidence,
+            )
+
+            # Update forgetting curve observations
+            interval_days = 0.0
+            sr_item = self.sr_engine._items.get(session.student_id, {}).get(activity.topic)
+            if sr_item and sr_item.last_reviewed_at:
+                interval_days = (
+                    datetime.utcnow() - datetime.fromisoformat(sr_item.last_reviewed_at)
+                ).total_seconds() / 86400
+
+            self.forgetting_curve.record_observation(
+                student_id=session.student_id,
+                topic=activity.topic,
+                interval_days=max(0.01, interval_days),
+                was_correct=response.is_correct,
+                quality=response.quality.value if response.quality else 3,
+                mode=activity.type.value if hasattr(activity.type, "value") else str(activity.type),
+            )
+
+            # Update mode selector performance
+            self.mode_selector.record_mode_performance(
+                student_id=session.student_id,
+                mode=activity.type.value if hasattr(activity.type, "value") else str(activity.type),
+                accuracy=1.0 if response.is_correct else 0.0,
             )
 
         # Update personalization
@@ -189,6 +297,49 @@ class StudySessionEngine:
         student = self._student_store[session.student_id]
 
         result = self.analytics.generate_session_report(session, student)
+
+        # Record gamification
+        review_count = sum(
+            1 for r in session.responses
+            if any(
+                a.content.get("type") == "review"
+                for a in session.activities
+                if a.id == r.activity_id
+            )
+        )
+        mastered_count = 0
+        for topic in set(a.topic for a in session.activities):
+            sr_item = self.sr_engine._items.get(session.student_id, {}).get(topic)
+            if sr_item and sr_item.repetition_count >= 5:
+                mastered_count += 1
+
+        gamification_result = self.gamification.record_session(
+            student_id=session.student_id,
+            session_data={
+                "activities_completed": len(session.responses),
+                "accuracy": result["accuracy"],
+                "review_count": review_count,
+                "mastered_count": mastered_count,
+                "current_streak": self.gamification._states.get(
+                    session.student_id, GamificationEngine({}).init_student(session.student_id)
+                ).current_streak,
+                "level": self.gamification._states.get(
+                    session.student_id, GamificationEngine({}).init_student(session.student_id)
+                ).level,
+                "session_hour": datetime.utcnow().hour,
+                "fast_correct_count": sum(
+                    1 for r in session.responses
+                    if r.is_correct and r.response_time_ms < 3000
+                ),
+            },
+        )
+        result["gamification"] = gamification_result
+
+        # Update profile last_session_at
+        profile = self.personalization.get_profile(session.student_id)
+        if profile:
+            profile.last_session_at = datetime.utcnow().isoformat()
+            profile.total_study_time_hours += result["duration_minutes"] / 60
 
         # Clean up
         del self._active_sessions[session_id]
@@ -232,6 +383,22 @@ class StudySessionEngine:
         context = self.personalization.build_tutor_context(student)
 
         return self.gemini.hint(activity, context)
+
+    # ── Forgetting Curve Access ────────────────────────────────────────────
+
+    def get_forgetting_profile(self, student_id: str) -> dict[str, Any]:
+        """Get the student's personalized forgetting curve profile."""
+        return self.forgetting_curve.get_profile_summary(student_id)
+
+    def get_retention_prediction(self, student_id: str, topic: str, interval_days: float = 7.0) -> float:
+        """Predict retention for a topic after a given interval."""
+        return self.forgetting_curve.predict_retention(student_id, topic, interval_days)
+
+    # ── Gamification Access ────────────────────────────────────────────────
+
+    def get_gamification_state(self, student_id: str) -> dict[str, Any]:
+        """Get the student's current gamification state."""
+        return self.gamification.get_state(student_id)
 
     # ── Private Helpers ─────────────────────────────────────────────────────
 
@@ -303,6 +470,40 @@ class StudySessionEngine:
                 "target_success_rate": 0.75,
             },
         )
+
+    def _apply_mode_selection(
+        self, activities: list[StudyActivity], student: Student
+    ) -> list[StudyActivity]:
+        """Apply mode selection optimization to activities."""
+        learning_stage = self._determine_learning_stage(student)
+
+        for i, activity in enumerate(activities):
+            # Only override mode for practice activities
+            content = activity.content or {}
+            if content.get("type") != "practice":
+                continue
+
+            result = self.mode_selector.select_mode(
+                student_id=student.id,
+                learning_stage=learning_stage,
+            )
+            try:
+                activity.type = ActivityType(result.selected_mode)
+            except ValueError:
+                pass  # Keep original type if invalid
+
+        return activities
+
+    def _determine_learning_stage(self, student: Student) -> str:
+        """Determine the student's current learning stage."""
+        perf = self.personalization.recent_performance(student.id)
+        if perf is None:
+            return "new"
+        if perf > 0.85:
+            return "mastery"
+        if perf > 0.6:
+            return "review"
+        return "learning"
 
     def _interleave(self, activities: list[StudyActivity]) -> list[StudyActivity]:
         """Interleave topics for better retention (mix different subjects)."""
@@ -407,4 +608,21 @@ class StudySessionEngine:
                 "max_tokens": 1024,
                 "safety_level": "moderate",
             },
+            "forgetting_curve": {
+                "min_observations": 5,
+                "default_stability_days": 10.0,
+                "blend_weight": 0.5,
+            },
+            "composition": {
+                "break_interval_minutes": 18,
+                "min_warmup_activities": 1,
+                "target_duration_minutes": 30,
+            },
+            "quality_predictor": {},
+            "gamification": {
+                "daily_goal_xp": 50,
+                "streak_grace_days": 2,
+                "xp_base_per_activity": 10,
+            },
+            "mode_selector": {},
         }
