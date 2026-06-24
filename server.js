@@ -808,6 +808,11 @@ async function route(req,res){
 
   if(u.pathname==='/org'){ res.setHeader('Cache-Control','no-cache,no-store,must-revalidate'); try{ return send(res,200,fs.readFileSync(path.join(ROOT,'org.html'),'utf8'),'text/html'); }catch(e){ return send(res,404,'Not found'); } }
 
+  // Serve slack.html
+  if(u.pathname==='/slack.html'||u.pathname==='/slack'||u.pathname==='/slack/'){
+    try{ return send(res,200,fs.readFileSync(path.join(ROOT,'slack.html'),'utf8'),'text/html'); }catch(e){ return send(res,404,'Not found'); }
+  }
+
   if(u.pathname==='/galaxy-3d'||u.pathname==='/galaxy-3d/'||u.pathname==='/galaxy-3d.html'){
     res.setHeader('Cache-Control','no-cache,no-store,must-revalidate');
     return send(res,200,fs.readFileSync(path.join(ROOT,'galaxy-3d.html'),'utf8'),'text/html');
