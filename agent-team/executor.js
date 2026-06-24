@@ -162,8 +162,8 @@ async function executeOnce() {
 
         if (result.data) {
           await pool.query(
-            'INSERT INTO team.artifacts (task_id, agent_id, name, content_type, content) VALUES ($1, $2, $3, $4, $5::jsonb)',
-            [task.id, agent.id, task.agent_type + '_result', 'json', JSON.stringify(result.data)]
+            'INSERT INTO team.artifacts (task_id, agent_id, name, content_type, content) VALUES ($1, $2, $3, $4, $5)',
+            [task.id, agent.id, task.agent_type + '_result', 'text/plain', JSON.stringify(result.data)]
           );
         }
 
@@ -173,7 +173,7 @@ async function executeOnce() {
         );
 
         await pool.query(
-          'UPDATE team.agent_runs SET status = $1, ended_at = NOW() WHERE id = $2',
+          'UPDATE team.agent_runs SET status = $1, completed_at = NOW() WHERE id = $2',
           ['completed', runId]
         );
 
@@ -188,7 +188,7 @@ async function executeOnce() {
         );
 
         await pool.query(
-          'UPDATE team.agent_runs SET status = $1, ended_at = NOW(), error = $2 WHERE id = $3',
+          'UPDATE team.agent_runs SET status = $1, completed_at = NOW(), error = $2 WHERE id = $3',
           ['failed', err.message.substring(0, 1000), runId]
         );
 

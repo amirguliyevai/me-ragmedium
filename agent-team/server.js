@@ -209,6 +209,27 @@ async function handleAPI(req, res, parts, body) {
     return json(res, { tasks, total: total[0]?.count || 0 });
   }
 
+  // POST /api/tasks/retry - Retry failed tasks (must be before POST /api/tasks)
+  if (resource === 'tasks' && id === 'retry' && req.method === 'POST') {
+    const { task_id, all_failed = false } = body || {};
+    if (task_id) {
+      const r = await q(
+        `UPDATE team.tasks SET status = 'pending', error = NULL, retry_count = 0, assigned_agent_id = NULL, started_at = NULL
+         WHERE id = $1 AND status IN ('failed','cancelled') RETURNING id`,
+        [task_id]
+      );
+      return json(res, { ok: true, retried: r.length });
+    }
+    if (all_failed) {
+      const r = await q(
+        `UPDATE team.tasks SET status = 'pending', error = NULL, retry_count = 0, assigned_agent_id = NULL, started_at = NULL
+         WHERE status IN ('failed','cancelled') RETURNING id`
+      );
+      return json(res, { ok: true, retried: r.length });
+    }
+    return error(res, 'task_id or all_failed required');
+  }
+
   // POST /api/tasks - Create task
   if (resource === 'tasks' && req.method === 'POST') {
     const { title, description, agent_type, priority = 3, depends_on = [], source = 'manual', tags = [] } = body;
@@ -598,6 +619,8 @@ async function handleAPI(req, res, parts, body) {
     req.on('close', () => clearInterval(interval));
     return;
   }
+
+
 
 
   // POST /api/tasks/cleanup - Cancel stale tasks
