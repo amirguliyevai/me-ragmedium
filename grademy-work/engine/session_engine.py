@@ -89,7 +89,9 @@ class StudySessionEngine:
 
         # Determine session composition based on personalization + SR
         target_load = self.cognitive_balancer.target_load_for_student(student)
-        review_items = self.sr_engine.get_due_reviews(student_id, limit=10)
+        review_items = self.sr_engine.get_due_reviews(
+            student_id, limit=10, include_fatigue_check=True
+        )
 
         # Mix: 60% new/practice, 40% review (spaced repetition)
         review_count = min(len(review_items), max(2, int(duration_minutes * 0.4)))
@@ -114,6 +116,11 @@ class StudySessionEngine:
         # Apply interleaving: mix topics
         if len(activities) > 3:
             activities = self._interleave(activities)
+
+        # Apply cognitive load optimization
+        activities = self.cognitive_balancer.optimize_session_composition(
+            activities, target_load
+        )
 
         session.activities = activities
         self._active_sessions[session_id] = session
@@ -144,12 +151,14 @@ class StudySessionEngine:
                 topic=activity.topic,
                 quality=response.quality,
                 response_time_ms=response.response_time_ms,
+                confidence=response.confidence,
             )
 
         # Update personalization
         self.personalization.record_response(student, response, activity)
 
-        # Update engagement
+        # Update engagement (with session duration for fatigue detection)
+        self.personalization.update_session_duration(session)
         engagement = self.personalization.compute_engagement(session)
         session.engagement_score = engagement
 

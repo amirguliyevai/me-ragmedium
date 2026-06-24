@@ -5,6 +5,9 @@ Implements the SuperMemo SM-2 algorithm with:
 - Retention prediction via forgetting curve
 - Interleaving optimizer
 - Adaptive ease factor
+- Confidence-weighted quality adjustment
+- Response-time-aware scheduling
+- Fatigue detection (too-frequent reviews)
 """
 
 from __future__ import annotations
@@ -40,6 +43,9 @@ class SRItem:
     total_reviews: int = 0
     correct_streak: int = 0
     created_at: str = field(default_factory=lambda: datetime.utcnow().isoformat())
+    # Enhanced: track performance history for adaptive adjustments
+    quality_history: list[int] = field(default_factory=list)
+    avg_response_time_ms: float = 0.0
 
     def __post_init__(self):
         if not self.next_review_at:
@@ -55,6 +61,9 @@ class SRSchedule:
     total_due: int
     estimated_minutes: int
     topics: list[str]
+    new_items: int = 0
+    review_items: int = 0
+    mastery_ready: int = 0
 
 
 class SpacedRepetitionEngine:
@@ -75,6 +84,8 @@ class SpacedRepetitionEngine:
         self.easy_bonus = config.get("easy_bonus", 1.3)
         self.hard_penalty = config.get("hard_penalty", 0.6)
         self.target_retention = config.get("target_retention", 0.9)
+        self.confidence_weight = config.get("confidence_weight", 0.3)
+        self.fatigue_threshold_hours = config.get("fatigue_threshold_hours", 2)
         self._items: dict[str, dict[str, SRItem]] = {}  # student_id -> topic -> item
 
     def init_student(self, student_id: str) -> None:
@@ -102,18 +113,20 @@ class SpacedRepetitionEngine:
         topic: str,
         quality: ReviewQuality,
         response_time_ms: int = 10000,
+        confidence: float = 0.5,
     ) -> SRItem:
         """
         Update an item after a review using SM-2 algorithm.
-        Quality is adjusted based on response time.
+        Quality is adjusted based on response time and confidence.
         """
         self.init_student(student_id)
         item = self._items[student_id].get(topic)
         if not item:
             item = self.add_item(student_id, topic)
 
-        # Adjust quality based on response time
-        adjusted_quality = self._adjust_quality_for_time(quality, response_time_ms)
+        # Adjust quality based on response time and confidence
+        time_adjusted = self._adjust_quality_for_time(quality, response_time_ms)
+        adjusted_quality = self._adjust_quality_for_confidence(time_adjusted, confidence)
 
         # SM-2 ease factor update
         q = adjusted_quality.value
@@ -154,10 +167,21 @@ class SpacedRepetitionEngine:
         item.next_review_at = (now + timedelta(hours=item.interval_hours)).isoformat()
         item.total_reviews += 1
 
+        # Track performance history
+        item.quality_history.append(q)
+        if len(item.quality_history) > 50:
+            item.quality_history = item.quality_history[-50:]
+
+        # Update rolling average response time
+        n = item.total_reviews
+        item.avg_response_time_ms = (
+            (item.avg_response_time_ms * (n - 1) + response_time_ms) / n
+        )
+
         return item
 
     def get_due_reviews(
-        self, student_id: str, limit: int = 10
+        self, student_id: str, limit: int = 10, include_fatigue_check: bool = True
     ) -> list[dict[str, Any]]:
         """Get items due for review, sorted by urgency."""
         self.init_student(student_id)
@@ -169,6 +193,18 @@ class SpacedRepetitionEngine:
             if review_time <= now:
                 hours_overdue = (now - review_time).total_seconds() / 3600
                 urgency = hours_overdue / max(item.interval_hours, 1)
+
+                # Fatigue detection: if reviewed very recently, deprioritize
+                fatigue_penalty = 0.0
+                if include_fatigue_check and item.last_reviewed_at:
+                    hours_since_last = (now - datetime.fromisoformat(
+                        item.last_reviewed_at
+                    )).total_seconds() / 3600
+                    if hours_since_last < self.fatigue_threshold_hours:
+                        fatigue_penalty = 0.5 * (
+                            1 - hours_since_last / self.fatigue_threshold_hours
+                        )
+
                 due.append({
                     "topic": topic,
                     "difficulty": item.difficulty,
@@ -177,10 +213,12 @@ class SpacedRepetitionEngine:
                     "ease_factor": round(item.ease_factor, 2),
                     "hours_overdue": round(hours_overdue, 1),
                     "urgency": round(urgency, 3),
+                    "fatigue_penalty": round(fatigue_penalty, 3),
+                    "effective_urgency": round(urgency - fatigue_penalty, 3),
                 })
 
-        # Sort by urgency (most overdue first)
-        due.sort(key=lambda x: x["urgency"], reverse=True)
+        # Sort by effective urgency (most overdue first, fatigue-deprioritized)
+        due.sort(key=lambda x: x["effective_urgency"], reverse=True)
         return due[:limit]
 
     def predict_retention(self, student_id: str, topic: str) -> float:
@@ -210,19 +248,31 @@ class SpacedRepetitionEngine:
         items = []
         total_minutes = 0
         topics = set()
+        new_count = 0
+        review_count = 0
+        mastery_ready = 0
 
         for topic, item in self._items[student_id].items():
             review_time = datetime.fromisoformat(item.next_review_at)
             if review_time <= end:
                 estimated_min = max(2, int(15 * item.difficulty))
-                items.append({
+                entry = {
                     "topic": topic,
                     "due_at": item.next_review_at,
                     "difficulty": item.difficulty,
                     "estimated_minutes": estimated_min,
-                })
+                    "repetition_count": item.repetition_count,
+                }
+                items.append(entry)
                 total_minutes += estimated_min
                 topics.add(topic)
+
+                if item.repetition_count == 0:
+                    new_count += 1
+                elif item.repetition_count >= 5:
+                    mastery_ready += 1
+                else:
+                    review_count += 1
 
         items.sort(key=lambda x: x["due_at"])
         return SRSchedule(
@@ -230,6 +280,9 @@ class SpacedRepetitionEngine:
             total_due=len(items),
             estimated_minutes=total_minutes,
             topics=sorted(topics),
+            new_items=new_count,
+            review_items=review_count,
+            mastery_ready=mastery_ready,
         )
 
     def get_stats(self, student_id: str) -> dict[str, Any]:
@@ -244,6 +297,20 @@ class SpacedRepetitionEngine:
         learning = sum(1 for i in items if 0 < i.repetition_count < 5)
         avg_ef = sum(i.ease_factor for i in items) / len(items)
 
+        # Compute average retention across all items
+        retentions = []
+        for item in items:
+            if item.last_reviewed_at:
+                r = self.predict_retention(student_id, item.topic)
+                retentions.append(r)
+        avg_retention = sum(retentions) / len(retentions) if retentions else 0.5
+
+        # Performance trend (last 5 reviews per item)
+        recent_qualities = []
+        for item in items:
+            recent_qualities.extend(item.quality_history[-5:])
+        avg_quality = sum(recent_qualities) / len(recent_qualities) if recent_qualities else 2.5
+
         return {
             "total_items": len(items),
             "mastered": mastered,
@@ -253,6 +320,8 @@ class SpacedRepetitionEngine:
             "avg_interval_days": round(
                 sum(i.interval_hours for i in items) / max(len(items), 1) / 24, 1
             ),
+            "avg_retention": round(avg_retention, 3),
+            "avg_quality": round(avg_quality, 2),
         }
 
     def _adjust_quality_for_time(
@@ -273,4 +342,28 @@ class SpacedRepetitionEngine:
             if response_time_ms > 30000:
                 return ReviewQuality.AGAIN
             return base
+        return base
+
+    def _adjust_quality_for_confidence(
+        self, base: ReviewQuality, confidence: float
+    ) -> ReviewQuality:
+        """Adjust review quality based on student confidence.
+
+        Low confidence on correct answers → lower quality (they guessed).
+        High confidence on wrong answers → lower quality (they misunderstood).
+        """
+        # Low confidence on a correct answer: likely a guess → downgrade
+        if base in (ReviewQuality.EASY, ReviewQuality.GOOD, ReviewQuality.PERFECT):
+            if confidence < 0.3:
+                # Downgrade by one level
+                q_val = base.value
+                new_q = max(0, q_val - 1)
+                return ReviewQuality(new_q)
+        # High confidence on a wrong answer: fundamental misunderstanding
+        elif base in (ReviewQuality.AGAIN, ReviewQuality.HARD, ReviewQuality.FAIR):
+            if confidence > 0.8:
+                # Downgrade further — they're confidently wrong
+                q_val = base.value
+                new_q = max(0, q_val - 1)
+                return ReviewQuality(new_q)
         return base

@@ -107,12 +107,54 @@ class GeminiTutor:
         difficulty = getattr(activity, "difficulty", 0.5)
         student_name = context.get("student_name", "Student")
         weak_topics = context.get("weak_topics", [])
+        strong_topics = context.get("strong_topics", [])
+        learning_speed = context.get("learning_speed", 0.5)
+        current_engagement = context.get("current_engagement", 0.5)
+        recent_accuracy = context.get("recent_accuracy", 0.5)
+        avg_response_time_ms = context.get("avg_response_time_ms", 10000)
 
+        # Build a rich, personalized system prompt
         system = (
             f"You are a warm, encouraging AI tutor for {student_name}. "
-            f"Explain concepts clearly with examples. Use a friendly tone. "
-            f"Student's weak topics: {', '.join(weak_topics) if weak_topics else 'none identified'}."
+            f"Explain concepts clearly with examples. Use a friendly, conversational tone. "
         )
+
+        # Adapt to learning speed
+        if learning_speed > 0.7:
+            system += "Use concise explanations — this student prefers quick, dense information. "
+        elif learning_speed < 0.3:
+            system += "Use step-by-step explanations with lots of examples — this student benefits from thorough breakdowns. "
+
+        # Adapt to current state
+        if current_engagement < 0.4:
+            system += "The student seems disengaged. Be extra encouraging and find a fun angle. "
+        if recent_accuracy and recent_accuracy < 0.5:
+            system += "The student has been struggling recently. Be patient and emphasize small wins. "
+
+        # Context about strengths/weaknesses
+        if weak_topics:
+            system += f"Areas to reinforce: {', '.join(weak_topics[:3])}. "
+        if strong_topics:
+            system += f"Strengths to reference: {', '.join(strong_topics[:3])}. "
+
+        # Build adaptive instruction
+        instruction_parts = [
+            f"The student got a question wrong about '{topic}'.",
+            f"Explain why their answer was incorrect in a supportive way.",
+            f"Provide the correct answer with a clear explanation.",
+        ]
+
+        # Adjust detail level based on difficulty
+        if difficulty > 0.7:
+            instruction_parts.append("This is advanced material — go deep but stay clear.")
+        else:
+            instruction_parts.append("Keep it concise (under 150 words) and encouraging.")
+
+        # Add response-time awareness
+        if avg_response_time_ms > 20000:
+            instruction_parts.append("The student took a while to respond — they might benefit from a mnemonic or memory trick.")
+
+        instruction = " ".join(instruction_parts)
 
         return TutorPrompt(
             system=system,
@@ -122,27 +164,37 @@ class GeminiTutor:
                 "difficulty": difficulty,
                 "type": activity.type.value if hasattr(activity.type, "value") else str(activity.type),
             },
-            instruction=(
-                f"The student got a question wrong about '{topic}'. "
-                f"Explain why their answer was incorrect, provide the correct answer, "
-                f"and give 2-3 examples to help them understand. "
-                f"Keep it concise (under 200 words)."
-            ),
+            instruction=instruction,
         )
 
     def _build_hint_prompt(
         self, activity: Any, context: dict[str, Any]
     ) -> TutorPrompt:
         topic = getattr(activity, "topic", "unknown")
+        difficulty = getattr(activity, "difficulty", 0.5)
+        student_name = context.get("student_name", "the student")
+        learning_speed = context.get("learning_speed", 0.5)
+        current_engagement = context.get("current_engagement", 0.5)
+
+        system = f"You are a helpful, patient tutor. Give progressive hints for {student_name}. "
+
+        if learning_speed > 0.7:
+            system += "Give slightly more direct hints — this student learns quickly. "
+        elif learning_speed < 0.3:
+            system += "Give very gentle, step-by-step nudges — this student needs more scaffolding. "
+
+        if current_engagement < 0.4:
+            system += "The student seems frustrated. Be encouraging and make the hint feel like a small win. "
 
         return TutorPrompt(
-            system=f"You are a helpful tutor. Give progressive hints for {context.get('student_name', 'the student')}.",
+            system=system,
             context=context,
-            activity={"topic": topic},
+            activity={"topic": topic, "difficulty": difficulty},
             instruction=(
                 f"Give a hint for this question about '{topic}'. "
                 f"Don't reveal the answer — just nudge them in the right direction. "
-                f"Keep it to 1-2 sentences."
+                f"Keep it to 1-2 sentences. "
+                f"Difficulty level: {difficulty:.0%}."
             ),
         )
 

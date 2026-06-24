@@ -119,7 +119,8 @@ class PersonalizationEngine:
         - Response time trends
         - Correctness patterns
         - Confidence levels
-        - Session duration
+        - Session duration (fatigue detection)
+        - Streak patterns
         """
         sid = session.student_id
         eng = self._engagement.get(sid)
@@ -133,25 +134,52 @@ class PersonalizationEngine:
         # Recent window
         recent = responses[-self.engagement_window:]
 
-        # Accuracy component (40%)
+        # Accuracy component (35%)
         accuracy = sum(1 for r in recent if r.is_correct) / len(recent)
 
-        # Response time component (30%) — faster = more engaged
+        # Response time component (25%) — faster = more engaged
         avg_time = sum(r.response_time_ms for r in recent) / len(recent)
         # Normalize: 5s = 1.0, 30s+ = 0.0
         time_score = max(0.0, min(1.0, 1.0 - (avg_time - 5000) / 25000))
 
-        # Confidence component (30%)
+        # Confidence component (25%)
         avg_confidence = sum(r.confidence for r in recent) / len(recent)
+
+        # Response time acceleration (15%) — is the student speeding up or slowing down?
+        time_trend_bonus = 0.0
+        if len(recent) >= 4:
+            first_half_time = sum(r.response_time_ms for r in recent[:len(recent)//2]) / (len(recent)//2)
+            second_half_time = sum(r.response_time_ms for r in recent[len(recent)//2:]) / (len(recent) - len(recent)//2)
+            if second_half_time < first_half_time:
+                time_trend_bonus = 0.05  # speeding up = engaged
+            else:
+                time_trend_bonus = -0.05  # slowing down = losing focus
 
         # Streak bonus
         streak_bonus = 0.0
         if eng.consecutive_correct >= 5:
             streak_bonus = 0.1
+        elif eng.consecutive_correct >= 3:
+            streak_bonus = 0.05
         elif eng.consecutive_wrong >= 3:
             streak_bonus = -0.15
 
-        raw = 0.4 * accuracy + 0.3 * time_score + 0.3 * avg_confidence + streak_bonus
+        # Fatigue penalty: long sessions lose engagement
+        fatigue_penalty = 0.0
+        if eng.session_duration_seconds > 0:
+            # After 20 minutes, start penalizing
+            minutes = eng.session_duration_seconds / 60
+            if minutes > 20:
+                fatigue_penalty = min(0.2, (minutes - 20) / 60 * 0.2)
+
+        raw = (
+            0.35 * accuracy
+            + 0.25 * time_score
+            + 0.25 * avg_confidence
+            + 0.15 * (0.5 + time_trend_bonus)  # base 0.5 for neutral trend
+            + streak_bonus
+            - fatigue_penalty
+        )
         score = max(0.0, min(1.0, raw))
 
         # Smooth with previous score (avoid jarring jumps)
@@ -229,6 +257,17 @@ class PersonalizationEngine:
 
     def get_engagement(self, student_id: str) -> Optional[EngagementState]:
         return self._engagement.get(student_id)
+
+    def update_session_duration(self, session: Any) -> None:
+        """Update the session duration for fatigue tracking."""
+        sid = session.student_id
+        eng = self._engagement.get(sid)
+        if eng and session.started_at:
+            from datetime import datetime
+            start = datetime.fromisoformat(session.started_at)
+            eng.session_duration_seconds = (
+                datetime.utcnow() - start
+            ).total_seconds()
 
     def get_momentum_score(self, student_id: str) -> float:
         """

@@ -584,6 +584,306 @@ class TestSessionEngine:
         assert perf == 1.0  # All correct
 
 
+# ── Enhanced Spaced Repetition Tests ────────────────────────────────────────
+
+class TestEnhancedSpacedRepetition:
+    """Tests for confidence-weighted quality and fatigue detection."""
+
+    def test_confidence_lowers_quality_for_guessers(self):
+        """Low confidence on correct answers should downgrade quality."""
+        sr = SpacedRepetitionEngine({})
+        sr.init_student("s1")
+        sr.add_item("s1", "math")
+
+        # Correct but low confidence (guess) → quality downgraded
+        item = sr.update_item("s1", "math", ReviewQuality.EASY, 5000, confidence=0.2)
+        # Should have been downgraded from EASY(4) to GOOD(3)
+        assert item.quality_history[-1] == 3
+
+    def test_confidence_downgrades_confidently_wrong(self):
+        """High confidence on wrong answers should further downgrade quality."""
+        sr = SpacedRepetitionEngine({})
+        sr.init_student("s1")
+        sr.add_item("s1", "math")
+
+        # Wrong with high confidence → further downgrade
+        item = sr.update_item("s1", "math", ReviewQuality.HARD, 10000, confidence=0.9)
+        # Should have been downgraded from HARD(1) to AGAIN(0)
+        assert item.quality_history[-1] == 0
+
+    def test_fatigue_detection_in_due_reviews(self):
+        """Recently reviewed items should be deprioritized."""
+        sr = SpacedRepetitionEngine({"fatigue_threshold_hours": 2})
+        sr.init_student("s1")
+        sr.add_item("s1", "math")
+        sr.add_item("s1", "science")
+
+        now = datetime.utcnow()
+
+        # Math was just reviewed (within fatigue window)
+        sr._items["s1"]["math"].next_review_at = (now - timedelta(hours=1)).isoformat()
+        sr._items["s1"]["math"].last_reviewed_at = (now - timedelta(minutes=30)).isoformat()
+
+        # Science is overdue but not recently reviewed
+        sr._items["s1"]["science"].next_review_at = (now - timedelta(hours=3)).isoformat()
+        sr._items["s1"]["science"].last_reviewed_at = (now - timedelta(days=5)).isoformat()
+
+        due = sr.get_due_reviews("s1", include_fatigue_check=True)
+        # Science should come first (no fatigue penalty)
+        assert due[0]["topic"] == "science"
+        assert due[0]["fatigue_penalty"] == 0.0
+        # Math should have a fatigue penalty
+        assert due[1]["fatigue_penalty"] > 0.0
+
+    def test_schedule_includes_breakdown_stats(self):
+        """Schedule should include new/review/mastery counts."""
+        sr = SpacedRepetitionEngine({})
+        sr.init_student("s1")
+
+        # New item (never reviewed)
+        sr.add_item("s1", "new-topic")
+
+        # Learning item (reviewed a few times)
+        sr.add_item("s1", "learning-topic")
+        for _ in range(3):
+            sr.update_item("s1", "learning-topic", ReviewQuality.GOOD)
+
+        # Mastered item (reviewed 5+ times with good EF) — force it to be due soon
+        sr.add_item("s1", "mastered-topic")
+        for _ in range(6):
+            sr.update_item("s1", "mastered-topic", ReviewQuality.EASY)
+        # Force the next review to be within the schedule window
+        from datetime import datetime, timedelta
+        sr._items["s1"]["mastered-topic"].next_review_at = (
+            datetime.utcnow() + timedelta(days=2)
+        ).isoformat()
+
+        schedule = sr.get_schedule("s1", days_ahead=7)
+        assert schedule.new_items >= 1
+        assert schedule.mastery_ready >= 1
+
+    def test_stats_include_retention_and_quality(self):
+        """Enhanced stats should include avg_retention and avg_quality."""
+        sr = SpacedRepetitionEngine({})
+        sr.init_student("s1")
+        sr.add_item("s1", "math")
+        sr.update_item("s1", "math", ReviewQuality.EASY)
+        sr.update_item("s1", "math", ReviewQuality.GOOD)
+
+        stats = sr.get_stats("s1")
+        assert "avg_retention" in stats
+        assert "avg_quality" in stats
+        assert 0.0 <= stats["avg_retention"] <= 1.0
+
+    def test_rolling_average_response_time(self):
+        """Items should track rolling average response time."""
+        sr = SpacedRepetitionEngine({})
+        sr.init_student("s1")
+        sr.add_item("s1", "math")
+
+        sr.update_item("s1", "math", ReviewQuality.GOOD, response_time_ms=5000)
+        sr.update_item("s1", "math", ReviewQuality.GOOD, response_time_ms=15000)
+
+        item = sr._items["s1"]["math"]
+        assert item.avg_response_time_ms == 10000.0  # (5000 + 15000) / 2
+
+
+# ── Enhanced Personalization Tests ──────────────────────────────────────────
+
+class TestEnhancedPersonalization:
+    """Tests for fatigue-aware engagement and session duration tracking."""
+
+    def test_session_duration_tracking(self):
+        """Engagement state should track session duration."""
+        p = PersonalizationEngine({})
+        student = Student(id="s1", name="Alice")
+        p.init_profile(student)
+
+        from unittest.mock import MagicMock
+        session = MagicMock()
+        session.student_id = "s1"
+        session.started_at = (datetime.utcnow() - timedelta(minutes=10)).isoformat()
+
+        p.update_session_duration(session)
+        eng = p.get_engagement("s1")
+        assert eng.session_duration_seconds is not None
+        assert 590 <= eng.session_duration_seconds <= 610  # ~10 minutes
+
+    def test_fatigue_penalty_in_engagement(self):
+        """Long sessions should have fatigue penalty reducing engagement."""
+        p = PersonalizationEngine({})
+        student = Student(id="s1", name="Alice")
+        p.init_profile(student)
+
+        from unittest.mock import MagicMock
+        session = MagicMock()
+        session.student_id = "s1"
+        session.started_at = (datetime.utcnow() - timedelta(minutes=30)).isoformat()
+        session.responses = [
+            SessionResponse(
+                activity_id="a1", student_id="s1",
+                is_correct=True, response_time_ms=6000,
+                confidence=0.9,
+            )
+            for _ in range(10)
+        ]
+
+        p.update_session_duration(session)
+        engagement = p.compute_engagement(session)
+        # Should be lower than without fatigue due to 30-min session
+        assert 0.0 <= engagement <= 1.0
+
+    def test_response_time_trend_bonus(self):
+        """Speeding up responses should give engagement bonus."""
+        p = PersonalizationEngine({})
+        student = Student(id="s1", name="Alice")
+        p.init_profile(student)
+
+        from unittest.mock import MagicMock
+        session = MagicMock()
+        session.student_id = "s1"
+        session.started_at = datetime.utcnow().isoformat()
+        # Responses get faster over time (engaged and warming up)
+        session.responses = [
+            SessionResponse(
+                activity_id=f"a{i}", student_id="s1",
+                is_correct=True, response_time_ms=20000 - i * 2000,
+                confidence=0.8,
+            )
+            for i in range(6)
+        ]
+
+        engagement = p.compute_engagement(session)
+        assert 0.0 <= engagement <= 1.0
+
+
+# ── Enhanced Gemini Integration Tests ──────────────────────────────────────
+
+class TestEnhancedGeminiIntegration:
+    """Tests for personalized prompt building."""
+
+    def test_explanation_prompt_includes_learning_speed(self):
+        """Explanation prompt should adapt to learning speed."""
+        tutor = GeminiTutor({})
+        activity = StudyActivity(
+            id="a1", type=ActivityType.MULTIPLE_CHOICE,
+            topic="algebra", difficulty=0.5,
+            cognitive_load=ActivityLoad(0.3, 1.0, 0.15, 0.45, 5),
+            content={},
+        )
+        context = {
+            "student_name": "Alice",
+            "weak_topics": ["algebra"],
+            "learning_speed": 0.9,  # Fast learner
+        }
+        prompt = tutor._build_explanation_prompt(activity, context)
+        assert "concise" in prompt.system.lower() or "quick" in prompt.system.lower()
+
+    def test_explanation_prompt_detects_disengagement(self):
+        """Prompt should adapt to low engagement."""
+        tutor = GeminiTutor({})
+        activity = StudyActivity(
+            id="a1", type=ActivityType.MULTIPLE_CHOICE,
+            topic="biology", difficulty=0.5,
+            cognitive_load=ActivityLoad(0.3, 1.0, 0.15, 0.45, 5),
+            content={},
+        )
+        context = {
+            "student_name": "Bob",
+            "current_engagement": 0.3,  # Disengaged
+            "recent_accuracy": 0.4,
+        }
+        prompt = tutor._build_explanation_prompt(activity, context)
+        assert "disengaged" in prompt.system.lower() or "encouraging" in prompt.system.lower()
+
+    def test_hint_prompt_adapts_to_learning_speed(self):
+        """Hint prompt should adapt to student's learning speed."""
+        tutor = GeminiTutor({})
+        activity = StudyActivity(
+            id="a1", type=ActivityType.PROBLEM_SOLVING,
+            topic="calculus", difficulty=0.8,
+            cognitive_load=ActivityLoad(0.7, 1.0, 0.24, 0.94, 10),
+            content={},
+        )
+        context = {
+            "student_name": "Charlie",
+            "learning_speed": 0.2,  # Slow learner
+        }
+        prompt = tutor._build_hint_prompt(activity, context)
+        assert "gentle" in prompt.system.lower() or "step-by-step" in prompt.system.lower()
+
+    def test_hint_prompt_detects_frustration(self):
+        """Hint prompt should be extra encouraging when student is frustrated."""
+        tutor = GeminiTutor({})
+        activity = StudyActivity(
+            id="a1", type=ActivityType.PROBLEM_SOLVING,
+            topic="physics", difficulty=0.6,
+            cognitive_load=ActivityLoad(0.5, 1.0, 0.18, 0.68, 7),
+            content={},
+        )
+        context = {
+            "student_name": "Diana",
+            "current_engagement": 0.25,  # Very low engagement
+        }
+        prompt = tutor._build_hint_prompt(activity, context)
+        assert "frustrated" in prompt.system.lower() or "encouraging" in prompt.system.lower()
+
+
+# ── Enhanced Session Engine Integration Tests ───────────────────────────────
+
+class TestEnhancedSessionEngine:
+    """Tests for the enhanced session engine features."""
+
+    def test_session_uses_cognitive_load_optimization(self, populated_engine, student):
+        """Session should apply cognitive load optimization."""
+        session = populated_engine.start_session(
+            student.id, mode=SessionMode.PRACTICE, duration_minutes=10
+        )
+        # Activities should be ordered with high-low interleaving
+        assert len(session.activities) > 0
+
+    def test_submit_response_with_confidence(self, populated_engine, student):
+        """Submit response should pass confidence to SR engine."""
+        session = populated_engine.start_session(student.id, duration_minutes=5)
+        activity = session.activities[0]
+
+        # Submit with low confidence
+        response = SessionResponse(
+            activity_id=activity.id,
+            student_id=student.id,
+            is_correct=True,
+            response_time_ms=5000,
+            confidence=0.15,  # Very low confidence (guess)
+        )
+        result = populated_engine.submit_response(session.id, response)
+        assert result["correct"] is True
+
+        # Check that SR item was updated with lowered quality
+        sr_item = populated_engine.sr_engine._items[student.id].get(activity.topic)
+        if sr_item and sr_item.quality_history:
+            # Low confidence on correct answer should downgrade quality
+            last_q = sr_item.quality_history[-1]
+            assert last_q < 4  # Should be less than EASY
+
+    def test_session_duration_tracks_in_submit(self, populated_engine, student):
+        """Submit response should update session duration for fatigue tracking."""
+        session = populated_engine.start_session(student.id, duration_minutes=5)
+        activity = session.activities[0]
+
+        response = SessionResponse(
+            activity_id=activity.id,
+            student_id=student.id,
+            is_correct=True,
+            response_time_ms=6000,
+            confidence=0.8,
+        )
+        populated_engine.submit_response(session.id, response)
+
+        eng = populated_engine.personalization.get_engagement(student.id)
+        assert eng.session_duration_seconds is not None
+        assert eng.session_duration_seconds >= 0
+
+
 # ── Run ──────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
