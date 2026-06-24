@@ -174,6 +174,18 @@ async function handleAPI(req, res, parts, body) {
     return json(res, result);
   }
 
+  // POST /api/agents - Create agent
+  if (resource === 'agents' && req.method === 'POST' && !id) {
+    const { name, title, agent_type, division = 'General', level = 2, model = 'v4-flash', max_concurrent_tasks = 3, parent_agent_id = null, role_description = null } = body;
+    if (!name || !agent_type) return error(res, 'name and agent_type required');
+    const agent = await q(`INSERT INTO team.agents (name, title, agent_type, division, level, model, max_concurrent_tasks, parent_agent_id, role_description)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
+      [name, title || name, agent_type, division, level, model, max_concurrent_tasks, parent_agent_id, role_description]);
+    _cache.delete('stats');
+    _cache.delete('hierarchy');
+    return json(res, agent[0], 201);
+  }
+
   // GET /api/agents - All agents
   if (resource === 'agents' && req.method === 'GET') {
     if (id) {
@@ -308,6 +320,17 @@ async function handleAPI(req, res, parts, body) {
     return json(res, result);
   }
 
+  // GET /api/config - System configuration
+  if (resource === 'config' && req.method === 'GET') {
+    return json(res, {
+      port: PORT,
+      version: '2.0.0',
+      db: 'connected',
+      uptime: process.uptime(),
+      endpoints: ['agents', 'tasks', 'hierarchy', 'stats', 'artifacts', 'logs', 'knowledge', 'goals', 'secrets', 'threads', 'approvals', 'skills', 'vault', 'notifications', 'agent-runs', 'state', 'metrics']
+    });
+  }
+
   // GET /api/knowledge - Knowledge base
   if (resource === 'knowledge' && req.method === 'GET') {
     const rows = await q('SELECT id, title, content, source, tags, updated_at, created_at FROM team.knowledge ORDER BY updated_at DESC LIMIT 50');
@@ -348,6 +371,46 @@ async function handleAPI(req, res, parts, body) {
       LEFT JOIN team.tasks t ON r.task_id = t.id
       ORDER BY r.started_at DESC LIMIT 50`);
     return json(res, runs);
+  }
+
+  // DELETE /api/agents/:id - Delete agent
+  if (resource === 'agents' && id && req.method === 'DELETE') {
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+    const isInt = /^\d+$/.test(id);
+    let r;
+    if (isUuid) {
+      r = await q('DELETE FROM team.agents WHERE id = $1 RETURNING id', [id]);
+    } else if (isInt) {
+      r = await q('DELETE FROM team.agents WHERE id = $1::int RETURNING id', [id]);
+    } else {
+      r = await q('DELETE FROM team.agents WHERE name = $1 RETURNING id', [id]);
+    }
+    if (!r.length) return error(res, 'Agent not found', 404);
+    _cache.delete('stats');
+    _cache.delete('hierarchy');
+    return json(res, { ok: true });
+  }
+
+  // PATCH /api/agents/:id - Update agent
+  if (resource === 'agents' && id && req.method === 'PATCH') {
+    const updates = [];
+    const params = [];
+    let idx = 0;
+    for (const [key, val] of Object.entries(body)) {
+      if (['name','title','agent_type','division','level','model','max_concurrent_tasks','parent_agent_id','role_description','is_active','status','capabilities'].includes(key)) {
+        idx++;
+        updates.push(`${key} = $${idx}`);
+        params.push(key === 'capabilities' ? JSON.stringify(val) : val);
+      }
+    }
+    if (!updates.length) return error(res, 'No valid fields to update');
+    idx++; updates.push(`updated_at = $${idx}`); params.push(new Date());
+    params.push(id);
+    const r = await q(`UPDATE team.agents SET ${updates.join(', ')} WHERE id = $${params.length}::int RETURNING *`, params);
+    if (!r.length) return error(res, 'Agent not found', 404);
+    _cache.delete('stats');
+    _cache.delete('hierarchy');
+    return json(res, r[0]);
   }
 
   // POST /api/agents/:id/heartbeat
