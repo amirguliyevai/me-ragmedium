@@ -1,6 +1,6 @@
 {
   "test": true,
-  "updatedAt": "2026-06-25T06:16:21.018Z",
+  "updatedAt": "2026-06-25T07:19:58.766Z",
   "todos": {
     "2026-06-20": [
       {
@@ -344,6 +344,20 @@
       }
     ],
     "activity": [
+      {
+        "id": "act_4f9f2d2b66c7",
+        "type": "conversation",
+        "text": "New/updated chat: Chat chat 1",
+        "meta": {
+          "id": "thread_1782371998760",
+          "context": {
+            "businessIds": [],
+            "page": "chat",
+            "skillIds": []
+          }
+        },
+        "at": "2026-06-25T07:19:58.766Z"
+      },
       {
         "id": "act_70955f1c6a25",
         "type": "conversation",
@@ -3196,8 +3210,24 @@
     }
   ],
   "brain": {
-    "activeThread": "thread_1782368181011",
+    "activeThread": "thread_1782371998760",
     "threads": [
+      {
+        "icon": "💬",
+        "tags": [],
+        "context": {
+          "businessIds": [],
+          "page": "chat",
+          "skillIds": []
+        },
+        "messages": [],
+        "scope": "Focused conversation",
+        "id": "thread_1782371998760",
+        "title": "Chat chat 1",
+        "sessionKey": "agent:main:dashboard-chat-mqt69o32-e3fe",
+        "createdAt": "2026-06-25T07:19:58.766Z",
+        "updatedAt": "2026-06-25T07:19:58.766Z"
+      },
       {
         "icon": "💬",
         "tags": [],
