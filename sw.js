@@ -1,7 +1,7 @@
 // ─── PWA Service Worker (Enhanced) ─────────────────────────────
 // Offline action queue, background sync, enhanced caching
 
-const CACHE = "dash-v8";
+const CACHE = "dash-v9";
 const ASSETS = ['/', '/manifest.webmanifest', '/icons/icon-192.png', '/icons/icon-512.png'];
 
 // ─── IndexedDB: Offline Action Queue ───────────────────────────
@@ -195,15 +195,16 @@ self.addEventListener('push', event => {
   event.waitUntil(self.registration.showNotification(options.title, options));
 });
 
+// ─── Notification Click Handler (Enhanced Routing) ────────────
 self.addEventListener('notificationclick', event => {
   event.notification.close();
 
   const data = event.notification.data || {};
   const action = event.action;
-  const url = data.url || '/';
 
+  // Handle explicit actions
   if (action === 'open') {
-    clients.openWindow(url);
+    clients.openWindow(data.url || '/');
     return;
   }
 
@@ -213,20 +214,43 @@ self.addEventListener('notificationclick', event => {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ done: true })
     }).catch(() => {});
-    clients.openWindow(url);
+    clients.openWindow(data.url || '/');
     return;
   }
 
-  let targetUrl = url;
-  if (data.agentId && url.includes('/slack')) {
-    targetUrl = '/?slack=' + encodeURIComponent(data.agentId);
+  // Enhanced routing: navigate to specific conversation/task
+  let targetUrl = '/';
+
+  if (data.chatUrl) {
+    // Direct chat URL provided — navigate there
+    targetUrl = data.chatUrl;
+  } else if (data.agentId) {
+    // Agent-specific notification → open Command Center with agent detail
+    targetUrl = '/?commandCenter&agent=' + encodeURIComponent(data.agentId);
+  } else if (data.taskId) {
+    // Task-specific notification → open Command Center filtered to task
+    targetUrl = '/?commandCenter&task=' + encodeURIComponent(data.taskId);
+  } else if (data.sender) {
+    // Team member message → navigate to conversation with sender
+    targetUrl = '/?commandCenter&agent=' + encodeURIComponent(data.sender);
+  } else if (data.url) {
+    targetUrl = data.url;
   }
+
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windowClients => {
       if (windowClients.length > 0) {
         const client = windowClients[0];
         client.focus();
-        if (targetUrl && targetUrl !== '/') client.navigate(targetUrl);
+        if (targetUrl && targetUrl !== '/') {
+          client.navigate(targetUrl);
+        }
+        // Post message to dashboard for in-app navigation
+        client.postMessage({
+          type: 'notification-navigate',
+          url: targetUrl,
+          data: data
+        });
         return;
       }
       clients.openWindow(targetUrl);

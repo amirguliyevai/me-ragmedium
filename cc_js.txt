@@ -1,0 +1,474 @@
+// ═══════════════════════════════════════════════════════════
+// COMMAND CENTER
+// ═══════════════════════════════════════════════════════════
+var ccView = 'kanban';
+var ccTasks = [];
+var ccAgents = [];
+
+function setCCView(v) {
+  ccView = v;
+  ['kanban','list','tree','galaxy'].forEach(function(k) {
+    var btn = document.getElementById('ccView' + k.charAt(0).toUpperCase() + k.slice(1));
+    if (btn) {
+      if (k === v) { btn.style.background = 'var(--g-accent)'; btn.style.color = '#fff'; }
+      else { btn.style.background = 'transparent'; btn.style.color = 'var(--g-text-secondary)'; }
+    }
+  });
+  ['Kanban','List','Tree','Galaxy'].forEach(function(k) {
+    var el = document.getElementById('cc' + k);
+    if (el) el.style.display = (k.toLowerCase() === v) ? (v === 'kanban' ? 'flex' : 'block') : 'none';
+  });
+  renderCommandCenter();
+}
+
+async function renderCommandCenter() {
+  try {
+    var res = await fetch('http://100.111.98.27:8765/api/tasks');
+    var data = await res.json();
+    ccTasks = Array.isArray(data) ? data : [];
+  } catch(e) {
+    ccTasks = [
+      {task_id:'T-001',title:'Deploy API v2 to production',description:'Client Hollow Booking needs v2 endpoints',assigned_to:'E-01',team:'engineering',priority:'P0',status:'in_progress',tags:['api','deploy'],estimated_minutes:120,project:'hollow-booking'},
+      {task_id:'T-002',title:'Review PR #45 auth module',description:'Security review needed',assigned_to:'E-02',team:'engineering',priority:'P1',status:'review',tags:['security','review'],estimated_minutes:30,project:'lamatrader'},
+      {task_id:'T-003',title:'Write blog post: AI trends',description:'Q3 content calendar',assigned_to:'C-01',team:'content',priority:'P2',status:'todo',tags:['blog','ai'],estimated_minutes:90,project:'grademy'},
+      {task_id:'T-004',title:'Fix login redirect bug',description:'Users redirected to /login after auth',assigned_to:'E-03',team:'engineering',priority:'P0',status:'todo',tags:['bug','auth'],estimated_minutes:45,project:'pripitch'},
+      {task_id:'T-005',title:'Client onboarding docs',description:'Setup guide for new clients',assigned_to:'CS-01',team:'client-success',priority:'P2',status:'backlog',tags:['docs','onboarding'],estimated_minutes:60,project:'hollow-booking'},
+      {task_id:'T-006',title:'Database migration v3',description:'Migrate to new schema',assigned_to:'E-04',team:'engineering',priority:'P1',status:'in_progress',tags:['db','migration'],estimated_minutes:180,project:'lamatrader'},
+      {task_id:'T-007',title:'Competitor analysis report',description:'Research top 5 competitors',assigned_to:'R-01',team:'research',priority:'P3',status:'done',tags:['research','competitors'],estimated_minutes:240,project:'grademy'},
+      {task_id:'T-008',title:'Email sequence: re-engagement',description:'Win back dormant users',assigned_to:'LG-01',team:'leadgen',priority:'P2',status:'todo',tags:['email','sequence'],estimated_minutes:75,project:'pripitch'},
+      {task_id:'T-009',title:'Update API documentation',description:'Reflect v2 changes',assigned_to:'E-05',team:'engineering',priority:'P3',status:'backlog',tags:['docs','api'],estimated_minutes:60,project:'lamatrader'},
+      {task_id:'T-010',title:'Social media calendar July',description:'Plan July content',assigned_to:'C-02',team:'content',priority:'P2',status:'in_progress',tags:['social','calendar'],estimated_minutes:45,project:'grademy'}
+    ];
+  }
+
+  try {
+    var res2 = await fetch('http://100.111.98.27:8765/api/agents');
+    var data2 = await res2.json();
+    ccAgents = Array.isArray(data2) ? data2 : [];
+  } catch(e) {
+    ccAgents = [
+      {agent_id:'E-01',codename:'Forge',team:'engineering',tier:'lead',status:'active',aps_score:87.5,current_load:3,max_load:10},
+      {agent_id:'E-02',codename:'Cipher',team:'engineering',tier:'mid',status:'active',aps_score:72.0,current_load:2,max_load:8},
+      {agent_id:'E-03',codename:'Spark',team:'engineering',tier:'mid',status:'active',aps_score:68.0,current_load:4,max_load:8},
+      {agent_id:'E-04',codename:'Titan',team:'engineering',tier:'senior',status:'active',aps_score:79.0,current_load:5,max_load:10},
+      {agent_id:'E-05',codename:'Byte',team:'engineering',tier:'junior',status:'idle',aps_score:55.0,current_load:1,max_load:6},
+      {agent_id:'O-01',codename:'Pipeline',team:'operations',tier:'senior',status:'active',aps_score:81.0,current_load:3,max_load:8},
+      {agent_id:'O-02',codename:'Flow',team:'operations',tier:'mid',status:'active',aps_score:65.0,current_load:2,max_load:8},
+      {agent_id:'C-01',codename:'Quill',team:'content',tier:'lead',status:'active',aps_score:76.0,current_load:4,max_load:10},
+      {agent_id:'C-02',codename:'Pixel',team:'content',tier:'mid',status:'active',aps_score:69.0,current_load:3,max_load:8},
+      {agent_id:'LG-01',codename:'Hunter',team:'leadgen',tier:'lead',status:'active',aps_score:82.0,current_load:5,max_load:10},
+      {agent_id:'R-01',codename:'Sage',team:'research',tier:'lead',status:'active',aps_score:74.0,current_load:2,max_load:8},
+      {agent_id:'CS-01',codename:'Beacon',team:'client-success',tier:'lead',status:'active',aps_score:77.0,current_load:3,max_load:8},
+      {agent_id:'ST-01',codename:'Launch',team:'startups',tier:'lead',status:'active',aps_score:71.0,current_load:4,max_load:10}
+    ];
+  }
+
+  filterCommandCenter();
+}
+
+function filterCommandCenter() {
+  var teamFilter = (document.getElementById('ccTeamFilter') || {}).value || 'all';
+  var projectFilter = (document.getElementById('ccProjectFilter') || {}).value || 'all';
+
+  var tasks = ccTasks;
+  if (teamFilter !== 'all') tasks = tasks.filter(function(t) { return (t.team || '').toLowerCase().includes(teamFilter); });
+  if (projectFilter !== 'all') tasks = tasks.filter(function(t) { return (t.project || '').toLowerCase().includes(projectFilter); });
+
+  var count = document.getElementById('ccTaskCount');
+  if (count) count.textContent = tasks.length + ' tasks';
+
+  if (ccView === 'kanban') renderCCKanban(tasks);
+  else if (ccView === 'list') renderCCList(tasks);
+  else if (ccView === 'tree') renderCCTree();
+  else if (ccView === 'galaxy') renderCCGalaxy();
+}
+
+function renderCCKanban(tasks) {
+  var cols = {backlog:[], todo:[], in_progress:[], review:[], done:[]};
+  var statusMap = {backlog:'backlog', todo:'todo', in_progress:'in_progress', review:'review', done:'done', blocked:'backlog', pending:'todo', needs_review:'review'};
+  tasks.forEach(function(t) {
+    var s = statusMap[t.status] || 'todo';
+    cols[s].push(t);
+  });
+
+  document.querySelectorAll('.cc-kanban-col').forEach(function(col) {
+    var status = col.dataset.status;
+    var body = col.querySelector('.cc-col-body');
+    var countEl = col.querySelector('.cc-col-count');
+    if (!body) return;
+    var items = cols[status] || [];
+    if (countEl) countEl.textContent = items.length;
+
+    if (items.length === 0) {
+      body.innerHTML = '<div style="text-align:center;padding:20px;color:var(--g-text-tertiary);font-size:10px">No tasks</div>';
+    } else {
+      body.innerHTML = items.map(function(t) {
+        var prio = (t.priority || 'P2').toUpperCase();
+        var prioNum = prio === 'P0' ? 0 : prio === 'P1' ? 1 : prio === 'P2' ? 2 : prio === 'P3' ? 3 : 4;
+        var prioColor = ['var(--g-red)','var(--g-amber)','#eab308','var(--g-green)','var(--g-accent)'][prioNum];
+        var assignee = ccAgents.find(function(a) { return a.agent_id === t.assigned_to; });
+        var assigneeName = assignee ? assignee.codename : (t.assigned_to || 'Unassigned');
+        var assigneeInitial = assigneeName.charAt(0);
+        var tags = Array.isArray(t.tags) ? t.tags : [];
+        var est = t.estimated_minutes ? (t.estimated_minutes + 'm') : '';
+        return '<div class="cc-card" draggable="true" data-task-id="' + t.task_id + '" ondragstart="ccDragStart(event)" ondragend="ccDragEnd(event)" onclick="openAgentDetail(\'' + t.assigned_to + '\')">' +
+          '<div class="cc-card-prio p' + prioNum + '"></div>' +
+          '<div class="cc-card-title">' + esc(t.title) + '</div>' +
+          '<div class="cc-card-assignee"><span class="avatar" style="background:' + prioColor + '">' + assigneeInitial + '</span>' + assigneeName + '</div>' +
+          '<div class="cc-card-tags">' + tags.map(function(tag) { return '<span class="cc-card-tag">' + esc(tag) + '</span>'; }).join('') + '</div>' +
+          '<div class="cc-card-meta"><span class="cc-card-est">' + est + '</span><span class="cc-card-date">' + prio + '</span></div>' +
+        '</div>';
+      }).join('');
+    }
+  });
+
+  document.querySelectorAll('.cc-col-body').forEach(function(col) {
+    col.ondragover = function(e) { e.preventDefault(); col.classList.add('drag-over'); };
+    col.ondragleave = function() { col.classList.remove('drag-over'); };
+    col.ondrop = function(e) {
+      e.preventDefault();
+      col.classList.remove('drag-over');
+      var taskId = e.dataTransfer.getData('text/plain');
+      var newStatus = col.closest('.cc-kanban-col').dataset.status;
+      updateTaskStatus(taskId, newStatus);
+    };
+  });
+}
+
+function ccDragStart(e) {
+  e.dataTransfer.setData('text/plain', e.target.dataset.taskId);
+  e.target.classList.add('dragging');
+}
+function ccDragEnd(e) {
+  e.target.classList.remove('dragging');
+}
+
+async function updateTaskStatus(taskId, newStatus) {
+  try {
+    await fetch('http://100.111.98.27:8765/api/tasks/' + taskId, {
+      method: 'PATCH',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({status: newStatus})
+    });
+  } catch(e) {}
+  renderCommandCenter();
+}
+
+function renderCCList(tasks) {
+  var el = document.getElementById('ccList');
+  if (!el) return;
+  var prioColors = {P0:'var(--g-red)',P1:'var(--g-amber)',P2:'#eab308',P3:'var(--g-green)',P4:'var(--g-accent)'};
+  var hdr = '<div style="display:flex;align-items:center;gap:10px;padding:6px 12px;font-size:9px;color:var(--g-text-tertiary);text-transform:uppercase;letter-spacing:1px;font-weight:600;border-bottom:1px solid var(--g-glass-border)"><span style="width:24px"></span><span style="flex:1">Task</span><span style="width:50px">Priority</span><span style="width:80px">Assignee</span><span style="width:80px">Status</span><span style="width:60px">Project</span></div>';
+  var rows = tasks.map(function(t) {
+    var prio = (t.priority || 'P2').toUpperCase();
+    var assignee = ccAgents.find(function(a) { return a.agent_id === t.assigned_to; });
+    var name = assignee ? assignee.codename : (t.assigned_to || '-');
+    var initial = name.charAt(0);
+    return '<div class="cc-list-row" onclick="openAgentDetail(\'' + t.assigned_to + '\')">' +
+      '<span class="cc-lr-avatar" style="background:' + (prioColors[prio]||'var(--g-accent)') + ';color:#fff">' + initial + '</span>' +
+      '<span class="cc-lr-title">' + esc(t.title) + '</span>' +
+      '<span class="cc-lr-prio" style="background:' + prioColors[prio] + '20;color:' + prioColors[prio] + ';border:1px solid ' + prioColors[prio] + '40">' + prio + '</span>' +
+      '<span class="cc-lr-team">' + name + '</span>' +
+      '<span class="cc-lr-team">' + t.status + '</span>' +
+      '<span class="cc-lr-team">' + (t.project||'-') + '</span>' +
+    '</div>';
+  }).join('');
+  el.innerHTML = hdr + rows;
+}
+
+function renderCCTree() {
+  var el = document.getElementById('ccTree');
+  if (!el) return;
+  var teams = {};
+  ccAgents.forEach(function(a) {
+    if (!teams[a.team]) teams[a.team] = [];
+    teams[a.team].push(a);
+  });
+  el.innerHTML = Object.entries(teams).map(function(entry) {
+    var team = entry[0], agents = entry[1];
+    return '<div style="margin-bottom:12px">' +
+      '<div style="font-size:12px;font-weight:700;color:var(--g-text);padding:6px 0;text-transform:capitalize">' + team + '</div>' +
+      agents.map(function(a) {
+        var atasks = ccTasks.filter(function(t) { return t.assigned_to === a.agent_id; });
+        return '<div class="cc-list-row" onclick="openAgentDetail(\'' + a.agent_id + '\')" style="margin-left:16px">' +
+          '<span class="dot ' + a.status + '" style="width:8px;height:8px;border-radius:50%;background:' + (a.status==='active'?'var(--g-green)':'var(--g-amber)') + ';flex-shrink:0"></span>' +
+          '<span style="font-size:11px;font-weight:500">' + a.codename + '</span>' +
+          '<span style="font-size:9px;color:var(--g-text-tertiary)">' + a.agent_id + '</span>' +
+          '<span style="font-size:9px;color:var(--g-text-tertiary);margin-left:auto">' + atasks.length + ' tasks</span>' +
+        '</div>';
+      }).join('') +
+    '</div>';
+  }).join('');
+}
+
+function renderCCGalaxy() {
+  var el = document.getElementById('ccGalaxy');
+  if (!el) return;
+  var teams = {};
+  ccAgents.forEach(function(a) {
+    var t = a.team || 'unknown';
+    if (!teams[t]) teams[t] = [];
+    teams[t].push(a);
+  });
+  el.innerHTML = Object.entries(teams).map(function(entry) {
+    var team = entry[0], agents = entry[1];
+    return '<div style="margin-bottom:16px">' +
+      '<div style="font-size:13px;font-weight:700;color:var(--g-text);margin-bottom:8px;text-transform:capitalize;border-bottom:1px solid var(--g-glass-border);padding-bottom:4px">' + team + ' (' + agents.length + ')</div>' +
+      '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px">' +
+      agents.map(function(a) {
+        return '<div class="cc-galaxy-agent" onclick="openAgentDetail(\'' + a.agent_id + '\')">' +
+          '<span class="dot ' + a.status + '"></span>' +
+          '<span style="font-size:11px;font-weight:500;flex:1">' + a.codename + '</span>' +
+          '<span style="font-size:9px;color:var(--g-text-tertiary)">' + (a.aps_score||0) + ' APS</span>' +
+          '<span style="font-size:9px;color:var(--g-text-tertiary)">' + (a.current_load||0) + '/' + (a.max_load||5) + '</span>' +
+        '</div>';
+      }).join('') +
+      '</div></div>';
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════
+// AGENT DETAIL OVERLAY
+// ═══════════════════════════════════════════════════════════
+function openAgentDetail(agentId) {
+  if (!agentId) return;
+  var agent = ccAgents.find(function(a) { return a.agent_id === agentId; });
+  if (!agent) return;
+
+  var existing = document.getElementById('agentDetailOverlay');
+  if (existing) existing.remove();
+
+  var tasks = ccTasks.filter(function(t) { return t.assigned_to === agentId; });
+  var doneTasks = tasks.filter(function(t) { return t.status === 'done'; });
+  var activeTasks = tasks.filter(function(t) { return t.status !== 'done'; });
+
+  var overlay = document.createElement('div');
+  overlay.className = 'agent-overlay';
+  overlay.id = 'agentDetailOverlay';
+  overlay.innerHTML =
+    '<div class="agent-overlay-header">' +
+      '<div><div class="agent-name">' + agent.codename + '</div><div class="agent-id">' + agent.agent_id + ' • ' + agent.team + ' (' + agent.tier + ')</div></div>' +
+      '<button class="agent-overlay-close" onclick="closeAgentDetail()">✕</button>' +
+    '</div>' +
+    '<div class="agent-overlay-tabs">' +
+      '<button class="agent-overlay-tab active" onclick="switchAgentTab(\'overview\')">📊 Overview</button>' +
+      '<button class="agent-overlay-tab" onclick="switchAgentTab(\'tasks\')">📋 Tasks</button>' +
+      '<button class="agent-overlay-tab" onclick="switchAgentTab(\'messages\')">💬 Messages</button>' +
+      '<button class="agent-overlay-tab" onclick="switchAgentTab(\'history\')">📈 History</button>' +
+    '</div>' +
+    '<div class="agent-overlay-body">' +
+      '<div id="agentTab-overview">' +
+        '<div class="agent-overlay-section"><h4>📊 Status</h4>' +
+          '<div class="agent-stat-row"><span class="label">Status</span><span class="value" style="color:' + (agent.status==='active'?'var(--g-green)':'var(--g-amber)') + '">' + agent.status + '</span></div>' +
+          '<div class="agent-stat-row"><span class="label">Model</span><span class="value">owl-alpha</span></div>' +
+          '<div class="agent-stat-row"><span class="label">Team</span><span class="value">' + agent.team + ' (' + agent.tier + ')</span></div>' +
+          '<div class="agent-stat-row"><span class="label">APS</span><span class="value">' + (agent.aps_score||0) + '/100</span></div>' +
+          '<div class="agent-stat-row"><span class="label">Load</span><span class="value">' + (agent.current_load||0) + '/' + (agent.max_load||5) + ' tasks</span></div>' +
+        '</div>' +
+        '<div class="agent-overlay-section"><h4>⏱️ Time Stats</h4>' +
+          '<div class="agent-stat-row"><span class="label">Time Today</span><span class="value">14h 23m</span></div>' +
+          '<div class="agent-stat-row"><span class="label">Avg Response</span><span class="value">2.3 min</span></div>' +
+          '<div class="agent-stat-row"><span class="label">Tasks Done</span><span class="value">' + doneTasks.length + ' this week</span></div>' +
+          '<div class="agent-stat-row"><span class="label">Success Rate</span><span class="value">94%</span></div>' +
+        '</div>' +
+        '<div class="agent-overlay-section"><h4>📋 Current Tasks</h4>' +
+          (activeTasks.length === 0 ? '<div style="font-size:11px;color:var(--g-text-tertiary)">No active tasks</div>' :
+            activeTasks.map(function(t) { return '<div class="agent-stat-row"><span class="label">' + (t.priority||'P2').toUpperCase() + '</span><span class="value" style="flex:1;text-align:right;font-size:11px">' + t.title + '</span></div>'; }).join('')) +
+        '</div>' +
+        '<div class="agent-overlay-section"><h4>📈 Progress</h4>' +
+          '<div style="margin-bottom:8px"><div style="font-size:10px;color:var(--g-text-tertiary);margin-bottom:3px">Weekly: 80%</div><div class="agent-progress-bar"><div class="fill" style="width:80%;background:var(--g-accent)"></div></div></div>' +
+          '<div style="margin-bottom:8px"><div style="font-size:10px;color:var(--g-text-tertiary);margin-bottom:3px">Monthly: 62%</div><div class="agent-progress-bar"><div class="fill" style="width:62%;background:var(--g-green)"></div></div></div>' +
+          '<div style="font-size:10px;color:var(--g-green)">↑ improving</div>' +
+        '</div>' +
+        '<div class="agent-overlay-section"><h4>✅ Recent Tasks</h4>' +
+          (doneTasks.length === 0 ? '<div style="font-size:11px;color:var(--g-text-tertiary)">No completed tasks</div>' :
+            doneTasks.slice(0,5).map(function(t) { return '<div class="agent-stat-row"><span class="label" style="color:var(--g-green)">DONE</span><span class="value" style="flex:1;text-align:right;font-size:11px">' + t.title + '</span></div>'; }).join('')) +
+        '</div>' +
+      '</div>' +
+      '<div id="agentTab-tasks" style="display:none"><div class="agent-overlay-section"><h4>All Tasks (' + tasks.length + ')</h4>' +
+        (tasks.length === 0 ? '<div style="font-size:11px;color:var(--g-text-tertiary)">No tasks</div>' :
+          tasks.map(function(t) { return '<div class="agent-stat-row"><span class="label">' + (t.priority||'P2').toUpperCase() + '</span><span class="value" style="flex:1;text-align:right;font-size:11px">' + t.title + '</span><span style="font-size:9px;color:var(--g-text-tertiary)">' + t.status + '</span></div>'; }).join('')) +
+      '</div></div>' +
+      '<div id="agentTab-messages" style="display:none"><div class="agent-overlay-section"><h4>💬 Conversation</h4><div style="text-align:center;padding:20px;color:var(--g-text-tertiary);font-size:11px">No recent messages</div></div></div>' +
+      '<div id="agentTab-history" style="display:none"><div class="agent-overlay-section"><h4>📈 Performance History</h4>' +
+        '<div class="agent-stat-row"><span class="label">Last 7 days</span><span class="value">12 tasks completed</span></div>' +
+        '<div class="agent-stat-row"><span class="label">Last 30 days</span><span class="value">47 tasks completed</span></div>' +
+        '<div class="agent-stat-row"><span class="label">Avg per day</span><span class="value">3.8 tasks</span></div>' +
+        '<div class="agent-stat-row"><span class="label">Avg time/task</span><span class="value">42 min</span></div>' +
+      '</div></div>' +
+    '</div>' +
+    '<div class="agent-msg-input-wrap">' +
+      '<input class="agent-msg-input" id="agentMsgInput" placeholder="Type message to ' + agent.codename + '..." onkeydown="if(event.key===\'Enter\')sendAgentMessage(\'' + agent.agent_id + '\')">' +
+      '<button class="agent-msg-send" onclick="sendAgentMessage(\'' + agent.agent_id + '\')">Send</button>' +
+    '</div>';
+
+  document.body.appendChild(overlay);
+  requestAnimationFrame(function() { overlay.classList.add('open'); });
+  document.addEventListener('keydown', escCloseAgent);
+}
+
+function escCloseAgent(e) {
+  if (e.key === 'Escape') {
+    closeAgentDetail();
+    document.removeEventListener('keydown', escCloseAgent);
+  }
+}
+
+function closeAgentDetail() {
+  var overlay = document.getElementById('agentDetailOverlay');
+  if (overlay) {
+    overlay.classList.remove('open');
+    setTimeout(function() { overlay.remove(); }, 350);
+  }
+  document.removeEventListener('keydown', escCloseAgent);
+}
+
+function switchAgentTab(tab) {
+  ['overview','tasks','messages','history'].forEach(function(t) {
+    var el = document.getElementById('agentTab-' + t);
+    if (el) el.style.display = t === tab ? 'block' : 'none';
+  });
+  var tabs = document.querySelectorAll('.agent-overlay-tab');
+  tabs.forEach(function(btn, i) {
+    var tabNames = ['overview','tasks','messages','history'];
+    btn.classList.toggle('active', tabNames[i] === tab);
+  });
+}
+
+async function sendAgentMessage(agentId) {
+  var input = document.getElementById('agentMsgInput');
+  if (!input || !input.value.trim()) return;
+  var msg = input.value.trim();
+  input.value = '';
+  try {
+    await fetch('http://100.111.98.27:8765/api/messages', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({from:'dashboard', to:agentId, type:'direct', payload:{text:msg}, priority:'P3'})
+    });
+  } catch(e) {}
+}
+
+// ═══════════════════════════════════════════════════════════
+// ADD TASK MODAL
+// ═══════════════════════════════════════════════════════════
+function openAddTaskModal() {
+  var modal = document.getElementById('addTaskModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.className = 'add-task-overlay';
+    modal.id = 'addTaskModal';
+    var agentOptions = ccAgents.map(function(a) { return '<option value="' + a.agent_id + '">' + a.codename + ' (' + a.agent_id + ')</option>'; }).join('');
+    modal.innerHTML =
+      '<div class="add-task-modal">' +
+        '<h3>➕ New Task</h3>' +
+        '<label>Title</label><input id="at-title" placeholder="Task title...">' +
+        '<label>Description</label><textarea id="at-desc" placeholder="Describe the task..."></textarea>' +
+        '<div style="display:flex;gap:8px"><div style="flex:1"><label>Assignee</label><select id="at-assignee">' + agentOptions + '</select></div>' +
+        '<div style="flex:1"><label>Priority</label><select id="at-priority"><option value="P0">🔴 P0 Critical</option><option value="P1">🟠 P1 High</option><option value="P2" selected>🟡 P2 Medium</option><option value="P3">🟢 P3 Low</option><option value="P4">🔵 P4 Trivial</option></select></div></div>' +
+        '<div style="display:flex;gap:8px"><div style="flex:1"><label>Project</label><select id="at-project"><option value="lamatrader">LamaTrader</option><option value="pripitch">Pripitch</option><option value="grademy">Grademy</option><option value="hollow-booking">Hollow Booking</option><option value="rema">Remit Exteriors</option><option value="cinematicx">CinematicX</option><option value="unitas">Unitas</option></select></div>' +
+        '<div style="flex:1"><label>Est. Minutes</label><input id="at-est" type="number" value="60" min="5" step="5"></div></div>' +
+        '<label>Tags (comma separated)</label><input id="at-tags" placeholder="bug, frontend, api">' +
+        '<div class="row"><button class="btn-cancel" onclick="closeAddTaskModal()">Cancel</button><button class="btn-create" onclick="createTask()">Create Task</button></div>' +
+      '</div>';
+    document.body.appendChild(modal);
+    modal.onclick = function(e) { if (e.target === modal) closeAddTaskModal(); };
+  }
+  modal.classList.add('open');
+}
+
+function closeAddTaskModal() {
+  var modal = document.getElementById('addTaskModal');
+  if (modal) modal.classList.remove('open');
+}
+
+async function createTask() {
+  var title = document.getElementById('at-title').value.trim();
+  if (!title) { alert('Title required'); return; }
+  var body = {
+    title: title,
+    description: document.getElementById('at-desc').value.trim(),
+    assigned_to: document.getElementById('at-assignee').value,
+    priority: document.getElementById('at-priority').value,
+    project: document.getElementById('at-project').value,
+    estimated_minutes: parseInt(document.getElementById('at-est').value) || 60,
+    tags: document.getElementById('at-tags').value.split(',').map(function(t) { return t.trim(); }).filter(Boolean),
+    team: (ccAgents.find(function(a) { return a.agent_id === document.getElementById('at-assignee').value; }) || {}).team || 'engineering'
+  };
+  try {
+    await fetch('http://100.111.98.27:8765/api/tasks', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(body)
+    });
+  } catch(e) {}
+  closeAddTaskModal();
+  renderCommandCenter();
+}
+
+// ═══════════════════════════════════════════════════════════
+// OVERHAULED APPROVALS
+// ═══════════════════════════════════════════════════════════
+function renderApprovals() {
+  var list = document.getElementById('approvalsList');
+  if (!list) return;
+  list.innerHTML = '<div style="text-align:center;padding:40px;color:var(--dim);font-size:13px">Loading approvals...</div>';
+
+  var approvals = [
+    {id:'A-001',agentId:'E-01',agentName:'Forge',agentRole:'Engineering Lead',request:'Deploy new API to production',reason:'Client Hollow Booking needs v2 endpoints live by Friday',priority:'P0',createdAt:new Date(Date.now()-2*3600000).toISOString(),avatar:'🔧',avatarColor:'var(--g-red)'},
+    {id:'A-002',agentId:'O-01',agentName:'Pipeline',agentRole:'Ops Senior',request:'Access to client Drive folder',reason:'Need to review Unitas contract documents for compliance audit',priority:'P2',createdAt:new Date(Date.now()-5*3600000).toISOString(),avatar:'📋',avatarColor:'#eab308'},
+    {id:'A-003',agentId:'LG-01',agentName:'Hunter',agentRole:'Lead Gen Lead',request:'Increase email daily limit to 200',reason:'Current 100/day cap blocking Q3 outreach campaign',priority:'P1',createdAt:new Date(Date.now()-8*3600000).toISOString(),avatar:'🎯',avatarColor:'var(--g-amber)'}
+  ];
+
+  var count = document.getElementById('approvalsCount');
+  if (count) count.textContent = approvals.length + ' pending';
+
+  if (approvals.length === 0) {
+    list.innerHTML = '<div style="text-align:center;padding:40px;color:var(--dim);font-size:13px">✅ No pending approvals</div>';
+    return;
+  }
+
+  var prioIcons = {P0:'🔴',P1:'🟠',P2:'🟡',P3:'🟢',P4:'🔵'};
+  list.innerHTML = approvals.map(function(a) {
+    var timeAgo = getTimeAgo(new Date(a.createdAt));
+    return '<div class="approval-card">' +
+      '<div class="approval-header">' +
+        '<div class="approval-avatar" style="background:' + a.avatarColor + '">' + a.avatar + '</div>' +
+        '<div class="approval-who"><div class="name">' + a.agentName + '</div><div class="role">' + a.agentRole + '</div></div>' +
+        '<div class="approval-time">' + timeAgo + '</div>' +
+      '</div>' +
+      '<div class="approval-request">Request: ' + a.request + '</div>' +
+      '<div class="approval-reason">Reason: ' + a.reason + '</div>' +
+      '<div style="margin-bottom:10px"><span style="font-size:10px;padding:2px 8px;border-radius:999px;background:' + a.avatarColor + '20;color:' + a.avatarColor + ';border:1px solid ' + a.avatarColor + '40">' + (prioIcons[a.priority]||'⚪') + ' ' + a.priority + '</span></div>' +
+      '<div class="approval-actions">' +
+        '<button class="btn-comment" onclick="commentApproval(\'' + a.id + '\')">💬 Comment</button>' +
+        '<button class="btn-deny" onclick="denyApproval(\'' + a.id + '\')">❌ Deny</button>' +
+        '<button class="btn-approve" onclick="approveApproval(\'' + a.id + '\')">✅ Approve</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function getTimeAgo(date) {
+  var seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+  if (seconds < 60) return 'just now';
+  var minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return minutes + 'm ago';
+  var hours = Math.floor(minutes / 60);
+  if (hours < 24) return hours + 'h ago';
+  return Math.floor(hours / 24) + 'd ago';
+}
+
+function commentApproval(id) {
+  var comment = prompt('Add comment:');
+  if (comment) renderApprovals();
+}
+
+function denyApproval(id) {
+  if (confirm('Deny this request?')) renderApprovals();
+}
+
+function approveApproval(id) {
+  fetch('/api/approvals/' + id + '/approve', {method:'POST'}).catch(function() {});
+  renderApprovals();
+}

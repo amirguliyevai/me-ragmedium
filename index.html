@@ -1,5 +1,5 @@
 <!-- v=1782209919 -->
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Amir Command v1780937022</title><meta name="theme-color" content="#0a0a0f"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" href="/icons/icon-192.png"><style>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Amir Command — Agent Command Center</title><meta name="theme-color" content="#0a0a0f"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" href="/icons/icon-192.png"><style>
 *{box-sizing:border-box;margin:0;padding:0}
 ::-webkit-scrollbar{width:6px;height:6px}
 ::-webkit-scrollbar-track{background:transparent}
@@ -920,6 +920,58 @@ camp-section{max-height:220px;overflow-y:auto}
 .galaxy-stat { text-align: center; padding: 8px 16px; background: var(--g-glass); border-radius: var(--g-radius-sm); }
 .galaxy-stat .num { font-size: 20px; font-weight: 700; }
 .galaxy-stat .lbl { font-size: 10px; color: var(--dim); text-transform: uppercase; letter-spacing: 0.5px; }
+
+/* ═══ AGENT DETAIL OVERLAY ═══ */
+.agent-overlay{position:fixed;top:0;right:0;bottom:0;width:min(520px,90vw);background:rgba(10,10,15,0.95);backdrop-filter:blur(30px) saturate(1.4);-webkit-backdrop-filter:blur(30px) saturate(1.4);border-left:1px solid var(--g-glass-border);z-index:300;display:flex;flex-direction:column;transform:translateX(100%);transition:transform 0.35s cubic-bezier(0.16,1,0.3,1);overflow:hidden}
+.agent-overlay.open{transform:translateX(0)}
+.agent-overlay-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--g-glass-border);flex-shrink:0}
+.agent-overlay-header .agent-name{font-size:16px;font-weight:700}
+.agent-overlay-header .agent-id{font-size:10px;color:var(--g-text-tertiary);font-family:var(--g-mono)}
+.agent-overlay-close{width:32px;height:32px;border-radius:8px;border:1px solid var(--g-glass-border);background:var(--g-glass-strong);color:var(--g-text-secondary);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:var(--g-transition)}
+.agent-overlay-close:hover{border-color:var(--g-red);color:var(--g-red)}
+.agent-overlay-tabs{display:flex;gap:2px;padding:8px 16px;border-bottom:1px solid var(--g-glass-border);flex-shrink:0}
+.agent-overlay-tab{padding:6px 14px;font-size:11px;font-weight:600;border-radius:6px;cursor:pointer;color:var(--g-text-secondary);transition:var(--g-transition);border:0;background:transparent}
+.agent-overlay-tab.active{background:var(--g-accent);color:#fff}
+.agent-overlay-tab:hover:not(.active){background:var(--g-glass-strong);color:var(--g-text)}
+.agent-overlay-body{flex:1;overflow-y:auto;padding:16px 20px}
+.agent-overlay-section{margin-bottom:20px}
+.agent-overlay-section h4{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--g-text-tertiary);margin-bottom:8px}
+.agent-stat-row{display:flex;align-items:center;justify-content:space-between;padding:6px 0;font-size:12px;border-bottom:1px solid rgba(255,255,255,0.03)}
+.agent-stat-row .label{color:var(--g-text-secondary)}
+.agent-stat-row .value{font-weight:600;font-family:var(--g-mono)}
+.agent-progress-bar{height:6px;border-radius:3px;background:var(--g-glass-border);overflow:hidden;margin:4px 0}
+.agent-progress-bar .fill{height:100%;border-radius:3px;transition:width 0.5s ease}
+.agent-msg-input-wrap{display:flex;gap:8px;padding:12px 16px;border-top:1px solid var(--g-glass-border);flex-shrink:0}
+.agent-msg-input{flex:1;padding:8px 12px;border-radius:8px;border:1px solid var(--g-glass-border);background:var(--g-glass-strong);color:var(--g-text);font-size:12px;outline:none}
+.agent-msg-input:focus{border-color:var(--g-accent)}
+.agent-msg-send{padding:8px 16px;border-radius:8px;border:0;background:var(--g-accent);color:#fff;font-size:12px;font-weight:600;cursor:pointer}
+.add-task-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:400;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.add-task-overlay.open{display:flex}
+.add-task-modal{background:rgba(20,20,28,0.95);backdrop-filter:blur(20px);border:1px solid var(--g-glass-border);border-radius:var(--g-radius-xl);padding:24px;width:min(480px,90%);max-height:85vh;overflow-y:auto}
+.add-task-modal h3{margin:0 0 16px;font-size:16px}
+.add-task-modal label{display:block;font-size:11px;font-weight:600;color:var(--g-text-secondary);margin-bottom:4px;margin-top:12px}
+.add-task-modal input,.add-task-modal textarea,.add-task-modal select{width:100%;padding:8px 12px;border-radius:8px;border:1px solid var(--g-glass-border);background:var(--g-glass-strong);color:var(--g-text);font-size:13px;outline:none;font-family:inherit}
+.add-task-modal textarea{min-height:80px;resize:vertical}
+.add-task-modal input:focus,.add-task-modal textarea:focus,.add-task-modal select:focus{border-color:var(--g-accent)}
+.add-task-modal .row{display:flex;gap:8px;margin-top:16px}
+.add-task-modal .row button{flex:1;padding:10px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer}
+.add-task-modal .btn-cancel{border:1px solid var(--g-glass-border);background:transparent;color:var(--g-text-secondary)}
+.add-task-modal .btn-create{border:0;background:var(--g-accent);color:#fff}
+.approval-card{background:var(--g-glass);backdrop-filter:var(--g-blur-light);border:1px solid var(--g-glass-border);border-radius:var(--g-radius-lg);padding:16px;transition:var(--g-transition)}
+.approval-card:hover{border-color:var(--g-glass-border-active)}
+.approval-card .approval-header{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.approval-card .approval-avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;flex-shrink:0}
+.approval-card .approval-who{flex:1}
+.approval-card .approval-who .name{font-size:13px;font-weight:600}
+.approval-card .approval-who .role{font-size:10px;color:var(--g-text-tertiary)}
+.approval-card .approval-time{font-size:10px;color:var(--g-text-tertiary)}
+.approval-card .approval-request{font-size:13px;font-weight:600;margin-bottom:4px}
+.approval-card .approval-reason{font-size:12px;color:var(--g-text-secondary);line-height:1.5;margin-bottom:10px}
+.approval-card .approval-actions{display:flex;gap:8px;justify-content:flex-end}
+.approval-card .approval-actions button{padding:6px 16px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;border:0;transition:var(--g-transition)}
+.approval-card .btn-approve{background:var(--g-green);color:#fff}
+.approval-card .btn-deny{background:var(--g-red);color:#fff}
+.approval-card .btn-comment{background:var(--g-glass-strong);color:var(--g-text-secondary);border:1px solid var(--g-glass-border)}
 </style></head><body>
 
 <!-- Connection Status Banner -->
@@ -938,7 +990,7 @@ camp-section{max-height:220px;overflow-y:auto}
   <div class="bottom">
     <div class="model-select" id="modelSelect" onclick="toggleModelPicker()">
       <span class="ms-dot"></span>
-      <span id="modelLabel">DeepSeek V4</span>
+      <span id="modelLabel">owl-alpha</span>
       <span style="margin-left:auto;font-size:9px;opacity:.5">▼</span>
     </div>
   </div>
@@ -1038,7 +1090,7 @@ camp-section{max-height:220px;overflow-y:auto}
   <label class="notifSettingsRow"><input type="checkbox" id="notifPrefToast" onchange="saveNotifPrefs()"><span>📋 In-app toast</span><span class="toggleDesc">Bottom-right toast</span></label>
   <label class="notifSettingsRow"><input type="checkbox" id="notifPrefPush" onchange="saveNotifPrefs();togglePushSub()"><span>📲 Push (PWA)</span><span class="toggleDesc" id="pushSubStatus">Offline</span></label>
   <label class="notifSettingsRow"><input type="checkbox" id="notifPrefTodo" onchange="saveNotifPrefs()"><span>✅ New todos</span><span class="toggleDesc">Alert on new tasks</span></label>
-  <div id="barModeIndicator" style="font-size:9px;color:var(--dim);text-align:center;padding:6px 0;border-top:1px solid var(--line)">DeepSeek Pro</div>
+  <div id="barModeIndicator" style="font-size:9px;color:var(--dim);text-align:center;padding:6px 0;border-top:1px solid var(--line)">owl-alpha</div>
 </div>
 
 <!-- Model Picker Popup -->
@@ -1731,7 +1783,7 @@ const pages={
             <option value="">🎯 Skills</option>
           </select>
           <span style="flex:1"></span>
-          <span id="chatModeIndicator" style="font-size:9px;color:var(--dim)">DeepSeek Pro</span>
+          <span id="chatModeIndicator" style="font-size:9px;color:var(--dim)">owl-alpha</span>
         </div>
         <div style="display:flex;align-items:flex-end;gap:8px;background:var(--panel2);border:1px solid var(--border);border-radius:16px;padding:8px 8px 8px 16px" id="chatInputContainer">
           <textarea id="chatInput" placeholder="Ask Kaneki to do anything..." style="flex:1;border:0;background:transparent;color:var(--text);font:inherit;font-size:14px;outline:none;resize:none;min-height:24px;max-height:120px;line-height:1.5;padding:4px 0;transition:height 0.15s" rows="1"></textarea>
@@ -2060,91 +2112,107 @@ const pages={
       <iframe src="/galaxy-3d" style="width:100%;height:100%;border:none;background:#000"></iframe>
     </div>`,
 
-  agents:`
-    <div class="page" id="agents" style="width:100%;height:100%;padding:0 12px 12px;overflow-y:auto;flex-direction:column;gap:12px">
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 4px 0">
-        <div style="font-size:11px;letter-spacing:3px;color:var(--dim);text-transform:uppercase">🖥️ Agent Command Center</div>
-        <div style="display:flex;gap:4px;align-items:center">
-          <span id="agentRefreshTime" style="font-size:9px;color:var(--dim)"></span>
-          <button class="btn alt" id="agentViewKanban" onclick="setAgentView('kanban')" style="font-size:10px;padding:3px 10px;background:var(--blue);color:#fff;border-radius:6px 0 0 6px">📋 Trello</button>
-          <button class="btn alt" id="agentViewTree" onclick="setAgentView('tree')" style="font-size:10px;padding:3px 10px;border-radius:0">🌳 Tree</button>
-          <button class="btn alt" id="agentViewList" onclick="setAgentView('list')" style="font-size:10px;padding:3px 10px;border-radius:0 6px 6px 0">📊 List</button>
-          <button class="btn alt" onclick="renderAgentViews()" style="font-size:10px;padding:3px 10px;margin-left:4px">↻</button>
+  commandCenter:`
+    <div class="page" id="commandCenter" style="width:100%;height:100%;padding:0;overflow:hidden;flex-direction:row">
+      <!-- Left Sidebar -->
+      <div style="width:200px;flex-shrink:0;border-right:1px solid var(--g-glass-border);display:flex;flex-direction:column;overflow:hidden;background:rgba(10,10,15,0.6)">
+        <div style="padding:12px;border-bottom:1px solid var(--g-glass-border)">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--g-text-tertiary);margin-bottom:8px">Team Filter</div>
+          <select id="ccTeamFilter" onchange="filterCommandCenter()" style="width:100%;padding:6px 8px;border-radius:6px;border:1px solid var(--g-glass-border);background:var(--g-glass-strong);color:var(--g-text);font-size:11px;outline:none">
+            <option value="all">All Teams</option>
+            <option value="engineering">Engineering</option>
+            <option value="operations">Operations</option>
+            <option value="content">Content</option>
+            <option value="leadgen">Lead Gen</option>
+            <option value="startups">Startups</option>
+            <option value="client-success">Client Success</option>
+            <option value="research">Research</option>
+          </select>
         </div>
-      </div>
-      <div id="agentKanban" style="display:flex;gap:8px;flex:1;min-height:0;overflow-x:auto">
-        <div class="kanban-col" data-col="pending"><div class="kanban-hdr">⏳ Pending <span class="kanban-count"></span></div><div class="kanban-items"></div></div>
-        <div class="kanban-col" data-col="in_progress"><div class="kanban-hdr">⚡ In Progress <span class="kanban-count"></span></div><div class="kanban-items"></div></div>
-        <div class="kanban-col" data-col="needs_review"><div class="kanban-hdr">🔍 Review <span class="kanban-count"></span></div><div class="kanban-items"></div></div>
-        <div class="kanban-col" data-col="blocked"><div class="kanban-hdr">🚫 Blocked <span class="kanban-count"></span></div><div class="kanban-items"></div></div>
-        <div class="kanban-col" data-col="done"><div class="kanban-hdr">✅ Done <span class="kanban-count"></span></div><div class="kanban-items"></div></div>
-      </div>
-      <div id="agentTree" style="display:none;flex:1;overflow-y:auto;padding:8px 0"></div>
-      <div id="agentList" style="display:none;flex:1;overflow-y:auto;padding:4px 0"></div>
-      <style>
-        .kanban-col{min-width:220px;max-width:280px;flex:1;display:flex;flex-direction:column;background:var(--panel2);border-radius:8px;overflow:hidden;border:1px solid var(--border)}
-        .kanban-hdr{padding:8px 12px;font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;color:var(--dim)}
-        .kanban-count{font-size:9px;padding:1px 6px;border-radius:10px;background:var(--bg);color:var(--dim)}
-        .kanban-items{flex:1;overflow-y:auto;padding:4px;display:flex;flex-direction:column;gap:4px;min-height:60px}
-        .kb-card{background:var(--card);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:11px;cursor:pointer;transition:all 0.15s;line-height:1.4}
-        .kb-card:hover{border-color:var(--blue);background:rgba(0,170,255,0.04)}
-        .kb-card .kb-agent{font-size:9px;color:var(--blue);margin-top:4px;display:flex;align-items:center;gap:4px}
-        .kb-card .kb-agent::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--blue)}
-        .kb-card .kb-priority{display:inline-block;font-size:8px;padding:1px 5px;border-radius:3px;margin-right:4px}
-        .kb-card .p-high{background:rgba(255,80,60,0.15);color:#ff503c}
-        .kb-card .p-med{background:rgba(255,180,60,0.15);color:#ffb43c}
-        .kb-card .p-low{background:rgba(100,200,255,0.12);color:#64c8ff}
-        .kb-empty{text-align:center;color:var(--dim);font-size:10px;padding:20px 8px;font-style:italic}
-        #agentKanban::-webkit-scrollbar{height:4px}#agentKanban::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
-        .tree-node{margin-left:16px;border-left:1px solid rgba(255,255,255,0.06);padding-left:12px;margin-bottom:2px}
-        .tree-node-root{margin-left:0;border-left:none;padding-left:0}
-        .tree-row{display:flex;align-items:center;gap:6px;padding:4px 8px;border-radius:6px;cursor:pointer;font-size:11px;transition:all 0.15s}
-        .tree-row:hover{background:rgba(255,255,255,0.03)}
-        .tree-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
-        .tree-dot.active{background:#22c55e;box-shadow:0 0 6px #22c55e55}
-        .tree-dot.idle{background:#eab308}
-        .tree-dot.off{background:#374151}
-        .tree-name{font-weight:500;white-space:nowrap}
-        .tree-role{font-size:9px;color:var(--dim);margin-left:4px}
-        .tree-count{font-size:9px;color:var(--dim);margin-left:auto}
-        .agent-list-row{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;font-size:11px;border-bottom:1px solid rgba(255,255,255,0.03)}
-        .agent-list-row:hover{background:rgba(255,255,255,0.02)}
-        .agent-list-col{flex:1;min-width:0}
-        .agent-list-col.head{font-size:9px;color:var(--dim);text-transform:uppercase}
-      </style>
-    </div>`
-,
-  aiTeam:`
-
-    <div style="display:flex;flex-direction:column;height:100%;overflow:hidden">
-      <div style="padding:8px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-shrink:0">
-        <h3 style="margin:0;font-size:15px">🤖 AI Team</h3>
-        <span style="font-size:11px;color:var(--muted)" id="agentCount">0 agents</span>
-        <button class="btn alt" onclick="renderAITeam()" style="margin-left:auto;font-size:10px;padding:4px 10px">↻ Refresh</button>
-      </div>
-      <div style="display:flex;flex:1;min-height:0">
-        <!-- Channel sidebar -->
-        <div style="width:140px;border-right:1px solid var(--border);overflow-y:auto;flex-shrink:0;padding:4px;display:flex;flex-direction:column;gap:2px">
-          <div class="tree-row" style="font-weight:600;color:var(--text);padding:6px 8px;font-size:11px" onclick="switchChannel('all',event)">📡 All Activity</div>
-          <div class="tree-row" style="padding:6px 8px;font-size:11px" onclick="switchChannel('exec',event)">🫡 Executive</div>
-          <div class="tree-row" style="padding:6px 8px;font-size:11px" onclick="switchChannel('dev',event)">⚙️ Development</div>
-          <div class="tree-row" style="padding:6px 8px;font-size:11px" onclick="switchChannel('content',event)">🎬 Content</div>
-          <div class="tree-row" style="padding:6px 8px;font-size:11px" onclick="switchChannel('research',event)">🔬 Research</div>
-          <div class="tree-row" style="padding:6px 8px;font-size:11px" onclick="switchChannel('ops',event)">📋 Operations</div>
-          <div class="tree-row" style="padding:6px 8px;font-size:11px" onclick="switchChannel('approvals',event)">✅ Approvals</div>
-        </div>
-        <!-- Main chat area -->
-        <div style="flex:1;display:flex;flex-direction:column;min-width:0">
-          <div id="aiTeamLog" style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;min-height:0">
-            <div style="text-align:center;padding:40px;color:var(--dim);font-size:13px">Loading team activity...</div>
+        <div style="padding:12px;border-bottom:1px solid var(--g-glass-border)">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--g-text-tertiary);margin-bottom:8px">View</div>
+          <div style="display:flex;gap:2px">
+            <button onclick="setCCView('kanban')" id="ccViewKanban" style="flex:1;padding:5px 8px;font-size:10px;border:1px solid var(--g-glass-border);background:var(--g-accent);color:#fff;border-radius:4px 0 0 4px;cursor:pointer">📋 Kanban</button>
+            <button onclick="setCCView('list')" id="ccViewList" style="flex:1;padding:5px 8px;font-size:10px;border:1px solid var(--g-glass-border);background:transparent;color:var(--g-text-secondary);border-radius:0;cursor:pointer">📊 List</button>
+            <button onclick="setCCView('tree')" id="ccViewTree" style="flex:1;padding:5px 8px;font-size:10px;border:1px solid var(--g-glass-border);background:transparent;color:var(--g-text-secondary);border-radius:0;cursor:pointer">🌳 Tree</button>
+            <button onclick="setCCView('galaxy')" id="ccViewGalaxy" style="flex:1;padding:5px 8px;font-size:10px;border:1px solid var(--g-glass-border);background:transparent;color:var(--g-text-secondary);border-radius:0 4px 4px 0;cursor:pointer">🌌 Galaxy</button>
           </div>
         </div>
-        <!-- Agent status sidebar -->
-        <div style="width:160px;border-left:1px solid var(--border);overflow-y:auto;flex-shrink:0;padding:4px;display:flex;flex-direction:column;gap:2px">
-          <div style="font-size:9px;color:var(--dim);text-transform:uppercase;padding:4px 8px;letter-spacing:1px">Agents Online</div>
-          <div id="agentStatusList"></div>
+        <div style="padding:12px;flex:1;overflow-y:auto">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--g-text-tertiary);margin-bottom:8px">Project</div>
+          <select id="ccProjectFilter" onchange="filterCommandCenter()" style="width:100%;padding:6px 8px;border-radius:6px;border:1px solid var(--g-glass-border);background:var(--g-glass-strong);color:var(--g-text);font-size:11px;outline:none">
+            <option value="all">All Projects</option>
+            <option value="lamatrader">LamaTrader</option>
+            <option value="pripitch">Pripitch</option>
+            <option value="grademy">Grademy</option>
+            <option value="hollow-booking">Hollow Booking</option>
+            <option value="rema">Remit Exteriors</option>
+            <option value="cinematicx">CinematicX</option>
+            <option value="unitas">Unitas</option>
+          </select>
+        </div>
+        <div style="padding:12px;border-top:1px solid var(--g-glass-border)">
+          <button onclick="openAddTaskModal()" style="width:100%;padding:8px;font-size:11px;border:1px solid var(--g-accent);background:var(--g-accent);color:#fff;border-radius:6px;cursor:pointer;font-weight:600">+ Add Task</button>
         </div>
       </div>
+      <!-- Main Content -->
+      <div style="flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden">
+        <div style="padding:8px 16px;border-bottom:1px solid var(--g-glass-border);display:flex;align-items:center;gap:8px;flex-shrink:0">
+          <div style="font-size:11px;letter-spacing:2px;color:var(--g-text-tertiary);text-transform:uppercase;font-weight:600">⚡ Command Center</div>
+          <span id="ccTaskCount" style="font-size:10px;color:var(--dim)"></span>
+          <button onclick="renderCommandCenter()" style="margin-left:auto;font-size:10px;padding:4px 10px;border:1px solid var(--g-glass-border);background:transparent;color:var(--g-text-secondary);border-radius:6px;cursor:pointer">↻ Refresh</button>
+        </div>
+        <!-- Kanban View -->
+        <div id="ccKanban" style="display:flex;gap:10px;flex:1;overflow-x:auto;padding:12px">
+          <div class="cc-kanban-col" data-status="backlog"><div class="cc-col-hdr">📥 Backlog <span class="cc-col-count">0</span></div><div class="cc-col-body"></div></div>
+          <div class="cc-kanban-col" data-status="todo"><div class="cc-col-hdr">📋 To Do <span class="cc-col-count">0</span></div><div class="cc-col-body"></div></div>
+          <div class="cc-kanban-col" data-status="in_progress"><div class="cc-col-hdr">⚡ In Progress <span class="cc-col-count">0</span></div><div class="cc-col-body"></div></div>
+          <div class="cc-kanban-col" data-status="review"><div class="cc-col-hdr">🔍 Review <span class="cc-col-count">0</span></div><div class="cc-col-body"></div></div>
+          <div class="cc-kanban-col" data-status="done"><div class="cc-col-hdr">✅ Done <span class="cc-col-count">0</span></div><div class="cc-col-body"></div></div>
+        </div>
+        <!-- List View -->
+        <div id="ccList" style="display:none;flex:1;overflow-y:auto;padding:12px"></div>
+        <!-- Tree View -->
+        <div id="ccTree" style="display:none;flex:1;overflow-y:auto;padding:12px"></div>
+        <!-- Galaxy View -->
+        <div id="ccGalaxy" style="display:none;flex:1;overflow-y:auto;padding:12px"></div>
+      </div>
+      <style>
+        .cc-kanban-col{min-width:240px;max-width:300px;flex:1;display:flex;flex-direction:column;background:rgba(28,28,34,.45);border:1px solid var(--g-glass-border);border-radius:var(--g-radius-lg);max-height:100%;min-height:200px}
+        .cc-col-hdr{padding:10px 14px;font-size:11px;font-weight:700;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--g-glass-border);flex-shrink:0;text-transform:uppercase;letter-spacing:0.5px}
+        .cc-col-count{font-size:9px;padding:1px 7px;border-radius:10px;background:var(--g-glass-strong);color:var(--g-text-secondary)}
+        .cc-col-body{overflow-y:auto;padding:8px;flex:1;min-height:60px}
+        .cc-col-body.drag-over{background:rgba(10,132,255,0.08);border:1px dashed var(--g-accent);border-radius:8px}
+        .cc-card{background:var(--g-glass);border:1px solid var(--g-glass-border);border-radius:var(--g-radius);padding:10px 12px;margin-bottom:8px;cursor:grab;transition:var(--g-transition);position:relative}
+        .cc-card:hover{border-color:var(--g-accent);transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,0,0,.3)}
+        .cc-card.dragging{opacity:0.4;transform:rotate(2deg)}
+        .cc-card-prio{position:absolute;top:0;left:0;bottom:0;width:3px;border-radius:var(--g-radius) 0 0 var(--g-radius)}
+        .cc-card-prio.p0{background:var(--g-red)}
+        .cc-card-prio.p1{background:var(--g-amber)}
+        .cc-card-prio.p2{background:#eab308}
+        .cc-card-prio.p3{background:var(--g-green)}
+        .cc-card-prio.p4{background:var(--g-accent)}
+        .cc-card-title{font-size:12px;font-weight:600;line-height:1.4;margin-bottom:4px;padding-left:6px}
+        .cc-card-assignee{font-size:10px;color:var(--g-text-secondary);display:flex;align-items:center;gap:4px;padding-left:6px}
+        .cc-card-assignee .avatar{width:16px;height:16px;border-radius:50%;background:var(--g-accent);display:inline-flex;align-items:center;justify-content:center;font-size:8px;color:#fff;font-weight:700;flex-shrink:0}
+        .cc-card-tags{display:flex;gap:3px;flex-wrap:wrap;margin-top:4px;padding-left:6px}
+        .cc-card-tag{font-size:8px;padding:1px 5px;border-radius:999px;border:1px solid var(--g-glass-border);color:var(--g-text-tertiary)}
+        .cc-card-meta{display:flex;justify-content:space-between;align-items:center;margin-top:4px;padding-left:6px}
+        .cc-card-date{font-size:9px;color:var(--g-text-tertiary)}
+        .cc-card-est{font-size:9px;color:var(--g-accent)}
+        .cc-list-row{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;border:1px solid var(--g-glass-border);margin-bottom:4px;cursor:pointer;transition:var(--g-transition)}
+        .cc-list-row:hover{border-color:var(--g-accent);background:var(--g-glass-strong)}
+        .cc-list-row .cc-lr-avatar{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0}
+        .cc-list-row .cc-lr-title{flex:1;font-size:12px;font-weight:500}
+        .cc-list-row .cc-lr-prio{font-size:9px;padding:1px 6px;border-radius:3px;font-weight:600}
+        .cc-list-row .cc-lr-team{font-size:9px;color:var(--g-text-tertiary)}
+        .cc-galaxy-agent{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;border:1px solid var(--g-glass-border);margin-bottom:4px;cursor:pointer;transition:var(--g-transition)}
+        .cc-galaxy-agent:hover{border-color:var(--g-accent);background:var(--g-glass-strong)}
+        .cc-galaxy-agent .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+        .cc-galaxy-agent .dot.active{background:var(--g-green)}
+        .cc-galaxy-agent .dot.idle{background:var(--g-amber)}
+        .cc-galaxy-agent .dot.off{background:var(--g-text-tertiary)}
+      </style>
     </div>
     `,
 
@@ -2199,6 +2267,7 @@ function renderPage(id){
   if(id==='gallery')renderGallery();
   if(id==='vault'){renderVault();}
   if(id==='approvals')renderApprovals();
+  if(id==='commandCenter')renderCommandCenter();
   if(id==='aiTeam')renderAITeam();
   if(id==='team-galaxy')renderTeamGalaxy();
 }
@@ -2235,8 +2304,8 @@ function navTo(id){
     }
     checkOpenCodeStatus();
   }
-  if(id==='agents'&&typeof renderAgentViews==='function'){
-    renderAgentViews();
+  if(id==='commandCenter'&&typeof renderCommandCenter==='function'){
+    renderCommandCenter();
   }
 }
 
@@ -2288,13 +2357,13 @@ function navButtons(){
   if(!nav)return;
   // SVG icon paths (Lucide-compatible)
   const I={home:'<svg class="lucide" viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',desktop:'<svg class="lucide" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>',chat:'<svg class="lucide" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',todo:'<svg class="lucide" viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>',board:'<svg class="lucide" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>',calendar:'<svg class="lucide" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',workspace:'<svg class="lucide" viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>',projects:'<svg class="lucide" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>',crm:'<svg class="lucide" viewBox="0 0 24 24"><path d="M12 2a4 4 0 0 1 4 4c0 2-2 3-4 5-2-2-4-3-4-5a4 4 0 0 1 4-4z"/><path d="M12 2v20"/><path d="M8 10a6 6 0 0 0 8 0"/></svg>',content:'<svg class="lucide" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>',leads:'<svg class="lucide" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',brain:'<svg class="lucide" viewBox="0 0 24 24"><path d="M12 2a4 4 0 0 1 4 4c0 2-2 3-4 5-2-2-4-3-4-5a4 4 0 0 1 4-4z"/><path d="M12 2v20"/><path d="M8 10a6 6 0 0 0 8 0"/></svg>',inbox:'<svg class="lucide" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>',docs:'<svg class="lucide" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>',skills:'<svg class="lucide" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>',mindmap:'<svg class="lucide" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',scrape:'<svg class="lucide" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>',vault:'<svg class="lucide" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',goals:'<svg class="lucide" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>',notif:'<svg class="lucide" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>',gallery:'<svg class="lucide" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>',studio:'<svg class="lucide" viewBox="0 0 24 24"><path d="M15.5 2H8.5C6 2 5 3 5 5.5V22c0 .55.45 1 1 1h12c.55 0 1-.45 1-1V5.5C19 3 18 2 15.5 2zM12 16c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm6-7H6V6h12v3z"/></svg>',slack:'<svg class="lucide" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="4"/><path d="M8 12h8"/><path d="M12 8v8"/></svg>',legal:'<svg class="lucide" viewBox="0 0 24 24"><path d="M12 2L4 7v4c0 6.55 3.84 12.74 8 15 4.16-2.26 8-8.45 8-15V7l-8-5z"/><line x1="12" y1="12" x2="12" y2="20"/></svg>',approvals:'<svg class="lucide" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4"/><path d="M12 2L4 7v4c0 6.55 3.84 12.74 8 15 4.16-2.26 8-8.45 8-15V7l-8-5z"/></svg>',aiTeam:'🤖',teamGalaxy:'<svg class="lucide" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v2"/><path d="M12 21v2"/><path d="M4.22 4.22l1.42 1.42"/><path d="M18.36 18.36l1.42 1.42"/><path d="M1 12h2"/><path d="M21 12h2"/><path d="M4.22 19.78l1.42-1.42"/><path d="M18.36 5.64l1.42-1.42"/></svg>',secrets:'<svg class="lucide" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',agents:'<svg class="lucide" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="14" rx="2"/><path d="M9 3V1"/><path d="M15 3V1"/><circle cx="9" cy="9" r="1.5"/><circle cx="15" cy="9" r="1.5"/><path d="M9 14c.5.9 1.8 2 3 2s2.5-1.1 3-2"/></svg>'}
-  const groups=[{l:'Workspace',g:[['home','Home'],['aiTeam','🤖 AI Team'],['workspace','Workspace'],['desktop','Desktop'],['chat','Chat'],['agents','Agents'],['approvals','Approvals']]},{l:'Productivity',g:[['todo','Todo'],['board','Board'],['calendar','Calendar'],['projects','Projects']]},{l:'Business',g:[['crm','RAGX'],['legal','Legal AI'],['content','Content'],['leads','Leads']]},{l:'Tools',g:[['brain','Deep Research'],['inbox','Inbox'],['docs','Docs'],['gallery','Gallery'],['studio','Studio']]},{l:'Galaxy',g:[['teamGalaxy','🌌 Team Galaxy']]},{l:'System',g:[['skills','Skills'],['mindmap','Mindmap'],['scrape','Scraper'],['vault','Vault'],['goals','Goal Mode'],['secrets','Secrets']]}];
+  const groups=[{l:'Workspace',g:[['home','Home'],['commandCenter','⚡ Command Center'],['workspace','Workspace'],['desktop','Desktop'],['chat','Chat'],['approvals','Approvals']]},{l:'Productivity',g:[['todo','Todo'],['board','Board'],['calendar','Calendar'],['projects','Projects']]},{l:'Business',g:[['crm','RAGX'],['legal','Legal AI'],['content','Content'],['leads','Leads']]},{l:'Tools',g:[['brain','Deep Research'],['inbox','Inbox'],['docs','Docs'],['gallery','Gallery'],['studio','Studio']]},{l:'Galaxy',g:[['teamGalaxy','🌌 Team Galaxy']]},{l:'System',g:[['skills','Skills'],['mindmap','Mindmap'],['scrape','Scraper'],['vault','Vault'],['goals','Goal Mode'],['secrets','Secrets']]}];
   nav.innerHTML=groups.map(g=>'<div class="nav-group">'+g.l+'</div>'+g.g.map(t=>{
     const a=activePage===t[0]?' active':'';
     return '<button class="nav-item'+a+'" onclick="navTo(\''+t[0]+'\')"><span class="nav-icon">'+(I[t[0]]||'')+'</span>'+t[1]+'</button>';
   }).join('')).join('');
   const ml=$('modelLabel');
-  if(ml)ml.textContent=(models.find(m=>m.id===activeModel)||{}).name||'DeepSeek V4';
+  if(ml)ml.textContent=(models.find(m=>m.id===activeModel)||{}).name||'owl-alpha';
   updateNotifBadge();
 }
 
@@ -4694,7 +4763,7 @@ function updateBarModeIndicator(){
   if(barGoalMode)modes.push('🎯 Goal');
   if(barDeepReasoning)modes.push('🧠 Deep');
   if(barLawyerMode)modes.push('⚖️ Legal');
-  indicator.textContent=modes.length?modes.join(' · '):'DeepSeek Pro';
+  indicator.textContent=modes.length?modes.join(' · '):'owl-alpha';
   indicator.style.color=(barCodeMode||barResearchMode||barGoalMode||barDeepReasoning||barLawyerMode)?'var(--fg)':'var(--dim)';
 }
 
@@ -4787,8 +4856,8 @@ function updateChatModeIndicator(){
   if(chatCodeMode)modes.push('⌘ Code ON');
   if(chatResearchMode)modes.push('🧠 Research');
   if(chatGoalMode)modes.push('🎯 Goal');
-  if(modes.length)indicator.textContent=modes.join(' · ')+' · DeepSeek Pro';
-  else indicator.textContent='DeepSeek Pro';
+  if(modes.length)indicator.textContent=modes.join(' · ')+' · owl-alpha';
+  else indicator.textContent='owl-alpha';
   indicator.style.color=(chatCodeMode||chatResearchMode||chatGoalMode)?'var(--fg)':'var(--dim)';
 }
 
@@ -6868,8 +6937,8 @@ setTimeout(()=>{
 
 // ─── MODEL PICKER ────────────────────────────────
 const models=[
-  {id:'opencode-go/deepseek-v4-flash',name:'DeepSeek Flash',short:'⚡'},
-  {id:'deepseek/deepseek-v4-pro',name:'DeepSeek Pro',short:'🔷'},
+  {id:'openrouter/owl-alpha',name:'owl-alpha',short:'🦉'},
+  {id:'openrouter/owl-alpha',name:'owl-alpha',short:'🦉'},
   {id:'opencode-go/minimax-m2-5',name:'MiniMax M2.5',short:'🎯'},
   {id:'opencode-go/qwen-3.5-plus',name:'Qwen 3.5+',short:'🧠'},
 ];
@@ -7981,41 +8050,41 @@ function renderAgentTree(){
   const structure=[
     {id:'amir',name:'Amir',role:'CEO',emoji:'👑',color:'#f59e0b',children:[
       {id:'kaneki',name:'Kaneki Ken',role:'Chief AI',emoji:'🫡',color:'#f97316',children:[
-        {id:'csuite',name:'C-Suite',role:'Executive Layer · V4-Pro',emoji:'🏛️',color:'#3b82f6',children:[
-          {id:'cmo',name:'CMO',role:'Marketing · V4-Pro',emoji:'📣',color:'#3b82f6',children:[
+        {id:'csuite',name:'C-Suite',role:'Executive Layer · owl-alpha',emoji:'🏛️',color:'#3b82f6',children:[
+          {id:'cmo',name:'CMO',role:'Marketing · owl-alpha',emoji:'📣',color:'#3b82f6',children:[
             {id:'outreach',name:'Outreach Team',role:'Email·LinkedIn·SMS',emoji:'📨',color:'#f97316',children:[
-              {id:'email-spec',name:'Email Specialist',role:'Sequences + Warmup · V4-Flash',emoji:'📧',color:'#eab308'},
-              {id:'linkedin-spec',name:'LinkedIn Specialist',role:'DMs + Profile Ops · V4-Flash',emoji:'💼',color:'#eab308'}
+              {id:'email-spec',name:'Email Specialist',role:'Sequences + Warmup · owl-alpha',emoji:'📧',color:'#eab308'},
+              {id:'linkedin-spec',name:'LinkedIn Specialist',role:'DMs + Profile Ops · owl-alpha',emoji:'💼',color:'#eab308'}
             ]},
             {id:'content',name:'Content Empire',role:'Content + Brogen',emoji:'📣',color:'#f97316',children:[
-              {id:'content-w',name:'Content Writer',role:'Posts + Scripts · V4-Flash',emoji:'✍️',color:'#eab308'},
-              {id:'video-e',name:'Video Editor',role:'Talking Head + Shorts · V4-Flash',emoji:'🎬',color:'#eab308'},
-              {id:'social-s',name:'Social Scheduler',role:'Cross-platform · V4-Flash',emoji:'📅',color:'#eab308'}
+              {id:'content-w',name:'Content Writer',role:'Posts + Scripts · owl-alpha',emoji:'✍️',color:'#eab308'},
+              {id:'video-e',name:'Video Editor',role:'Talking Head + Shorts · owl-alpha',emoji:'🎬',color:'#eab308'},
+              {id:'social-s',name:'Social Scheduler',role:'Cross-platform · owl-alpha',emoji:'📅',color:'#eab308'}
             ]}
           ]},
-          {id:'cto',name:'CTO',role:'Technology · V4-Pro',emoji:'⚙️',color:'#3b82f6',children:[
+          {id:'cto',name:'CTO',role:'Technology · owl-alpha',emoji:'⚙️',color:'#3b82f6',children:[
             {id:'lamatrader',name:'LamaTrader Team',role:'Trading Platform',emoji:'📈',color:'#f97316',children:[
-              {id:'lt-dev-1',name:'LT Dev #1',role:'Frontend · V4-Flash',emoji:'🖥️',color:'#eab308'},
-              {id:'lt-dev-2',name:'LT Dev #2',role:'Backend/Alpaca · V4-Flash',emoji:'🔧',color:'#eab308'},
-              {id:'lt-mark',name:'LT Marketer',role:'Lead Gen · V4-Flash',emoji:'🎯',color:'#eab308'}
+              {id:'lt-dev-1',name:'LT Dev #1',role:'Frontend · owl-alpha',emoji:'🖥️',color:'#eab308'},
+              {id:'lt-dev-2',name:'LT Dev #2',role:'Backend/Alpaca · owl-alpha',emoji:'🔧',color:'#eab308'},
+              {id:'lt-mark',name:'LT Marketer',role:'Lead Gen · owl-alpha',emoji:'🎯',color:'#eab308'}
             ]},
             {id:'grademy',name:'Grademy Team',role:'EdTech',emoji:'🎓',color:'#f97316',children:[
-              {id:'gm-dev-1',name:'GM Dev #1',role:'Platform · V4-Flash',emoji:'🖥️',color:'#eab308'},
-              {id:'gm-mark',name:'GM Marketer',role:'Edu Outreach · V4-Flash',emoji:'📚',color:'#eab308'}
+              {id:'gm-dev-1',name:'GM Dev #1',role:'Platform · owl-alpha',emoji:'🖥️',color:'#eab308'},
+              {id:'gm-mark',name:'GM Marketer',role:'Edu Outreach · owl-alpha',emoji:'📚',color:'#eab308'}
             ]},
             {id:'pripitch',name:'Prepitch Revival',role:'Sprint Team',emoji:'🎤',color:'#f97316',children:[
-              {id:'pp-dev',name:'PP Developer',role:'MVP Cleanup · V4-Flash',emoji:'🛠️',color:'#eab308'},
-              {id:'pp-out',name:'PP Outreach',role:'Cold Email · V4-Flash',emoji:'✉️',color:'#eab308'},
-              {id:'pp-seo',name:'PP SEO',role:'Research · V4-Flash',emoji:'🔍',color:'#eab308'}
+              {id:'pp-dev',name:'PP Developer',role:'MVP Cleanup · owl-alpha',emoji:'🛠️',color:'#eab308'},
+              {id:'pp-out',name:'PP Outreach',role:'Cold Email · owl-alpha',emoji:'✉️',color:'#eab308'},
+              {id:'pp-seo',name:'PP SEO',role:'Research · owl-alpha',emoji:'🔍',color:'#eab308'}
             ]}
           ]},
-          {id:'cfo',name:'CFO',role:'Finance · V4-Pro',emoji:'💰',color:'#3b82f6'}
+          {id:'cfo',name:'CFO',role:'Finance · owl-alpha',emoji:'💰',color:'#3b82f6'}
         ]},
         {id:'ventures',name:'Client Ventures',role:'Hollow·CinematicX·Unitas·Waterspring',emoji:'🌐',color:'#f97316',children:[
-          {id:'vent-analyst',name:'Ventures Analyst',role:'Reports · V4-Flash',emoji:'📊',color:'#eab308'}
+          {id:'vent-analyst',name:'Ventures Analyst',role:'Reports · owl-alpha',emoji:'📊',color:'#eab308'}
         ]},
         {id:'rema',name:'Remit Exteriors',role:'Construction',emoji:'🏠',color:'#f97316',children:[
-          {id:'rema-res',name:'Remit Researcher',role:'Market+Compliance · V4-Flash',emoji:'📋',color:'#eab308'}
+          {id:'rema-res',name:'Remit Researcher',role:'Market+Compliance · owl-alpha',emoji:'📋',color:'#eab308'}
         ]}
       ]}
     ]}
@@ -8045,39 +8114,39 @@ async function renderAgentList(){
   const list=document.getElementById('agentList');
   if(!list)return;
   const agents=[
-    ['👑','Amir','CEO','T0','-','V4-Pro','active'],
-    ['🫡','Kaneki Ken','Chief AI','T1','Executive','V4-Pro','active'],
-    ['📣','CMO','Chief Marketing','T2','C-Suite','V4-Pro','idle'],
-    ['⚙️','CTO','Chief Technology','T2','C-Suite','V4-Pro','idle'],
-    ['💰','CFO','Chief Financial','T2','C-Suite','V4-Pro','idle'],
-    ['📈','LamaTrader Lead','Trading Platform','T3','Team Lead','V4-Pro','idle'],
-    ['🖥️','LT Dev #1','Frontend','T4','LamaTrader','V4-Flash','idle'],
-    ['🔧','LT Dev #2','Backend/Alpaca','T4','LamaTrader','V4-Flash','idle'],
-    ['🎯','LT Marketer','Lead Gen','T4','LamaTrader','V4-Flash','idle'],
-    ['🎓','Grademy Lead','EdTech','T3','Team Lead','V4-Pro','idle'],
-    ['🖥️','GM Dev #1','Platform','T4','Grademy','V4-Flash','idle'],
-    ['📚','GM Marketer','Edu Outreach','T4','Grademy','V4-Flash','idle'],
-    ['🎤','Prepitch Lead','Revival Sprint','T3','Team Lead','V4-Pro','idle'],
-    ['🛠️','PP Developer','MVP Cleanup','T4','Prepitch','V4-Flash','idle'],
-    ['✉️','PP Outreach','Cold Email','T4','Prepitch','V4-Flash','idle'],
-    ['🔍','PP SEO','Research','T4','Prepitch','V4-Flash','idle'],
-    ['📨','Outreach Head','Email+LinkedIn+SMS','T3','Team Lead','V4-Pro','idle'],
-    ['📧','Email Specialist','Sequences','T4','Outreach','V4-Flash','idle'],
-    ['💼','LinkedIn Specialist','DMs+Profile','T4','Outreach','V4-Flash','idle'],
-    ['📣','Content Director','Content Ops','T3','Team Lead','V4-Pro','idle'],
-    ['✍️','Content Writer','Posts+Scripts','T4','Content','V4-Flash','idle'],
-    ['🎬','Video Editor','Talking Head+Shorts','T4','Content','V4-Flash','idle'],
-    ['📅','Social Scheduler','Cross-platform','T4','Content','V4-Flash','idle'],
-    ['🏠','Remit Lead','Construction','T3','Team Lead','V4-Pro','idle'],
-    ['📋','Remit Researcher','Market+Compliance','T4','Remit','V4-Flash','idle'],
-    ['🌐','Ventures PM','Client Projects','T3','Team Lead','V4-Pro','idle'],
-    ['📊','Ventures Analyst','Reports','T4','Ventures','V4-Flash','idle'],
+    ['👑','Amir','CEO','T0','-','owl-alpha','active'],
+    ['🫡','Kaneki Ken','Chief AI','T1','Executive','owl-alpha','active'],
+    ['📣','CMO','Chief Marketing','T2','C-Suite','owl-alpha','idle'],
+    ['⚙️','CTO','Chief Technology','T2','C-Suite','owl-alpha','idle'],
+    ['💰','CFO','Chief Financial','T2','C-Suite','owl-alpha','idle'],
+    ['📈','LamaTrader Lead','Trading Platform','T3','Team Lead','owl-alpha','idle'],
+    ['🖥️','LT Dev #1','Frontend','T4','LamaTrader','owl-alpha','idle'],
+    ['🔧','LT Dev #2','Backend/Alpaca','T4','LamaTrader','owl-alpha','idle'],
+    ['🎯','LT Marketer','Lead Gen','T4','LamaTrader','owl-alpha','idle'],
+    ['🎓','Grademy Lead','EdTech','T3','Team Lead','owl-alpha','idle'],
+    ['🖥️','GM Dev #1','Platform','T4','Grademy','owl-alpha','idle'],
+    ['📚','GM Marketer','Edu Outreach','T4','Grademy','owl-alpha','idle'],
+    ['🎤','Prepitch Lead','Revival Sprint','T3','Team Lead','owl-alpha','idle'],
+    ['🛠️','PP Developer','MVP Cleanup','T4','Prepitch','owl-alpha','idle'],
+    ['✉️','PP Outreach','Cold Email','T4','Prepitch','owl-alpha','idle'],
+    ['🔍','PP SEO','Research','T4','Prepitch','owl-alpha','idle'],
+    ['📨','Outreach Head','Email+LinkedIn+SMS','T3','Team Lead','owl-alpha','idle'],
+    ['📧','Email Specialist','Sequences','T4','Outreach','owl-alpha','idle'],
+    ['💼','LinkedIn Specialist','DMs+Profile','T4','Outreach','owl-alpha','idle'],
+    ['📣','Content Director','Content Ops','T3','Team Lead','owl-alpha','idle'],
+    ['✍️','Content Writer','Posts+Scripts','T4','Content','owl-alpha','idle'],
+    ['🎬','Video Editor','Talking Head+Shorts','T4','Content','owl-alpha','idle'],
+    ['📅','Social Scheduler','Cross-platform','T4','Content','owl-alpha','idle'],
+    ['🏠','Remit Lead','Construction','T3','Team Lead','owl-alpha','idle'],
+    ['📋','Remit Researcher','Market+Compliance','T4','Remit','owl-alpha','idle'],
+    ['🌐','Ventures PM','Client Projects','T3','Team Lead','owl-alpha','idle'],
+    ['📊','Ventures Analyst','Reports','T4','Ventures','owl-alpha','idle'],
   ];
-  const colourMap={'V4-Pro':'#3b82f6','V4-Flash':'#eab308','C-Suite':'#3b82f6','Team Lead':'#f97316',Worker:'#eab308'};
+  const colourMap={'owl-alpha':'#3b82f6','owl-alpha':'#eab308','C-Suite':'#3b82f6','Team Lead':'#f97316',Worker:'#eab308'};
   let h='<div class="agent-list-row" style="font-weight:600;color:var(--dim);border-bottom:2px solid var(--border)"><span class="agent-list-col" style="max-width:40px"></span><span class="agent-list-col head">Agent</span><span class="agent-list-col head">Role</span><span class="agent-list-col head" style="max-width:55px">Tier</span><span class="agent-list-col head">Team</span><span class="agent-list-col head" style="max-width:65px">Model</span><span class="agent-list-col head" style="max-width:55px">Status</span></div>';
   agents.forEach(a=>{
     const model=a[5];
-    const mc=model==='V4-Pro'?'#3b82f6':'#eab308';
+    const mc=model==='owl-alpha'?'#3b82f6':'#eab308';
     h+=`<div class="agent-list-row">
       <span class="agent-list-col" style="max-width:40px;font-size:14px">${a[0]}</span>
       <span class="agent-list-col" style="font-weight:500">${a[1]}</span>
@@ -8094,6 +8163,30 @@ async function renderAgentList(){
 }
 
 </script>  
+
+<script>
+
+// ─── Service Worker Message Handler ───────────────────────────
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('message', function(event) {
+    if (event.data && event.data.type === 'notification-navigate') {
+      var url = event.data.url || '/';
+      // Parse URL for in-app navigation
+      if (url.includes('commandCenter')) {
+        navTo('commandCenter');
+        if (event.data.data && event.data.data.agentId) {
+          setTimeout(function() { openAgentDetail(event.data.data.agentId); }, 500);
+        }
+      } else if (url.includes('approvals')) {
+        navTo('approvals');
+      } else if (url.includes('slack')) {
+        navTo('chat');
+      }
+    }
+  });
+}
+
+</script>
 <script>
 // ── MarkItDown file converter ──
 const CONVERT_API = '/convert/api/convert';
@@ -8340,7 +8433,7 @@ async function renderTeamGalaxy() {
 
   let data = GALAXY_FALLBACK_DATA;
   try {
-    const resp = await fetch('http://localhost:8765/api/galaxy');
+    const resp = await fetch('/api/galaxy/');
     if (resp.ok) {
       const apiData = await resp.json();
       if (apiData && apiData.teams && apiData.teams.length > 0) {
@@ -8412,5 +8505,481 @@ function showAgentDetail(agentId) {
   `;
   document.body.appendChild(overlay);
 }
+
+// ═══════════════════════════════════════════════════════════
+// COMMAND CENTER
+// ═══════════════════════════════════════════════════════════
+var ccView = 'kanban';
+var ccTasks = [];
+var ccAgents = [];
+
+function setCCView(v) {
+  ccView = v;
+  ['kanban','list','tree','galaxy'].forEach(function(k) {
+    var btn = document.getElementById('ccView' + k.charAt(0).toUpperCase() + k.slice(1));
+    if (btn) {
+      if (k === v) { btn.style.background = 'var(--g-accent)'; btn.style.color = '#fff'; }
+      else { btn.style.background = 'transparent'; btn.style.color = 'var(--g-text-secondary)'; }
+    }
+  });
+  ['Kanban','List','Tree','Galaxy'].forEach(function(k) {
+    var el = document.getElementById('cc' + k);
+    if (el) el.style.display = (k.toLowerCase() === v) ? (v === 'kanban' ? 'flex' : 'block') : 'none';
+  });
+  renderCommandCenter();
+}
+
+async function renderCommandCenter() {
+  try {
+    var res = await fetch('http://100.111.98.27:8765/api/tasks');
+    var data = await res.json();
+    ccTasks = Array.isArray(data) ? data : [];
+  } catch(e) {
+    ccTasks = [
+      {task_id:'T-001',title:'Deploy API v2 to production',description:'Client Hollow Booking needs v2 endpoints',assigned_to:'E-01',team:'engineering',priority:'P0',status:'in_progress',tags:['api','deploy'],estimated_minutes:120,project:'hollow-booking'},
+      {task_id:'T-002',title:'Review PR #45 auth module',description:'Security review needed',assigned_to:'E-02',team:'engineering',priority:'P1',status:'review',tags:['security','review'],estimated_minutes:30,project:'lamatrader'},
+      {task_id:'T-003',title:'Write blog post: AI trends',description:'Q3 content calendar',assigned_to:'C-01',team:'content',priority:'P2',status:'todo',tags:['blog','ai'],estimated_minutes:90,project:'grademy'},
+      {task_id:'T-004',title:'Fix login redirect bug',description:'Users redirected to /login after auth',assigned_to:'E-03',team:'engineering',priority:'P0',status:'todo',tags:['bug','auth'],estimated_minutes:45,project:'pripitch'},
+      {task_id:'T-005',title:'Client onboarding docs',description:'Setup guide for new clients',assigned_to:'CS-01',team:'client-success',priority:'P2',status:'backlog',tags:['docs','onboarding'],estimated_minutes:60,project:'hollow-booking'},
+      {task_id:'T-006',title:'Database migration v3',description:'Migrate to new schema',assigned_to:'E-04',team:'engineering',priority:'P1',status:'in_progress',tags:['db','migration'],estimated_minutes:180,project:'lamatrader'},
+      {task_id:'T-007',title:'Competitor analysis report',description:'Research top 5 competitors',assigned_to:'R-01',team:'research',priority:'P3',status:'done',tags:['research','competitors'],estimated_minutes:240,project:'grademy'},
+      {task_id:'T-008',title:'Email sequence: re-engagement',description:'Win back dormant users',assigned_to:'LG-01',team:'leadgen',priority:'P2',status:'todo',tags:['email','sequence'],estimated_minutes:75,project:'pripitch'},
+      {task_id:'T-009',title:'Update API documentation',description:'Reflect v2 changes',assigned_to:'E-05',team:'engineering',priority:'P3',status:'backlog',tags:['docs','api'],estimated_minutes:60,project:'lamatrader'},
+      {task_id:'T-010',title:'Social media calendar July',description:'Plan July content',assigned_to:'C-02',team:'content',priority:'P2',status:'in_progress',tags:['social','calendar'],estimated_minutes:45,project:'grademy'}
+    ];
+  }
+
+  try {
+    var res2 = await fetch('http://100.111.98.27:8765/api/agents');
+    var data2 = await res2.json();
+    ccAgents = Array.isArray(data2) ? data2 : [];
+  } catch(e) {
+    ccAgents = [
+      {agent_id:'E-01',codename:'Forge',team:'engineering',tier:'lead',status:'active',aps_score:87.5,current_load:3,max_load:10},
+      {agent_id:'E-02',codename:'Cipher',team:'engineering',tier:'mid',status:'active',aps_score:72.0,current_load:2,max_load:8},
+      {agent_id:'E-03',codename:'Spark',team:'engineering',tier:'mid',status:'active',aps_score:68.0,current_load:4,max_load:8},
+      {agent_id:'E-04',codename:'Titan',team:'engineering',tier:'senior',status:'active',aps_score:79.0,current_load:5,max_load:10},
+      {agent_id:'E-05',codename:'Byte',team:'engineering',tier:'junior',status:'idle',aps_score:55.0,current_load:1,max_load:6},
+      {agent_id:'O-01',codename:'Pipeline',team:'operations',tier:'senior',status:'active',aps_score:81.0,current_load:3,max_load:8},
+      {agent_id:'O-02',codename:'Flow',team:'operations',tier:'mid',status:'active',aps_score:65.0,current_load:2,max_load:8},
+      {agent_id:'C-01',codename:'Quill',team:'content',tier:'lead',status:'active',aps_score:76.0,current_load:4,max_load:10},
+      {agent_id:'C-02',codename:'Pixel',team:'content',tier:'mid',status:'active',aps_score:69.0,current_load:3,max_load:8},
+      {agent_id:'LG-01',codename:'Hunter',team:'leadgen',tier:'lead',status:'active',aps_score:82.0,current_load:5,max_load:10},
+      {agent_id:'R-01',codename:'Sage',team:'research',tier:'lead',status:'active',aps_score:74.0,current_load:2,max_load:8},
+      {agent_id:'CS-01',codename:'Beacon',team:'client-success',tier:'lead',status:'active',aps_score:77.0,current_load:3,max_load:8},
+      {agent_id:'ST-01',codename:'Launch',team:'startups',tier:'lead',status:'active',aps_score:71.0,current_load:4,max_load:10}
+    ];
+  }
+
+  filterCommandCenter();
+}
+
+function filterCommandCenter() {
+  var teamFilter = (document.getElementById('ccTeamFilter') || {}).value || 'all';
+  var projectFilter = (document.getElementById('ccProjectFilter') || {}).value || 'all';
+
+  var tasks = ccTasks;
+  if (teamFilter !== 'all') tasks = tasks.filter(function(t) { return (t.team || '').toLowerCase().includes(teamFilter); });
+  if (projectFilter !== 'all') tasks = tasks.filter(function(t) { return (t.project || '').toLowerCase().includes(projectFilter); });
+
+  var count = document.getElementById('ccTaskCount');
+  if (count) count.textContent = tasks.length + ' tasks';
+
+  if (ccView === 'kanban') renderCCKanban(tasks);
+  else if (ccView === 'list') renderCCList(tasks);
+  else if (ccView === 'tree') renderCCTree();
+  else if (ccView === 'galaxy') renderCCGalaxy();
+}
+
+function renderCCKanban(tasks) {
+  var cols = {backlog:[], todo:[], in_progress:[], review:[], done:[]};
+  var statusMap = {backlog:'backlog', todo:'todo', in_progress:'in_progress', review:'review', done:'done', blocked:'backlog', pending:'todo', needs_review:'review'};
+  tasks.forEach(function(t) {
+    var s = statusMap[t.status] || 'todo';
+    cols[s].push(t);
+  });
+
+  document.querySelectorAll('.cc-kanban-col').forEach(function(col) {
+    var status = col.dataset.status;
+    var body = col.querySelector('.cc-col-body');
+    var countEl = col.querySelector('.cc-col-count');
+    if (!body) return;
+    var items = cols[status] || [];
+    if (countEl) countEl.textContent = items.length;
+
+    if (items.length === 0) {
+      body.innerHTML = '<div style="text-align:center;padding:20px;color:var(--g-text-tertiary);font-size:10px">No tasks</div>';
+    } else {
+      body.innerHTML = items.map(function(t) {
+        var prio = (t.priority || 'P2').toUpperCase();
+        var prioNum = prio === 'P0' ? 0 : prio === 'P1' ? 1 : prio === 'P2' ? 2 : prio === 'P3' ? 3 : 4;
+        var prioColor = ['var(--g-red)','var(--g-amber)','#eab308','var(--g-green)','var(--g-accent)'][prioNum];
+        var assignee = ccAgents.find(function(a) { return a.agent_id === t.assigned_to; });
+        var assigneeName = assignee ? assignee.codename : (t.assigned_to || 'Unassigned');
+        var assigneeInitial = assigneeName.charAt(0);
+        var tags = Array.isArray(t.tags) ? t.tags : [];
+        var est = t.estimated_minutes ? (t.estimated_minutes + 'm') : '';
+        return '<div class="cc-card" draggable="true" data-task-id="' + t.task_id + '" ondragstart="ccDragStart(event)" ondragend="ccDragEnd(event)" onclick="openAgentDetail(\'' + t.assigned_to + '\')">' +
+          '<div class="cc-card-prio p' + prioNum + '"></div>' +
+          '<div class="cc-card-title">' + esc(t.title) + '</div>' +
+          '<div class="cc-card-assignee"><span class="avatar" style="background:' + prioColor + '">' + assigneeInitial + '</span>' + assigneeName + '</div>' +
+          '<div class="cc-card-tags">' + tags.map(function(tag) { return '<span class="cc-card-tag">' + esc(tag) + '</span>'; }).join('') + '</div>' +
+          '<div class="cc-card-meta"><span class="cc-card-est">' + est + '</span><span class="cc-card-date">' + prio + '</span></div>' +
+        '</div>';
+      }).join('');
+    }
+  });
+
+  document.querySelectorAll('.cc-col-body').forEach(function(col) {
+    col.ondragover = function(e) { e.preventDefault(); col.classList.add('drag-over'); };
+    col.ondragleave = function() { col.classList.remove('drag-over'); };
+    col.ondrop = function(e) {
+      e.preventDefault();
+      col.classList.remove('drag-over');
+      var taskId = e.dataTransfer.getData('text/plain');
+      var newStatus = col.closest('.cc-kanban-col').dataset.status;
+      updateTaskStatus(taskId, newStatus);
+    };
+  });
+}
+
+function ccDragStart(e) {
+  e.dataTransfer.setData('text/plain', e.target.dataset.taskId);
+  e.target.classList.add('dragging');
+}
+function ccDragEnd(e) {
+  e.target.classList.remove('dragging');
+}
+
+async function updateTaskStatus(taskId, newStatus) {
+  try {
+    await fetch('http://100.111.98.27:8765/api/tasks/' + taskId, {
+      method: 'PATCH',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({status: newStatus})
+    });
+  } catch(e) {}
+  renderCommandCenter();
+}
+
+function renderCCList(tasks) {
+  var el = document.getElementById('ccList');
+  if (!el) return;
+  var prioColors = {P0:'var(--g-red)',P1:'var(--g-amber)',P2:'#eab308',P3:'var(--g-green)',P4:'var(--g-accent)'};
+  var hdr = '<div style="display:flex;align-items:center;gap:10px;padding:6px 12px;font-size:9px;color:var(--g-text-tertiary);text-transform:uppercase;letter-spacing:1px;font-weight:600;border-bottom:1px solid var(--g-glass-border)"><span style="width:24px"></span><span style="flex:1">Task</span><span style="width:50px">Priority</span><span style="width:80px">Assignee</span><span style="width:80px">Status</span><span style="width:60px">Project</span></div>';
+  var rows = tasks.map(function(t) {
+    var prio = (t.priority || 'P2').toUpperCase();
+    var assignee = ccAgents.find(function(a) { return a.agent_id === t.assigned_to; });
+    var name = assignee ? assignee.codename : (t.assigned_to || '-');
+    var initial = name.charAt(0);
+    return '<div class="cc-list-row" onclick="openAgentDetail(\'' + t.assigned_to + '\')">' +
+      '<span class="cc-lr-avatar" style="background:' + (prioColors[prio]||'var(--g-accent)') + ';color:#fff">' + initial + '</span>' +
+      '<span class="cc-lr-title">' + esc(t.title) + '</span>' +
+      '<span class="cc-lr-prio" style="background:' + prioColors[prio] + '20;color:' + prioColors[prio] + ';border:1px solid ' + prioColors[prio] + '40">' + prio + '</span>' +
+      '<span class="cc-lr-team">' + name + '</span>' +
+      '<span class="cc-lr-team">' + t.status + '</span>' +
+      '<span class="cc-lr-team">' + (t.project||'-') + '</span>' +
+    '</div>';
+  }).join('');
+  el.innerHTML = hdr + rows;
+}
+
+function renderCCTree() {
+  var el = document.getElementById('ccTree');
+  if (!el) return;
+  var teams = {};
+  ccAgents.forEach(function(a) {
+    if (!teams[a.team]) teams[a.team] = [];
+    teams[a.team].push(a);
+  });
+  el.innerHTML = Object.entries(teams).map(function(entry) {
+    var team = entry[0], agents = entry[1];
+    return '<div style="margin-bottom:12px">' +
+      '<div style="font-size:12px;font-weight:700;color:var(--g-text);padding:6px 0;text-transform:capitalize">' + team + '</div>' +
+      agents.map(function(a) {
+        var atasks = ccTasks.filter(function(t) { return t.assigned_to === a.agent_id; });
+        return '<div class="cc-list-row" onclick="openAgentDetail(\'' + a.agent_id + '\')" style="margin-left:16px">' +
+          '<span class="dot ' + a.status + '" style="width:8px;height:8px;border-radius:50%;background:' + (a.status==='active'?'var(--g-green)':'var(--g-amber)') + ';flex-shrink:0"></span>' +
+          '<span style="font-size:11px;font-weight:500">' + a.codename + '</span>' +
+          '<span style="font-size:9px;color:var(--g-text-tertiary)">' + a.agent_id + '</span>' +
+          '<span style="font-size:9px;color:var(--g-text-tertiary);margin-left:auto">' + atasks.length + ' tasks</span>' +
+        '</div>';
+      }).join('') +
+    '</div>';
+  }).join('');
+}
+
+function renderCCGalaxy() {
+  var el = document.getElementById('ccGalaxy');
+  if (!el) return;
+  var teams = {};
+  ccAgents.forEach(function(a) {
+    var t = a.team || 'unknown';
+    if (!teams[t]) teams[t] = [];
+    teams[t].push(a);
+  });
+  el.innerHTML = Object.entries(teams).map(function(entry) {
+    var team = entry[0], agents = entry[1];
+    return '<div style="margin-bottom:16px">' +
+      '<div style="font-size:13px;font-weight:700;color:var(--g-text);margin-bottom:8px;text-transform:capitalize;border-bottom:1px solid var(--g-glass-border);padding-bottom:4px">' + team + ' (' + agents.length + ')</div>' +
+      '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px">' +
+      agents.map(function(a) {
+        return '<div class="cc-galaxy-agent" onclick="openAgentDetail(\'' + a.agent_id + '\')">' +
+          '<span class="dot ' + a.status + '"></span>' +
+          '<span style="font-size:11px;font-weight:500;flex:1">' + a.codename + '</span>' +
+          '<span style="font-size:9px;color:var(--g-text-tertiary)">' + (a.aps_score||0) + ' APS</span>' +
+          '<span style="font-size:9px;color:var(--g-text-tertiary)">' + (a.current_load||0) + '/' + (a.max_load||5) + '</span>' +
+        '</div>';
+      }).join('') +
+      '</div></div>';
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════
+// AGENT DETAIL OVERLAY
+// ═══════════════════════════════════════════════════════════
+function openAgentDetail(agentId) {
+  if (!agentId) return;
+  var agent = ccAgents.find(function(a) { return a.agent_id === agentId; });
+  if (!agent) return;
+
+  var existing = document.getElementById('agentDetailOverlay');
+  if (existing) existing.remove();
+
+  var tasks = ccTasks.filter(function(t) { return t.assigned_to === agentId; });
+  var doneTasks = tasks.filter(function(t) { return t.status === 'done'; });
+  var activeTasks = tasks.filter(function(t) { return t.status !== 'done'; });
+
+  var overlay = document.createElement('div');
+  overlay.className = 'agent-overlay';
+  overlay.id = 'agentDetailOverlay';
+  overlay.innerHTML =
+    '<div class="agent-overlay-header">' +
+      '<div><div class="agent-name">' + agent.codename + '</div><div class="agent-id">' + agent.agent_id + ' • ' + agent.team + ' (' + agent.tier + ')</div></div>' +
+      '<button class="agent-overlay-close" onclick="closeAgentDetail()">✕</button>' +
+    '</div>' +
+    '<div class="agent-overlay-tabs">' +
+      '<button class="agent-overlay-tab active" onclick="switchAgentTab(\'overview\')">📊 Overview</button>' +
+      '<button class="agent-overlay-tab" onclick="switchAgentTab(\'tasks\')">📋 Tasks</button>' +
+      '<button class="agent-overlay-tab" onclick="switchAgentTab(\'messages\')">💬 Messages</button>' +
+      '<button class="agent-overlay-tab" onclick="switchAgentTab(\'history\')">📈 History</button>' +
+    '</div>' +
+    '<div class="agent-overlay-body">' +
+      '<div id="agentTab-overview">' +
+        '<div class="agent-overlay-section"><h4>📊 Status</h4>' +
+          '<div class="agent-stat-row"><span class="label">Status</span><span class="value" style="color:' + (agent.status==='active'?'var(--g-green)':'var(--g-amber)') + '">' + agent.status + '</span></div>' +
+          '<div class="agent-stat-row"><span class="label">Model</span><span class="value">owl-alpha</span></div>' +
+          '<div class="agent-stat-row"><span class="label">Team</span><span class="value">' + agent.team + ' (' + agent.tier + ')</span></div>' +
+          '<div class="agent-stat-row"><span class="label">APS</span><span class="value">' + (agent.aps_score||0) + '/100</span></div>' +
+          '<div class="agent-stat-row"><span class="label">Load</span><span class="value">' + (agent.current_load||0) + '/' + (agent.max_load||5) + ' tasks</span></div>' +
+        '</div>' +
+        '<div class="agent-overlay-section"><h4>⏱️ Time Stats</h4>' +
+          '<div class="agent-stat-row"><span class="label">Time Today</span><span class="value">14h 23m</span></div>' +
+          '<div class="agent-stat-row"><span class="label">Avg Response</span><span class="value">2.3 min</span></div>' +
+          '<div class="agent-stat-row"><span class="label">Tasks Done</span><span class="value">' + doneTasks.length + ' this week</span></div>' +
+          '<div class="agent-stat-row"><span class="label">Success Rate</span><span class="value">94%</span></div>' +
+        '</div>' +
+        '<div class="agent-overlay-section"><h4>📋 Current Tasks</h4>' +
+          (activeTasks.length === 0 ? '<div style="font-size:11px;color:var(--g-text-tertiary)">No active tasks</div>' :
+            activeTasks.map(function(t) { return '<div class="agent-stat-row"><span class="label">' + (t.priority||'P2').toUpperCase() + '</span><span class="value" style="flex:1;text-align:right;font-size:11px">' + t.title + '</span></div>'; }).join('')) +
+        '</div>' +
+        '<div class="agent-overlay-section"><h4>📈 Progress</h4>' +
+          '<div style="margin-bottom:8px"><div style="font-size:10px;color:var(--g-text-tertiary);margin-bottom:3px">Weekly: 80%</div><div class="agent-progress-bar"><div class="fill" style="width:80%;background:var(--g-accent)"></div></div></div>' +
+          '<div style="margin-bottom:8px"><div style="font-size:10px;color:var(--g-text-tertiary);margin-bottom:3px">Monthly: 62%</div><div class="agent-progress-bar"><div class="fill" style="width:62%;background:var(--g-green)"></div></div></div>' +
+          '<div style="font-size:10px;color:var(--g-green)">↑ improving</div>' +
+        '</div>' +
+        '<div class="agent-overlay-section"><h4>✅ Recent Tasks</h4>' +
+          (doneTasks.length === 0 ? '<div style="font-size:11px;color:var(--g-text-tertiary)">No completed tasks</div>' :
+            doneTasks.slice(0,5).map(function(t) { return '<div class="agent-stat-row"><span class="label" style="color:var(--g-green)">DONE</span><span class="value" style="flex:1;text-align:right;font-size:11px">' + t.title + '</span></div>'; }).join('')) +
+        '</div>' +
+      '</div>' +
+      '<div id="agentTab-tasks" style="display:none"><div class="agent-overlay-section"><h4>All Tasks (' + tasks.length + ')</h4>' +
+        (tasks.length === 0 ? '<div style="font-size:11px;color:var(--g-text-tertiary)">No tasks</div>' :
+          tasks.map(function(t) { return '<div class="agent-stat-row"><span class="label">' + (t.priority||'P2').toUpperCase() + '</span><span class="value" style="flex:1;text-align:right;font-size:11px">' + t.title + '</span><span style="font-size:9px;color:var(--g-text-tertiary)">' + t.status + '</span></div>'; }).join('')) +
+      '</div></div>' +
+      '<div id="agentTab-messages" style="display:none"><div class="agent-overlay-section"><h4>💬 Conversation</h4><div style="text-align:center;padding:20px;color:var(--g-text-tertiary);font-size:11px">No recent messages</div></div></div>' +
+      '<div id="agentTab-history" style="display:none"><div class="agent-overlay-section"><h4>📈 Performance History</h4>' +
+        '<div class="agent-stat-row"><span class="label">Last 7 days</span><span class="value">12 tasks completed</span></div>' +
+        '<div class="agent-stat-row"><span class="label">Last 30 days</span><span class="value">47 tasks completed</span></div>' +
+        '<div class="agent-stat-row"><span class="label">Avg per day</span><span class="value">3.8 tasks</span></div>' +
+        '<div class="agent-stat-row"><span class="label">Avg time/task</span><span class="value">42 min</span></div>' +
+      '</div></div>' +
+    '</div>' +
+    '<div class="agent-msg-input-wrap">' +
+      '<input class="agent-msg-input" id="agentMsgInput" placeholder="Type message to ' + agent.codename + '..." onkeydown="if(event.key===\'Enter\')sendAgentMessage(\'' + agent.agent_id + '\')">' +
+      '<button class="agent-msg-send" onclick="sendAgentMessage(\'' + agent.agent_id + '\')">Send</button>' +
+    '</div>';
+
+  document.body.appendChild(overlay);
+  requestAnimationFrame(function() { overlay.classList.add('open'); });
+  document.addEventListener('keydown', escCloseAgent);
+}
+
+function escCloseAgent(e) {
+  if (e.key === 'Escape') {
+    closeAgentDetail();
+    document.removeEventListener('keydown', escCloseAgent);
+  }
+}
+
+function closeAgentDetail() {
+  var overlay = document.getElementById('agentDetailOverlay');
+  if (overlay) {
+    overlay.classList.remove('open');
+    setTimeout(function() { overlay.remove(); }, 350);
+  }
+  document.removeEventListener('keydown', escCloseAgent);
+}
+
+function switchAgentTab(tab) {
+  ['overview','tasks','messages','history'].forEach(function(t) {
+    var el = document.getElementById('agentTab-' + t);
+    if (el) el.style.display = t === tab ? 'block' : 'none';
+  });
+  var tabs = document.querySelectorAll('.agent-overlay-tab');
+  tabs.forEach(function(btn, i) {
+    var tabNames = ['overview','tasks','messages','history'];
+    btn.classList.toggle('active', tabNames[i] === tab);
+  });
+}
+
+async function sendAgentMessage(agentId) {
+  var input = document.getElementById('agentMsgInput');
+  if (!input || !input.value.trim()) return;
+  var msg = input.value.trim();
+  input.value = '';
+  try {
+    await fetch('http://100.111.98.27:8765/api/messages', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({from:'dashboard', to:agentId, type:'direct', payload:{text:msg}, priority:'P3'})
+    });
+  } catch(e) {}
+}
+
+// ═══════════════════════════════════════════════════════════
+// ADD TASK MODAL
+// ═══════════════════════════════════════════════════════════
+function openAddTaskModal() {
+  var modal = document.getElementById('addTaskModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.className = 'add-task-overlay';
+    modal.id = 'addTaskModal';
+    var agentOptions = ccAgents.map(function(a) { return '<option value="' + a.agent_id + '">' + a.codename + ' (' + a.agent_id + ')</option>'; }).join('');
+    modal.innerHTML =
+      '<div class="add-task-modal">' +
+        '<h3>➕ New Task</h3>' +
+        '<label>Title</label><input id="at-title" placeholder="Task title...">' +
+        '<label>Description</label><textarea id="at-desc" placeholder="Describe the task..."></textarea>' +
+        '<div style="display:flex;gap:8px"><div style="flex:1"><label>Assignee</label><select id="at-assignee">' + agentOptions + '</select></div>' +
+        '<div style="flex:1"><label>Priority</label><select id="at-priority"><option value="P0">🔴 P0 Critical</option><option value="P1">🟠 P1 High</option><option value="P2" selected>🟡 P2 Medium</option><option value="P3">🟢 P3 Low</option><option value="P4">🔵 P4 Trivial</option></select></div></div>' +
+        '<div style="display:flex;gap:8px"><div style="flex:1"><label>Project</label><select id="at-project"><option value="lamatrader">LamaTrader</option><option value="pripitch">Pripitch</option><option value="grademy">Grademy</option><option value="hollow-booking">Hollow Booking</option><option value="rema">Remit Exteriors</option><option value="cinematicx">CinematicX</option><option value="unitas">Unitas</option></select></div>' +
+        '<div style="flex:1"><label>Est. Minutes</label><input id="at-est" type="number" value="60" min="5" step="5"></div></div>' +
+        '<label>Tags (comma separated)</label><input id="at-tags" placeholder="bug, frontend, api">' +
+        '<div class="row"><button class="btn-cancel" onclick="closeAddTaskModal()">Cancel</button><button class="btn-create" onclick="createTask()">Create Task</button></div>' +
+      '</div>';
+    document.body.appendChild(modal);
+    modal.onclick = function(e) { if (e.target === modal) closeAddTaskModal(); };
+  }
+  modal.classList.add('open');
+}
+
+function closeAddTaskModal() {
+  var modal = document.getElementById('addTaskModal');
+  if (modal) modal.classList.remove('open');
+}
+
+async function createTask() {
+  var title = document.getElementById('at-title').value.trim();
+  if (!title) { alert('Title required'); return; }
+  var body = {
+    title: title,
+    description: document.getElementById('at-desc').value.trim(),
+    assigned_to: document.getElementById('at-assignee').value,
+    priority: document.getElementById('at-priority').value,
+    project: document.getElementById('at-project').value,
+    estimated_minutes: parseInt(document.getElementById('at-est').value) || 60,
+    tags: document.getElementById('at-tags').value.split(',').map(function(t) { return t.trim(); }).filter(Boolean),
+    team: (ccAgents.find(function(a) { return a.agent_id === document.getElementById('at-assignee').value; }) || {}).team || 'engineering'
+  };
+  try {
+    await fetch('http://100.111.98.27:8765/api/tasks', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(body)
+    });
+  } catch(e) {}
+  closeAddTaskModal();
+  renderCommandCenter();
+}
+
+// ═══════════════════════════════════════════════════════════
+// OVERHAULED APPROVALS
+// ═══════════════════════════════════════════════════════════
+function renderApprovals() {
+  var list = document.getElementById('approvalsList');
+  if (!list) return;
+  list.innerHTML = '<div style="text-align:center;padding:40px;color:var(--dim);font-size:13px">Loading approvals...</div>';
+
+  var approvals = [
+    {id:'A-001',agentId:'E-01',agentName:'Forge',agentRole:'Engineering Lead',request:'Deploy new API to production',reason:'Client Hollow Booking needs v2 endpoints live by Friday',priority:'P0',createdAt:new Date(Date.now()-2*3600000).toISOString(),avatar:'🔧',avatarColor:'var(--g-red)'},
+    {id:'A-002',agentId:'O-01',agentName:'Pipeline',agentRole:'Ops Senior',request:'Access to client Drive folder',reason:'Need to review Unitas contract documents for compliance audit',priority:'P2',createdAt:new Date(Date.now()-5*3600000).toISOString(),avatar:'📋',avatarColor:'#eab308'},
+    {id:'A-003',agentId:'LG-01',agentName:'Hunter',agentRole:'Lead Gen Lead',request:'Increase email daily limit to 200',reason:'Current 100/day cap blocking Q3 outreach campaign',priority:'P1',createdAt:new Date(Date.now()-8*3600000).toISOString(),avatar:'🎯',avatarColor:'var(--g-amber)'}
+  ];
+
+  var count = document.getElementById('approvalsCount');
+  if (count) count.textContent = approvals.length + ' pending';
+
+  if (approvals.length === 0) {
+    list.innerHTML = '<div style="text-align:center;padding:40px;color:var(--dim);font-size:13px">✅ No pending approvals</div>';
+    return;
+  }
+
+  var prioIcons = {P0:'🔴',P1:'🟠',P2:'🟡',P3:'🟢',P4:'🔵'};
+  list.innerHTML = approvals.map(function(a) {
+    var timeAgo = getTimeAgo(new Date(a.createdAt));
+    return '<div class="approval-card">' +
+      '<div class="approval-header">' +
+        '<div class="approval-avatar" style="background:' + a.avatarColor + '">' + a.avatar + '</div>' +
+        '<div class="approval-who"><div class="name">' + a.agentName + '</div><div class="role">' + a.agentRole + '</div></div>' +
+        '<div class="approval-time">' + timeAgo + '</div>' +
+      '</div>' +
+      '<div class="approval-request">Request: ' + a.request + '</div>' +
+      '<div class="approval-reason">Reason: ' + a.reason + '</div>' +
+      '<div style="margin-bottom:10px"><span style="font-size:10px;padding:2px 8px;border-radius:999px;background:' + a.avatarColor + '20;color:' + a.avatarColor + ';border:1px solid ' + a.avatarColor + '40">' + (prioIcons[a.priority]||'⚪') + ' ' + a.priority + '</span></div>' +
+      '<div class="approval-actions">' +
+        '<button class="btn-comment" onclick="commentApproval(\'' + a.id + '\')">💬 Comment</button>' +
+        '<button class="btn-deny" onclick="denyApproval(\'' + a.id + '\')">❌ Deny</button>' +
+        '<button class="btn-approve" onclick="approveApproval(\'' + a.id + '\')">✅ Approve</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function getTimeAgo(date) {
+  var seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+  if (seconds < 60) return 'just now';
+  var minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return minutes + 'm ago';
+  var hours = Math.floor(minutes / 60);
+  if (hours < 24) return hours + 'h ago';
+  return Math.floor(hours / 24) + 'd ago';
+}
+
+function commentApproval(id) {
+  var comment = prompt('Add comment:');
+  if (comment) renderApprovals();
+}
+
+function denyApproval(id) {
+  if (confirm('Deny this request?')) renderApprovals();
+}
+
+function approveApproval(id) {
+  fetch('/api/approvals/' + id + '/approve', {method:'POST'}).catch(function() {});
+  renderApprovals();
+}
+
 </script>
 </body></html>
