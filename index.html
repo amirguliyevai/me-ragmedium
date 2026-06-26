@@ -1,5 +1,5 @@
 <!-- v=1782209919 -->
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Amir Command — Agent Command Center</title><meta name="theme-color" content="#0a0a0f"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" href="/icons/icon-192.png"><style>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta http-equiv="Cache-Control" content="no-cache,no-store,must-revalidate"><title>Amir Command — Agent Command Center</title><meta name="theme-color" content="#0a0a0f"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>"><style>#loadingMsg{display:none!important}
 *{box-sizing:border-box;margin:0;padding:0}
 ::-webkit-scrollbar{width:6px;height:6px}
 ::-webkit-scrollbar-track{background:transparent}
@@ -2132,10 +2132,10 @@ const pages={
         <div style="padding:12px;border-bottom:1px solid var(--g-glass-border)">
           <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--g-text-tertiary);margin-bottom:8px">View</div>
           <div style="display:flex;gap:2px">
-            <button onclick="setCCView('kanban')" id="ccViewKanban" style="flex:1;padding:5px 8px;font-size:10px;border:1px solid var(--g-glass-border);background:var(--g-accent);color:#fff;border-radius:4px 0 0 4px;cursor:pointer">📋 Kanban</button>
+            <button onclick="setCCView('kanban')" id="ccViewKanban" style="flex:1;padding:5px 8px;font-size:10px;border:1px solid var(--g-glass-border);background:var(--g-accent);color:#fff;border-radius:4px 0 0 4px;cursor:pointer">📋 Board</button>
+            <button onclick="setCCView('tasks')" id="ccViewTasks" style="flex:1;padding:5px 8px;font-size:10px;border:1px solid var(--g-glass-border);background:transparent;color:var(--g-text-secondary);border-radius:0;cursor:pointer">🎯 Tasks</button>
             <button onclick="setCCView('list')" id="ccViewList" style="flex:1;padding:5px 8px;font-size:10px;border:1px solid var(--g-glass-border);background:transparent;color:var(--g-text-secondary);border-radius:0;cursor:pointer">📊 List</button>
-            <button onclick="setCCView('tree')" id="ccViewTree" style="flex:1;padding:5px 8px;font-size:10px;border:1px solid var(--g-glass-border);background:transparent;color:var(--g-text-secondary);border-radius:0;cursor:pointer">🌳 Tree</button>
-            <button onclick="setCCView('galaxy')" id="ccViewGalaxy" style="flex:1;padding:5px 8px;font-size:10px;border:1px solid var(--g-glass-border);background:transparent;color:var(--g-text-secondary);border-radius:0 4px 4px 0;cursor:pointer">🌌 Galaxy</button>
+            <button onclick="setCCView('tree')" id="ccViewTree" style="flex:1;padding:5px 8px;font-size:10px;border:1px solid var(--g-glass-border);background:transparent;color:var(--g-text-secondary);border-radius:0 4px 4px 0;cursor:pointer">🌳 Tree</button>
           </div>
         </div>
         <div style="padding:12px;flex:1;overflow-y:auto">
@@ -2172,6 +2172,8 @@ const pages={
         </div>
         <!-- List View -->
         <div id="ccList" style="display:none;flex:1;overflow-y:auto;padding:12px"></div>
+        <!-- Tasks View -->
+        <div id="ccTasks" style="display:none;flex:1;overflow-y:auto;padding:12px"></div>
         <!-- Tree View -->
         <div id="ccTree" style="display:none;flex:1;overflow-y:auto;padding:12px"></div>
         <!-- Galaxy View -->
@@ -8300,39 +8302,14 @@ function resetConvert() {
     const banner = document.getElementById('connectionStatus');
     const text = document.getElementById('connectionText');
     const qCount = document.getElementById('queueCount');
-
-    if (!navigator.onLine) {
-      banner.className = 'status-offline';
-      text.textContent = '⚡ Offline — actions queued';
-      banner.style.display = 'block';
-    } else {
-      banner.className = 'status-online';
-      text.textContent = '';
-      banner.style.display = 'none';
-    }
-
-    // Show queue count
+    if(banner) banner.style.display = 'none';
+    if(qCount) qCount.style.display = 'none';
     openDB().then(db => {
-      const tx = db.transaction(STORE, 'readonly');
-      tx.objectStore(STORE).count().onsuccess = e => {
-        const count = e.target.result;
-        if (count > 0) {
-          qCount.style.display = 'inline';
-          qCount.textContent = count + ' pending';
-          if (navigator.onLine) {
-            banner.className = 'status-syncing';
-            banner.style.display = 'block';
-            text.textContent = '🔄 syncing...';
-          }
-        } else {
-          qCount.style.display = 'none';
-        }
-        db.close();
-      };
-    });
-  }
-
-  window.addEventListener('online', () => { updateUI(); processQueue(); });
+      const tx = db.transaction(STORE, 'readwrite');
+      tx.objectStore(STORE).clear();
+      db.close();
+    }).catch(()=>{});
+  });
   window.addEventListener('offline', updateUI);
 
   // Override API calls when offline
@@ -8433,7 +8410,7 @@ async function renderTeamGalaxy() {
 
   let data = GALAXY_FALLBACK_DATA;
   try {
-    const resp = await fetch('/api/galaxy/');
+    const resp = await fetch('http://localhost:8765/api/galaxy');
     if (resp.ok) {
       const apiData = await resp.json();
       if (apiData && apiData.teams && apiData.teams.length > 0) {
@@ -8515,16 +8492,12 @@ var ccAgents = [];
 
 function setCCView(v) {
   ccView = v;
-  ['kanban','list','tree','galaxy'].forEach(function(k) {
+  ['kanban','tasks','list','tree'].forEach(function(k) {
     var btn = document.getElementById('ccView' + k.charAt(0).toUpperCase() + k.slice(1));
     if (btn) {
       if (k === v) { btn.style.background = 'var(--g-accent)'; btn.style.color = '#fff'; }
       else { btn.style.background = 'transparent'; btn.style.color = 'var(--g-text-secondary)'; }
     }
-  });
-  ['Kanban','List','Tree','Galaxy'].forEach(function(k) {
-    var el = document.getElementById('cc' + k);
-    if (el) el.style.display = (k.toLowerCase() === v) ? (v === 'kanban' ? 'flex' : 'block') : 'none';
   });
   renderCommandCenter();
 }
@@ -8586,12 +8559,75 @@ function filterCommandCenter() {
   if (count) count.textContent = tasks.length + ' tasks';
 
   if (ccView === 'kanban') renderCCKanban(tasks);
+  else if (ccView === 'tasks') renderCCTasks(tasks);
   else if (ccView === 'list') renderCCList(tasks);
   else if (ccView === 'tree') renderCCTree();
-  else if (ccView === 'galaxy') renderCCGalaxy();
+}
+
+function renderCCTasks(tasks) {
+  ['ccKanban','ccList','ccTasks','ccTree','ccGalaxy'].forEach(function(id) {
+    var d = document.getElementById(id);
+    if (d) d.style.display = 'none';
+  });
+  var el = document.getElementById('ccTasks');
+  if (!el) return;
+  el.style.display = 'block';
+  var projects = {};
+  tasks.forEach(function(t) {
+    var p = (t.project || 'uncategorized');
+    if (!projects[p]) projects[p] = {name: p, tasks: [], expanded: true};
+    projects[p].tasks.push(t);
+  });
+  var html = '<div style="padding:4px">';
+  Object.entries(projects).sort(function(a,b) {
+    var ad = a[1].tasks.filter(function(t){return t.status==='done'}).length;
+    var bd = b[1].tasks.filter(function(t){return t.status==='done'}).length;
+    return (bd/b[1].tasks.length) - (ad/a[1].tasks.length);
+  }).forEach(function(e) {
+    var proj = e[1];
+    var total = proj.tasks.length;
+    var done = proj.tasks.filter(function(t){return t.status==='done'||t.status==='completed'}).length;
+    var active = proj.tasks.filter(function(t){return t.status==='in_progress'}).length;
+    var blocked = proj.tasks.filter(function(t){return t.status==='blocked'}).length;
+    var pct = total > 0 ? Math.round((done/total)*100) : 0;
+    var barColor = pct===100 ? '#22c55e' : active>0 ? '#0a84ff' : '#eab308';
+    var statusIcon = pct===100 ? '✅' : active>0 ? '🔄' : blocked>0 ? '⛔' : '📋';
+    html += '<div style="margin-bottom:6px;background:rgba(255,255,255,.03);border-radius:8px;overflow:hidden">';
+    html += '<div onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display===\'none\'?\'block\':\'none\'" style="display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;font-size:12px;font-weight:600">';
+    html += '<span style="font-size:10px;color:var(--dim)">▼</span>';
+    html += '<span>' + statusIcon + ' ' + proj.name + '</span>';
+    html += '<span style="margin-left:auto;color:var(--dim);font-size:10px">' + done + '/' + total + '</span>';
+    html += '<div style="width:80px;height:5px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden;margin-left:8px"><div style="width:'+pct+'%;height:100%;background:'+barColor+';border-radius:3px"></div></div>';
+    html += '</div>';
+    html += '<div style="padding:0 12px 8px">';
+    proj.tasks.forEach(function(t) {
+      var si = t.status==='done'?'✅':t.status==='in_progress'?'⚡':t.status==='blocked'?'⛔':t.status==='review'?'🔍':'📋';
+      var prio = (t.priority||'P2').toUpperCase();
+      var pc = prio==='P0'?'#ef4444':prio==='P1'?'#eab308':'#6b7280';
+      var est = t.estimated_minutes?(t.estimated_minutes>=60?Math.round(t.estimated_minutes/60*10)/10+'h':t.estimated_minutes+'m'):'';
+      var prog = t.status==='done'?100:t.status==='in_progress'?45:t.status==='review'?80:10;
+      var pcol = t.status==='done'?'#22c55e':t.status==='in_progress'?'#0a84ff':'#eab308';
+      html += '<div style="display:flex;align-items:center;gap:6px;padding:5px 8px;font-size:11px;border-radius:4px;margin:2px 0" onmouseover="this.style.background=\'rgba(255,255,255,.04)\'" onmouseout="this.style.background=\'transparent\'">';
+      html += '<span>' + si + '</span>';
+      html += '<span style="flex:1;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + t.title + '</span>';
+      html += '<span style="font-size:9px;font-weight:700;color:'+pc+'">'+prio+'</span>';
+      if (est) html += '<span style="color:var(--dim);font-size:9px">'+est+'</span>';
+      html += '<div style="width:50px;height:3px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden"><div style="width:'+prog+'%;height:100%;background:'+pcol+';border-radius:2px"></div></div>';
+      html += '</div>';
+    });
+    html += '</div></div>';
+  });
+  html += '</div>';
+  el.innerHTML = html;
 }
 
 function renderCCKanban(tasks) {
+  ['ccKanban','ccList','ccTasks','ccTree','ccGalaxy'].forEach(function(id) {
+    var d = document.getElementById(id);
+    if (d) d.style.display = 'none';
+  });
+  var el = document.getElementById('ccKanban');
+  if (el) el.style.display = 'flex';
   var cols = {backlog:[], todo:[], in_progress:[], review:[], done:[]};
   var statusMap = {backlog:'backlog', todo:'todo', in_progress:'in_progress', review:'review', done:'done', blocked:'backlog', pending:'todo', needs_review:'review'};
   tasks.forEach(function(t) {
@@ -8663,8 +8699,13 @@ async function updateTaskStatus(taskId, newStatus) {
 }
 
 function renderCCList(tasks) {
+  ['ccKanban','ccList','ccTasks','ccTree','ccGalaxy'].forEach(function(id) {
+    var d = document.getElementById(id);
+    if (d) d.style.display = 'none';
+  });
   var el = document.getElementById('ccList');
   if (!el) return;
+  el.style.display = 'block';
   var prioColors = {P0:'var(--g-red)',P1:'var(--g-amber)',P2:'#eab308',P3:'var(--g-green)',P4:'var(--g-accent)'};
   var hdr = '<div style="display:flex;align-items:center;gap:10px;padding:6px 12px;font-size:9px;color:var(--g-text-tertiary);text-transform:uppercase;letter-spacing:1px;font-weight:600;border-bottom:1px solid var(--g-glass-border)"><span style="width:24px"></span><span style="flex:1">Task</span><span style="width:50px">Priority</span><span style="width:80px">Assignee</span><span style="width:80px">Status</span><span style="width:60px">Project</span></div>';
   var rows = tasks.map(function(t) {
@@ -8685,8 +8726,13 @@ function renderCCList(tasks) {
 }
 
 function renderCCTree() {
+  ['ccKanban','ccList','ccTasks','ccTree','ccGalaxy'].forEach(function(id) {
+    var d = document.getElementById(id);
+    if (d) d.style.display = 'none';
+  });
   var el = document.getElementById('ccTree');
   if (!el) return;
+  el.style.display = 'block';
   var teams = {};
   ccAgents.forEach(function(a) {
     if (!teams[a.team]) teams[a.team] = [];

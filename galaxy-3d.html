@@ -833,10 +833,14 @@ setInterval(pollStatus,15000);
 setTimeout(pollStatus,3000);
 
 // ─── Animate ───
+let _lastFrameT=performance.now();
 function animate(){
   requestAnimationFrame(animate);
   
-  const t=performance.now()*0.001;
+  const _now=performance.now();
+  let dt=(_now-_lastFrameT)/1000;_lastFrameT=_now;
+  if(dt>0.1)dt=0.1; // clamp after tab-switch / stalls
+  const t=_now*0.001;
   
   // Orbit ships
   shipGroups.forEach(s=>{
@@ -894,7 +898,7 @@ function animate(){
     }
   });
   
-  updateHandControl(0.016); // Hand gesture control (~60fps dt)
+  updateHandControl(dt); // Hand gesture control (real frame dt)
   controls.update();
   renderer.render(scene,camera);
   labelRenderer.render(scene,camera);
@@ -910,9 +914,42 @@ function animate(){
 
 // ─── HAND TRACKING (Dual-Hand MediaPipe) ───
 let handTracking=false,handLandmarksL=null,handLandmarksR=null;
-let gestureState={left:'idle',right:'idle',lPinchHeld:0,rPinchHeld:0,lZoomHeld:0,rZoomHeld:0};
-let prevHandLX=null,prevHandLY=null,prevHandRX=null,prevHandRY=null;
-let prevLPinch=null,prevRPinch=null;
+
+// Per-hand interaction state. Everything that drives the camera is expressed
+// as a *target velocity* that we ease toward — never a hard per-frame jump.
+// That easing + the landmark smoothing below is what makes motion feel human.
+function makeHandState(){return{
+  // smoothed, mirrored wrist position in normalized screen space (0..1)
+  sx:null,sy:null,
+  // smoothed finger-curl / pinch metrics (low-pass filtered, reduces flicker)
+  pinch:1,idxCurl:0,midCurl:0,ringCurl:0,pinkyCurl:0,
+  // debounced gesture with hysteresis
+  gesture:'none',gestureRaw:'none',candidate:'none',candidateT:0,
+  // how long current gesture has been held (for progressive accel)
+  held:0,
+  // last smoothed position used as drag anchor while grabbing
+  dragPX:null,dragPY:null,
+  active:false
+};}
+let handL=makeHandState(),handR=makeHandState();
+// Camera motion model — we accumulate desired velocities and ease the camera.
+let camVel={theta:0,phi:0,zoom:0,panX:0,panY:0,fly:new THREE.Vector3()};
+let twoHand={prevDist:null,prevMidX:null,prevMidY:null};
+
+// Smoothing / detection tunables
+const HG={
+  posSmooth:0.45,      // wrist position low-pass (higher = snappier, lower = smoother)
+  metricSmooth:0.5,    // finger-metric low-pass
+  pinchOn:0.055,       // enter pinch below this (hysteresis)
+  pinchOff:0.085,      // leave pinch above this
+  curlClosed:0.09,     // finger considered curled below this
+  curlOpen:0.12,       // finger considered extended above this
+  debounce:0.09,       // seconds a raw gesture must persist before it commits
+  velSmooth:6.0,       // camera velocity easing rate (per second)
+  rotateGain:2.2,      // grab-drag -> rotation
+  flyGain:14,          // point -> fly speed
+  zoomGain:0.9         // fist/peace -> zoom rate
+};
 
 // Cursor DOM elements
 let cursorL,cursorR;
@@ -934,7 +971,7 @@ window.toggleHandTracking=function(){
   const cam=document.getElementById('cam-preview');
   if(handTracking){
     btn.textContent='🖐️ Hands ON';btn.classList.add('on');
-    hint.textContent='✊ Pinch+drag=rotate · 👆 Point=fly toward · ✌️ Peace=zoom out · 👊 Fist=zoom in · 🤏 Both=rotate/zoom';
+    hint.textContent='🤏 Pinch + move = rotate · 👆 Point = glide forward · 👊 Fist = zoom in · ✌️ Peace = zoom out · ✋✋ Two hands = orbit & pinch-zoom';
     cam.classList.add('on');
     startHandTracking();
   }else{
@@ -990,179 +1027,198 @@ async function startHandTracking(){
 function stopHandTracking(){
   const video=document.getElementById('cam-video');
   if(video.srcObject){video.srcObject.getTracks().forEach(t=>t.stop());video.srcObject=null;}
-  handLandmarksL=null;handLandmarksR=null;prevHandLX=null;prevHandLY=null;prevHandRX=null;prevHandRY=null;
+  handLandmarksL=null;handLandmarksR=null;
+  handL=makeHandState();handR=makeHandState();
+  camVel={theta:0,phi:0,zoom:0,panX:0,panY:0,fly:new THREE.Vector3()};
+  twoHand={prevDist:null,prevMidX:null,prevMidY:null};
+}
+
+// Exponential smoothing helper: eases `cur` toward `target` with a time-constant
+// independent of frame rate. rate≈"how fast", larger = snappier.
+function smoothTo(cur,target,rate,dt){
+  if(cur===null||cur===undefined)return target;
+  const a=1-Math.exp(-rate*dt);
+  return cur+(target-cur)*a;
+}
+
+// Classify a hand into one of: 'grab'(pinch), 'fist', 'peace', 'point', 'open', 'none'
+// using *smoothed* metrics + hysteresis so it doesn't flicker on the threshold.
+function classifyGesture(st){
+  const closed=v=>v<HG.curlClosed, open=v=>v>HG.curlOpen;
+  // pinch uses hysteresis: stays on once entered until it clearly opens
+  const wasGrab=st.gesture==='grab';
+  const pinching=wasGrab?st.pinch<HG.pinchOff:st.pinch<HG.pinchOn;
+  if(pinching)return 'grab';
+  const idxOpen=open(st.idxCurl),midOpen=open(st.midCurl),ringOpen=open(st.ringCurl),pinkOpen=open(st.pinkyCurl);
+  const idxClosed=closed(st.idxCurl),midClosed=closed(st.midCurl),ringClosed=closed(st.ringCurl),pinkClosed=closed(st.pinkyCurl);
+  if(idxClosed&&midClosed&&ringClosed&&pinkClosed)return 'fist';
+  if(idxOpen&&midOpen&&ringClosed&&pinkClosed)return 'peace';
+  if(idxOpen&&midClosed&&ringClosed&&pinkClosed)return 'point';
+  if(idxOpen&&midOpen&&ringOpen&&pinkOpen)return 'open';
+  return 'none';
 }
 
 function updateHandControl(dt){
   if(!handTracking)return;
   const W=window.innerWidth,H=window.innerHeight;
-  
-  // Track combined two-hand state
-  let bothPinching=false,bothDelta=0,bothAvgDX=0,bothAvgDY=0;
-  
-  function processHand(lm,side,cursor){
-    if(!lm)return;
+
+  // ── 1. Read + smooth each hand's raw landmarks into its state ──
+  function ingest(lm,st){
+    if(!lm){st.active=false;return;}
+    st.active=true;
     const thumb=lm[4],index=lm[8],middle=lm[12],ring=lm[16],pinky=lm[20],wrist=lm[0],indexMcp=lm[5],middleMcp=lm[9];
-    // Mirror for front camera
-    const wx=1-wrist.x,wy=wrist.y;
-    // Pointing: index extended, others curled
-    const indexCurl=Math.hypot(index.x-indexMcp.x,index.y-indexMcp.y,index.z-indexMcp.z);
-    const middleCurl=Math.hypot(middle.x-middleMcp.x,middle.y-middleMcp.y,middle.z-middleMcp.z);
+    const wx=1-wrist.x,wy=wrist.y; // mirror x for front camera
+    // low-pass the screen position so the cursor glides instead of skipping
+    st.sx=smoothTo(st.sx,wx,1/HG.posSmooth,dt);
+    st.sy=smoothTo(st.sy,wy,1/HG.posSmooth,dt);
+    // raw finger metrics
+    const idxCurl=Math.hypot(index.x-indexMcp.x,index.y-indexMcp.y,index.z-indexMcp.z);
+    const midCurl=Math.hypot(middle.x-middleMcp.x,middle.y-middleMcp.y,middle.z-middleMcp.z);
     const ringCurl=Math.hypot(ring.x-lm[13].x,ring.y-lm[13].y,ring.z-lm[13].z);
     const pinkyCurl=Math.hypot(pinky.x-lm[17].x,pinky.y-lm[17].y,pinky.z-lm[17].z);
-    const pinchDist=Math.hypot(thumb.x-index.x,thumb.y-index.y,(thumb.z||0)-(index.z||0));
-    const allCurled=indexCurl<0.1 && middleCurl<0.1 && ringCurl<0.1 && pinkyCurl<0.1;
-    const indexExtended=indexCurl>0.1;
-    const middleExtended=middleCurl>0.1;
-    const allExtended=indexExtended && middleExtended && ringCurl>0.1 && pinkyCurl>0.1;
-    const isPointing=indexExtended && middleCurl<0.1 && ringCurl<0.1 && pinkyCurl<0.1;
-    const isPeace=indexExtended && middleExtended && ringCurl<0.1 && pinkyCurl<0.1;
-    const isPinching=pinchDist<0.1;
-    
-    // Update cursor position + style
-    if(cursor){
-      cursor.style.display='block';
-      cursor.style.left=(wx*W)+'px';
-      cursor.style.top=(wy*H)+'px';
-      if(isPinching){cursor.style.width='32px';cursor.style.height='32px';cursor.style.borderColor='rgba(34,197,94,0.8)';}
-      else if(allCurled){cursor.style.width='18px';cursor.style.height='18px';cursor.style.borderColor='rgba(239,68,68,0.8)';}
-      else if(isPeace){cursor.style.width='36px';cursor.style.height='36px';cursor.style.borderColor='rgba(168,85,247,0.8)';}
-      else if(isPointing){cursor.style.width='28px';cursor.style.height='28px';cursor.style.borderColor='rgba(249,115,22,0.8)';}
-      else{cursor.style.width='24px';cursor.style.height='24px';cursor.style.borderColor=side==='l'?'rgba(59,130,246,0.8)':'rgba(249,115,22,0.8)';}
+    const pinch=Math.hypot(thumb.x-index.x,thumb.y-index.y,(thumb.z||0)-(index.z||0));
+    // low-pass the metrics so classification is stable
+    st.idxCurl=smoothTo(st.idxCurl,idxCurl,1/HG.metricSmooth,dt);
+    st.midCurl=smoothTo(st.midCurl,midCurl,1/HG.metricSmooth,dt);
+    st.ringCurl=smoothTo(st.ringCurl,ringCurl,1/HG.metricSmooth,dt);
+    st.pinkyCurl=smoothTo(st.pinkyCurl,pinkyCurl,1/HG.metricSmooth,dt);
+    st.pinch=smoothTo(st.pinch,pinch,1/HG.metricSmooth,dt);
+    // finger direction for 'point' fly (smoothed via wrist->index, mirrored)
+    st.fx=-(index.x-wrist.x);st.fy=index.y-wrist.y;st.fz=(index.z||0)-(wrist.z||0);
+    // ── debounced classification with hysteresis ──
+    const raw=classifyGesture(st);
+    if(raw===st.candidate){st.candidateT+=dt;}else{st.candidate=raw;st.candidateT=0;}
+    // commit a new gesture only after it persists past the debounce window
+    if(st.candidateT>=HG.debounce && raw!==st.gesture){
+      st.gesture=raw;st.held=0;st.dragPX=null;st.dragPY=null;
     }
-    
-    // ── GESTURE: Pinch = GRAB/SELECT (priority over fist/palm) ──
-    if(isPinching){
-      const key=side+'PinchHeld';
-      gestureState[key]=(gestureState[key]||0)+dt;
-      // Long pinch (>0.2s) = GRAB + ROTATE
-      if(gestureState[key]>0.2){
-        const px=side==='l'?prevHandLX:prevHandRX;
-        const py=side==='l'?prevHandLY:prevHandRY;
-        if(px!==null&&py!==null){
-          const dx=wx-px,dy=wy-py;
-          if(Math.abs(dx)>0.001||Math.abs(dy)>0.001){
-            const s=new THREE.Spherical().setFromVector3(camera.position.clone().sub(controls.target));
-            s.theta-=dx*2.5;s.phi-=dy*2.5;
-            s.phi=Math.max(0.05,Math.min(Math.PI-0.05,s.phi));
-            camera.position.copy(controls.target).add(new THREE.Vector3().setFromSpherical(s));
-            camera.lookAt(controls.target);
-          }
-        }
-      }
-      if(side==='l'){prevHandLX=wx;prevHandLY=wy;}
-      else{prevHandRX=wx;prevHandRY=wy;}
-      return;
-    }
-    // Not pinching — check if quick tap just released
-    const pinchKey=side+'PinchHeld';
-    const wasHeld=gestureState[pinchKey]||0;
-    if(wasHeld>0.05 && wasHeld<0.3){
-      performSelect(side==='l'?prevHandLX:prevHandRX, side==='l'?prevHandLY:prevHandRY);
-    }
-    gestureState[pinchKey]=0;
-    if(side==='l'){prevHandLX=null;prevHandLY=null;}
-    else{prevHandRX=null;prevHandRY=null;}
-    
-    // ── GESTURE: Fist ZOOM IN (more sensitive) ──
-    if(allCurled){
-      const key=side+'ZoomHeld';
-      gestureState[key]=(gestureState[key]||0)+dt;
-      const speed=120*(1+gestureState[key]*4);
-      camera.position.multiplyScalar(1-speed*0.0005*dt*60);
-      camera.position.clampLength(5,500);
-      return;
-    }else{gestureState[side+'ZoomHeld']=0;}
-    
-    // ── GESTURE: Peace sign ZOOM OUT ──
-    if(isPeace){
-      const key=side+'ZoomHeld';
-      gestureState[key]=(gestureState[key]||0)+dt;
-      const speed=80*(1+gestureState[key]*3);
-      camera.position.multiplyScalar(1+speed*0.0003*dt*60);
-      camera.position.clampLength(5,500);
-      return;
-    }else if(!allCurled && !isPinching){gestureState[side+'ZoomHeld']=0;}
-    
-    // ── GESTURE: Point = ZOOM IN toward finger direction (free 3D navigation) ──
-    if(isPointing){
-      // Finger direction vector (normalized, from wrist toward index tip)
-      const fx=index.x-wrist.x,fy=index.y-wrist.y,fz=(index.z||0)-(wrist.z||0);
-      const flen=Math.hypot(fx,fy,fz)||1;
-      const fdx=fx/flen,fdy=fy/flen,fdz=fz/flen;
-      // Move camera along finger direction (mirrored for front camera)
-      const speed=0.8*dt*60;
-      camera.position.x+=fdx*speed*3;
-      camera.position.y-=fdy*speed*3;
-      camera.position.z+=fdz*speed*3;
-      camera.position.clampLength(4,500);
-      // Also move look target slightly toward finger direction
-      controls.target.x+=fdx*speed*2;
-      controls.target.y-=fdy*speed*2;
-      controls.target.z+=fdz*speed*2;
-      camera.lookAt(controls.target);
-      return;
-    }
-    
-    // Reset position tracking if not in any gesture
-    if(side==='l'){prevHandLX=null;prevHandLY=null;}
-    else{prevHandRX=null;prevHandRY=null;}
+    st.held+=dt;
   }
-  
-  // Process both hands individually first
-  processHand(handLandmarksL,'l',cursorL);
-  processHand(handLandmarksR,'r',cursorR);
-  
-  // ── COMBINED TWO-HAND GESTURES ──
-  if(handLandmarksL&&handLandmarksR){
-    const lw=handLandmarksL[0],rw=handLandmarksR[0];
-    const lPinch=Math.hypot(handLandmarksL[4].x-handLandmarksL[8].x,handLandmarksL[4].y-handLandmarksL[8].y);
-    const rPinch=Math.hypot(handLandmarksR[4].x-handLandmarksR[8].x,handLandmarksR[4].y-handLandmarksR[8].y);
-    bothPinching=lPinch<0.07 && rPinch<0.07;
-    
-    if(bothPinching){
-      const lwx=1-lw.x,lwy=lw.y,rwx=1-rw.x,rwy=rw.y;
-      // Two-hand pinch ROTATE: both hands move same direction
-      if(prevHandLX!==null&&prevHandLY!==null&&prevHandRX!==null&&prevHandRY!==null){
-        const ldx=lwx-prevHandLX,ldy=lwy-prevHandLY;
-        const rdx=rwx-prevHandRX,rdy=rwy-prevHandRY;
-        // Average movement direction
-        const avgDX=(ldx+rdx)/2,avgDY=(ldy+rdy)/2;
-        if(Math.abs(avgDX)>0.002||Math.abs(avgDY)>0.002){
-          const spherical=new THREE.Spherical().setFromVector3(camera.position.clone().sub(controls.target));
-          spherical.theta-=avgDX*3.0;spherical.phi-=avgDY*3.0;
-          spherical.phi=Math.max(0.05,Math.min(Math.PI-0.05,spherical.phi));
-          camera.position.copy(controls.target).add(new THREE.Vector3().setFromSpherical(spherical));
-          camera.lookAt(controls.target);
-        }
-      }
-      prevHandLX=1-lw.x;prevHandLY=lw.y;prevHandRX=1-rw.x;prevHandRY=rw.y;
-    }else{
-      // Two-hand ZOOM: distance between hands
-      const dist=Math.hypot((1-lw.x)-(1-rw.x),lw.y-rw.y);
-      if(prevLPinch!==null){
-        const delta=prevLPinch-dist;
-        if(Math.abs(delta)>0.003){
-          camera.position.multiplyScalar(1-delta*4);
-          camera.position.clampLength(5,500);
-        }
-      }
-      prevLPinch=dist;
+  ingest(handLandmarksL,handL);
+  ingest(handLandmarksR,handR);
+
+  // ── 2. Cursor visuals follow the smoothed position ──
+  function paintCursor(st,cursor,side){
+    if(!cursor)return;
+    if(!st.active||st.sx===null){cursor.style.display='none';return;}
+    cursor.style.display='block';
+    cursor.style.left=(st.sx*W)+'px';
+    cursor.style.top=(st.sy*H)+'px';
+    const g=st.gesture;
+    if(g==='grab'){cursor.style.width='32px';cursor.style.height='32px';cursor.style.borderColor='rgba(34,197,94,0.9)';}
+    else if(g==='fist'){cursor.style.width='18px';cursor.style.height='18px';cursor.style.borderColor='rgba(239,68,68,0.9)';}
+    else if(g==='peace'){cursor.style.width='36px';cursor.style.height='36px';cursor.style.borderColor='rgba(168,85,247,0.9)';}
+    else if(g==='point'){cursor.style.width='28px';cursor.style.height='28px';cursor.style.borderColor='rgba(249,115,22,0.9)';}
+    else{cursor.style.width='24px';cursor.style.height='24px';cursor.style.borderColor=side==='l'?'rgba(59,130,246,0.8)':'rgba(249,115,22,0.8)';}
+  }
+  paintCursor(handL,cursorL,'l');
+  paintCursor(handR,cursorR,'r');
+
+  // ── 3. Accumulate DESIRED velocities (we never touch the camera directly) ──
+  let tTheta=0,tPhi=0,tZoom=0,tFly=new THREE.Vector3();
+  let bothActive=handL.active&&handR.active;
+  // both hands grabbing => two-hand rotate + spread-to-zoom (takes priority)
+  let twoHandMode=bothActive&&handL.gesture==='grab'&&handR.gesture==='grab';
+
+  if(twoHandMode){
+    const midX=(handL.sx+handR.sx)/2,midY=(handL.sy+handR.sy)/2;
+    const dist=Math.hypot(handL.sx-handR.sx,handL.sy-handR.sy);
+    if(twoHand.prevMidX!==null){
+      tTheta+= -(midX-twoHand.prevMidX)*HG.rotateGain*1.4;
+      tPhi  += -(midY-twoHand.prevMidY)*HG.rotateGain*1.4;
     }
+    if(twoHand.prevDist!==null){
+      tZoom += (twoHand.prevDist-dist)*6.0/Math.max(dt,1e-3);
+    }
+    twoHand.prevMidX=midX;twoHand.prevMidY=midY;twoHand.prevDist=dist;
   }else{
-    prevLPinch=null;
+    twoHand.prevMidX=null;twoHand.prevMidY=null;twoHand.prevDist=null;
+    // single-hand gestures, each hand contributes
+    for(const st of [handL,handR]){
+      if(!st.active)continue;
+      const g=st.gesture;
+      if(g==='grab'){
+        // grab + drag = orbit. progressive: needs ~0.12s hold to avoid jumpy starts
+        if(st.dragPX!==null && st.held>0.12){
+          const dx=st.sx-st.dragPX,dy=st.sy-st.dragPY;
+          // map per-frame hand displacement to an instantaneous angular velocity
+          tTheta+= -dx*HG.rotateGain/Math.max(dt,1e-3);
+          tPhi  += -dy*HG.rotateGain/Math.max(dt,1e-3);
+        }
+        st.dragPX=st.sx;st.dragPY=st.sy;
+      }else if(g==='fist'){
+        // zoom in, accelerates the longer you hold
+        tZoom -= HG.zoomGain*(1+Math.min(st.held,2)*1.5);
+        st.dragPX=null;
+      }else if(g==='peace'){
+        tZoom += HG.zoomGain*0.8*(1+Math.min(st.held,2)*1.2);
+        st.dragPX=null;
+      }else if(g==='point'){
+        // fly toward where the finger points
+        const flen=Math.hypot(st.fx,st.fy,st.fz)||1;
+        tFly.x+=(st.fx/flen)*HG.flyGain;
+        tFly.y+=-(st.fy/flen)*HG.flyGain;
+        tFly.z+=(st.fz/flen)*HG.flyGain;
+        st.dragPX=null;
+      }else{
+        st.dragPX=null;
+      }
+    }
   }
-  
-  // Hide cursors if no landmarks
-  if(!handLandmarksL&&cursorL)cursorL.style.display='none';
-  if(!handLandmarksR&&cursorR)cursorR.style.display='none';
-  
-  // Update debug
+
+  // ── 4. Quick-pinch tap = select (released grab held briefly, no drag) ──
+  for(const [st,side] of [[handL,'l'],[handR,'r']]){
+    const wasGrab=st._wasGrab||false;
+    if(wasGrab && st.gesture!=='grab'){
+      // released — if it was a short tap, treat as click
+      if(st._grabDur>0.04 && st._grabDur<0.32 && st.sx!==null){
+        performSelect(st.sx,st.sy);
+      }
+    }
+    if(st.gesture==='grab'){st._grabDur=(st._grabDur||0)+dt;}else{st._grabDur=0;}
+    st._wasGrab=st.gesture==='grab';
+  }
+
+  // ── 5. Ease current velocity toward target, then integrate into camera ──
+  const k=1-Math.exp(-HG.velSmooth*dt);
+  camVel.theta+=(tTheta-camVel.theta)*k;
+  camVel.phi  +=(tPhi  -camVel.phi)*k;
+  camVel.zoom +=(tZoom -camVel.zoom)*k;
+  camVel.fly.x+=(tFly.x-camVel.fly.x)*k;
+  camVel.fly.y+=(tFly.y-camVel.fly.y)*k;
+  camVel.fly.z+=(tFly.z-camVel.fly.z)*k;
+
+  const EPS=1e-4;
+  const moving=Math.abs(camVel.theta)>EPS||Math.abs(camVel.phi)>EPS||Math.abs(camVel.zoom)>EPS||camVel.fly.lengthSq()>EPS;
+  if(moving){
+    // orbit (theta/phi) + zoom around target
+    if(Math.abs(camVel.theta)>EPS||Math.abs(camVel.phi)>EPS||Math.abs(camVel.zoom)>EPS){
+      const s=new THREE.Spherical().setFromVector3(camera.position.clone().sub(controls.target));
+      s.theta-=camVel.theta;
+      s.phi-=camVel.phi;
+      s.phi=Math.max(0.05,Math.min(Math.PI-0.05,s.phi));
+      s.radius*=(1+camVel.zoom*dt);
+      s.radius=Math.max(controls.minDistance,Math.min(controls.maxDistance,s.radius));
+      camera.position.copy(controls.target).add(new THREE.Vector3().setFromSpherical(s));
+    }
+    // fly: translate both camera and target along finger direction
+    if(camVel.fly.lengthSq()>EPS){
+      const step=camVel.fly.clone().multiplyScalar(dt);
+      camera.position.add(step);
+      controls.target.add(step.clone().multiplyScalar(0.7));
+    }
+    camera.lookAt(controls.target);
+  }
+
+  // hide cursors for absent hands
+  if(!handL.active&&cursorL)cursorL.style.display='none';
+  if(!handR.active&&cursorR)cursorR.style.display='none';
+
+  // debug readout
   const gesEl=document.getElementById('hd-gesture');
   if(gesEl){
-    const gL=handLandmarksL?(gestureState.lPinchHeld>0?'PINCH':gestureState.lZoomHeld>0?'ZOOM':'POINT'):'—';
-    const gR=handLandmarksR?(gestureState.rPinchHeld>0?'PINCH':gestureState.rZoomHeld>0?'ZOOM':'POINT'):'—';
-    gesEl.textContent=`L:${gL} R:${gR}${bothPinching?' BOTH':''}`;
+    const lbl=st=>!st.active?'—':st.gesture.toUpperCase();
+    gesEl.textContent=`L:${lbl(handL)} R:${lbl(handR)}${twoHandMode?' · TWO-HAND':''}`;
   }
 }
 
