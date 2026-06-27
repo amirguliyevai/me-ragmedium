@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">AgentCMD</string>
+    <string name="title_activity_main">AgentCMD</string>
+    <string name="package_name">com.ragmedium.agentcmd</string>
+    <string name="custom_url_scheme">com.ragmedium.agentcmd</string>
+</resources>

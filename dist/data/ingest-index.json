@@ -1,0 +1,3082 @@
+{
+  "generated": "2026-06-20T02:10:51.273Z",
+  "files": [
+    {
+      "title": "Waterspring Build — Project Skill",
+      "path": "CLIENTS/waterspring/.claude/skills/waterspring-build/SKILL.md",
+      "sections": [
+        {
+          "heading": "What This Is",
+          "content": "An AI-native SaaS platform for EIS (Enterprise Investment Scheme) fund managers. The live test bed is Waterspring Ventures, run by Sam Huxtable — a solo fund manager with 4 years running a regulated fund. The platform serves two types of users:\r\n\r\n- **Admin (Sam)** — manages his portfolio, investors"
+        },
+        {
+          "heading": "Tech Stack (Decided — Do Not Change Without Discussion)",
+          "content": "| Layer | Technology |\r\n|---|---|\r\n| Frontend | React (Next.js) |\r\n| Backend / DB | Supabase |\r\n| Vector store | Supabase pgvector |\r\n| LLM | Google Gemini 2.5 Flash via Vertex AI |\r\n| Embeddings | Google text-embedding-004 via Vertex AI |\r\n| AI SDK | `@google-cloud/vertexai` |\r\n| GCP Region | `euro"
+        },
+        {
+          "heading": "Sprint 1 Standard",
+          "content": "**Proof of concept.** Visually coherent, core flows working, enough to demo the platform's value to Sam. Fine-tuning, edge cases, and production polish are Stage 2. Ship something real, not something perfect.\r\n\r\n---"
+        },
+        {
+          "heading": "The Five Sprint 1 Deliverables",
+          "content": "### 1. Platform Shell\r\nAuthenticated dual-view app. Admin view and Investor portal. Dashboard landing page for both with persistent AI chat at the bottom of every screen. Clean sidebar navigation to all sections.\r\n\r\n### 2. AI Chat (RAG Skeleton)\r\nThe connective tissue of the entire platform. Persist"
+        },
+        {
+          "heading": "Stage 2 — Placeholders Only in Sprint 1",
+          "content": "Build the UI shell and route. No logic yet.\r\n\r\n- Board Pack Analysis\r\n- Pre-Meeting Briefing\r\n- Investor Reporting\r\n- Tax Year End & Compliance\r\n\r\n---"
+        },
+        {
+          "heading": "How the RAG Skeleton Connects Everything",
+          "content": "Every deliverable either feeds data into the RAG store or queries it:\r\n\r\n| Deliverable | RAG relationship |\r\n|---|---|\r\n| AI Chat | Query interface — how users get data out |\r\n| Investor Onboarding | Feeds investor profiles into RAG on completion |\r\n| Customer Journey | Feeds prospect interaction hi"
+        },
+        {
+          "heading": "Reference Documents",
+          "content": "All bundled in `references/` — read before working on the relevant area:\r\n\r\n| File | What It Contains | Read When |\r\n|---|---|---|\r\n| `workmap.md` | Every Sprint 1 task, broken down by deliverable | Planning any piece of work |\r\n| `RAG_ARCHITECTURE.md` | Full RAG design: schema, embeddings, ingestio"
+        },
+        {
+          "heading": "Full Work Breakdown",
+          "content": "See `references/workmap.md` for every task across all five Sprint 1 deliverables, broken down by area. This is the definitive task list — consult it when planning any piece of work.\r\n\r\n---"
+        },
+        {
+          "heading": "Key Constraints",
+          "content": "1. **FCA compliance** — Sam must manually approve every automated workflow (onboarding emails, investor comms) before it goes live. Build approval steps into the UI for all of these.\r\n2. **RLS is non-negotiable** — Investor data isolation must be enforced at the Supabase RLS level, not just in appli"
+        }
+      ],
+      "size": 6596,
+      "keywords": [
+        "investor",
+        "platform",
+        "data",
+        "into",
+        "build",
+        "sprint",
+        "waterspring",
+        "project",
+        "vertex",
+        "full",
+        "work",
+        "read",
+        "onboarding",
+        "feeds",
+        "scope",
+        "task",
+        "needs",
+        "code",
+        "admin",
+        "investors",
+        "google",
+        "gemini",
+        "compliance",
+        "board",
+        "pack",
+        "content",
+        "chat",
+        "queries",
+        "context",
+        "breakdown"
+      ],
+      "preview": "An AI-native SaaS platform for EIS (Enterprise Investment Scheme) fund managers. The live test bed i | | Layer | Technology |\r\n|---|---|\r\n| Frontend | React (Next.js) |\r\n| Backend / DB | Supabase |\r\n| Ve"
+    },
+    {
+      "title": "Architecture — Waterspring AI Platform",
+      "path": "CLIENTS/waterspring/.claude/skills/waterspring-build/references/ARCHITECTURE.md",
+      "sections": [
+        {
+          "heading": "Guiding Principles",
+          "content": "1. **RAG is the core, not a feature.** Everything intelligent in this platform flows through the RAG system. Design it first, build features on top.\r\n2. **Data isolation is non-negotiable.** This is FCA-regulated, financially sensitive data. One fund's data must never be accessible by another. Enfor"
+        },
+        {
+          "heading": "Tech Stack",
+          "content": "| Layer | Choice | Rationale |\r\n|-------|--------|-----------|\r\n| Frontend | React (Vite + TypeScript) | Industry standard, both devs know it, excellent ecosystem |\r\n| Styling | Tailwind CSS + Shadcn/ui | Fast, consistent, accessible components |\r\n| Backend | Supabase | Handles auth, database, stora"
+        },
+        {
+          "heading": "Database Schema (Draft)",
+          "content": "### Core tables\r\n\r\n```sql\r\n-- Funds (multi-tenant root entity)\r\nfunds (\r\n  id uuid PRIMARY KEY,\r\n  name text,\r\n  slug text UNIQUE,           -- used in URLs\r\n  fca_reference text,\r\n  created_at timestamptz\r\n)\r\n\r\n-- Users (admin + investors)\r\nusers (\r\n  id uuid PRIMARY KEY,        -- matches Supabase"
+        },
+        {
+          "heading": "Row Level Security (RLS) — Critical",
+          "content": "Every table with `fund_id` must have RLS enabled. Example policy:\r\n\r\n```sql\r\n-- Users can only see data for their fund\r\nCREATE POLICY \"Fund isolation\" ON companies\r\n  FOR ALL USING (fund_id = (\r\n    SELECT fund_id FROM users WHERE id = auth.uid()\r\n  ));\r\n```\r\n\r\nThis must be applied to: companies, ho"
+        },
+        {
+          "heading": "RAG Pipeline Architecture",
+          "content": "### Ingestion Flow (Amir to build)\r\n\r\n```\r\nInput (PDF/CSV/text)\r\n    │\r\n    ▼\r\nText Extraction\r\n    │ (pdfjs / pdf-parse for PDFs; papaparse for CSV)\r\n    ▼\r\nPreprocessing & Cleaning\r\n    │ (strip headers/footers, normalise whitespace)\r\n    ▼\r\nChunking\r\n    │ Strategy: Semantic chunking preferred fo"
+        },
+        {
+          "heading": "CSV Import System",
+          "content": "Sam (and future clients) will receive Excel/CSV exports from Mainspring/Apex (legacy custodian). The import system needs to:\r\n\r\n1. Accept CSV/Excel upload via drag-and-drop in admin UI\r\n2. Auto-detect column headers (or let admin map them)\r\n3. Parse and validate rows (flag errors: missing investor I"
+        },
+        {
+          "heading": "Secure AI — Data Privacy Architecture",
+          "content": "### Rules\r\n1. Fund data NEVER goes to any public AI endpoint without explicit controls\r\n2. All AI calls are made server-side (Supabase Edge Functions or backend API), never from the browser directly\r\n3. API keys are server-side only — never exposed to frontend\r\n4. Prompts are sanitised: no PII in em"
+        },
+        {
+          "heading": "Frontend Architecture",
+          "content": "### Pages/Routes\r\n\r\n```\r\n/ → redirect to /login\r\n\r\n/login → Auth page (email/password)\r\n\r\n/admin → Admin layout (sidebar nav)\r\n  /admin/dashboard       → Overview widgets\r\n  /admin/board-packs     → Upload, view, analyse board packs\r\n  /admin/meetings        → Meeting log, briefing generation\r\n  /ad"
+        },
+        {
+          "heading": "Open Questions (to resolve before building)",
+          "content": "1. **Which embedding model?** OpenAI `text-embedding-3-small` (cheapest, good quality) vs `text-embedding-3-large` (better, more expensive). Recommend starting with small, upgrade if quality issues arise.\r\n\r\n2. **Edge Functions vs external API?** Supabase Edge Functions for AI calls (Deno runtime) v"
+        }
+      ],
+      "size": 14059,
+      "keywords": [
+        "text",
+        "uuid",
+        "references",
+        "admin",
+        "timestamptz",
+        "supabase",
+        "data",
+        "board",
+        "primary",
+        "funds",
+        "investor",
+        "fund",
+        "embedding",
+        "feature",
+        "users",
+        "level",
+        "import",
+        "auth",
+        "companies",
+        "date",
+        "meeting",
+        "specific",
+        "query",
+        "portal",
+        "context",
+        "functions",
+        "user",
+        "holdings",
+        "packs",
+        "edge"
+      ],
+      "preview": "1. **RAG is the core, not a feature.** Everything intelligent in this platform flows through the RAG | | Layer | Choice | Rationale |\r\n|-------|--------|-----------|\r\n| Frontend | React (Vite + TypeScrip"
+    },
+    {
+      "title": "Build Plan — Waterspring AI Platform",
+      "path": "CLIENTS/waterspring/.claude/skills/waterspring-build/references/BUILD_PLAN.md",
+      "sections": [
+        {
+          "heading": "Timeline Overview",
+          "content": "| Phase | Duration | Goal |\r\n|-------|----------|------|\r\n| Phase 0: Setup | Days 1-3 | Repo, environments, Supabase schema, design system |\r\n| Phase 1: Shell | Week 1 | Auth, routing, admin/customer split, basic navigation |\r\n| Phase 2: Core RAG | Weeks 2-3 | Data ingestion pipeline, vector store, "
+        },
+        {
+          "heading": "Division of Labour",
+          "content": "### Amir — Architecture, AI, Data\r\n**Focus:** Everything that powers the intelligence of the platform. The foundation everything else is built on.\r\n\r\n| Module | Details |\r\n|--------|---------|\r\n| App skeleton & routing | React project setup, page structure, route guards |\r\n| Supabase schema design |"
+        },
+        {
+          "heading": "Phase 0: Setup (Days 1-3)",
+          "content": "### Amir\r\n- [ ] Create GitHub repo, set up branching strategy\r\n- [ ] Initialise React project (Vite + TypeScript)\r\n- [ ] Set up Supabase project, initial schema draft\r\n- [ ] Define environment variables structure (.env)\r\n- [ ] Set up Cursor project with shared context\r\n\r\n### Ollie\r\n- [ ] Audit exist"
+        },
+        {
+          "heading": "Phase 1: Shell (Week 1)",
+          "content": "**Goal:** A working app where you can log in as admin or as an investor and land on the correct view.\r\n\r\n### Amir\r\n- [ ] Auth implementation (Supabase Auth)\r\n- [ ] Role-based routing (admin vs investor)\r\n- [ ] Layout components (sidebar, topbar, mobile responsiveness)\r\n- [ ] Protected route guards\r\n"
+        },
+        {
+          "heading": "Phase 2: Core RAG System (Weeks 2-3)",
+          "content": "**Goal:** Working data ingestion and retrieval pipeline. This is Amir's main responsibility and the platform's core differentiator.\r\n\r\n### Amir\r\n- [ ] Choose and set up embedding model (OpenAI `text-embedding-3-small` or equivalent)\r\n- [ ] Set up vector store (Supabase pgvector extension — keeps it "
+        },
+        {
+          "heading": "Phase 3: MVP Features (Weeks 3-5)",
+          "content": "Running in parallel across both developers.\r\n\r\n### Amir — Admin Intelligence Features\r\n- [ ] Board paper analysis view: upload → auto-extract metrics → display structured summary\r\n- [ ] Version comparison: show changes between latest and previous board pack\r\n- [ ] Pre-meeting briefing: select a comp"
+        },
+        {
+          "heading": "Phase 4: Polish & Test (Weeks 6-7)",
+          "content": "### Both\r\n- [ ] Full end-to-end walkthrough with Sam (structured UAT session)\r\n- [ ] Bug fix sprint — capture all issues in single session, fix in priority order\r\n- [ ] Performance check — large PDF ingestion, many investors, slow queries\r\n- [ ] Mobile responsiveness check on investor portal\r\n\r\n### "
+        },
+        {
+          "heading": "Phase 5: Handover (Week 8)",
+          "content": "- [ ] Deployment to production (Vercel for frontend, Supabase for backend)\r\n- [ ] Custom domain and SSL\r\n- [ ] Sam given admin access and walkthrough\r\n- [ ] Loom video walkthrough of each module for Sam's reference\r\n- [ ] Documentation: how to add a new investor, upload board packs, manage campaigns"
+        },
+        {
+          "heading": "Sam Touchpoints (Scheduled)",
+          "content": "| When | What |\r\n|------|------|\r\n| End of Week 1 | Shell review — does the navigation feel right? |\r\n| End of Week 2 | RAG demo — can it answer questions from his real board pack? |\r\n| End of Week 4 | Second instalment due. MVP features review. |\r\n| Mid Week 6 | Full UAT walkthrough session |\r\n| We"
+        },
+        {
+          "heading": "Milestones Summary",
+          "content": "| Milestone | Target | Owner |\r\n|-----------|--------|-------|\r\n| Repo and Supabase live | Day 3 | Amir |\r\n| Auth and shell working | End Week 1 | Amir |\r\n| RAG pipeline ingests PDFs | End Week 2 | Amir |\r\n| CSV import working | End Week 3 | Amir |\r\n| Onboarding flow functional | End Week 4 | Ollie "
+        }
+      ],
+      "size": 9988,
+      "keywords": [
+        "week",
+        "investor",
+        "phase",
+        "amir",
+        "step",
+        "board",
+        "admin",
+        "data",
+        "supabase",
+        "ollie",
+        "flow",
+        "schema",
+        "onboarding",
+        "test",
+        "both",
+        "build",
+        "customer",
+        "weeks",
+        "ingestion",
+        "portal",
+        "each",
+        "upload",
+        "pack",
+        "review",
+        "check",
+        "system",
+        "shell",
+        "auth",
+        "navigation",
+        "pipeline"
+      ],
+      "preview": "| Phase | Duration | Goal |\r\n|-------|----------|------|\r\n| Phase 0: Setup | Days 1-3 | Repo, enviro | ### Amir — Architecture, AI, Data\r\n**Focus:** Everything that powers the intelligence of the platfor"
+    },
+    {
+      "title": "CLAUDE.md — Waterspring AI Platform Project",
+      "path": "CLIENTS/waterspring/.claude/skills/waterspring-build/references/CLAUDE.md",
+      "sections": [
+        {
+          "heading": "What This Is",
+          "content": "You are embedded as a long-term thinking partner and planning tool for this project. Read this file at the start of every session before doing anything. All source documents (transcripts, proposals) are in this folder.\r\n\r\n---"
+        },
+        {
+          "heading": "The Project in One Sentence",
+          "content": "Build an AI-native SaaS platform for EIS investment fund managers, starting with Waterspring Ventures as the live test bed, with the goal of scaling it into a 3-way product company.\r\n\r\n---"
+        },
+        {
+          "heading": "The People",
+          "content": "| Person | Role | What They Bring |\r\n|--------|------|-----------------|\r\n| **Amir Gulubayli** (user) | Lead developer | RAG systems, app architecture, data pipelines, AI integrations. Has built CRMs, trading platforms, similar systems before. |\r\n| **Ollie Stanley** | Co-developer / BD | Marketing a"
+        },
+        {
+          "heading": "The Business Model",
+          "content": "**Phase 1 (now):** Build the platform for Sam at £8K (3 instalments). This is the minimum viable commercial deal — it covers time investment even if nothing else materialises.\r\n\r\n**Phase 2:** Waterspring is the live test bed. Real fund, real investors, real board packs, real regulatory requirements."
+        },
+        {
+          "heading": "Payment Terms (Settled)",
+          "content": "- £2,500 upfront on signing\r\n- £2,500 at end of week 4\r\n- £3,000 on completion\r\n- **Total: £8,000**\r\n\r\nRationale: low enough that even if Sam walks away post-build, it was worth the time. The real upside is the SaaS equity play and the industry network access.\r\n\r\n---"
+        },
+        {
+          "heading": "The Platform — What It Is",
+          "content": "A two-view AI-driven platform:\r\n\r\n### Admin View (Sam's side)\r\n- Dashboard overview of everything\r\n- Marketing outreach campaign settings and management\r\n- Board paper ingestion and analysis\r\n- Pre-meeting briefing generation\r\n- Investor reporting controls\r\n- CSV import from legacy custodian systems"
+        },
+        {
+          "heading": "The 8 Feature Modules (from proposals)",
+          "content": "1. **Marketing Automation** — LinkedIn scheduling, AI-drafted posts from portfolio news, lead capture into Pipedrive. Goal: transition Sam from personal-network fundraising to digital-first (like Hatch).\r\n\r\n2. **Investor Onboarding** — Full FCA-regulated workflow: welcome emails, document requests, "
+        },
+        {
+          "heading": "MVP Scope (Phase 1 Build)",
+          "content": "These four things constitute the MVP:\r\n\r\n1. **Platform shell** — the main interface skeleton, authentication, routing\r\n2. **Admin view** — settings, marketing outreach campaign management, core dashboards\r\n3. **Customer view** — investor onboarding flows, portfolio analytics, reporting delivery\r\n4. "
+        },
+        {
+          "heading": "Division of Labour",
+          "content": "| Amir | Ollie |\r\n|------|-------|\r\n| App skeleton and architecture | Marketing automation flows |\r\n| RAG system design and implementation | Investor onboarding workflows |\r\n| Data model and database schema | Customer journey automation |\r\n| Secure AI data pipeline | UI/frontend polish |\r\n| CSV impo"
+        },
+        {
+          "heading": "Key Technical Decisions",
+          "content": "- **Frontend:** React\r\n- **Backend:** Supabase\r\n- **AI:** RAG-based system (Amir leads). Closed/private — no data leaves to public models without controls.\r\n- **Data ingestion:** PDF board packs, CSV imports from legacy custodians (Mainspring/Apex), meeting transcripts\r\n- **Integrations:** NOT integ"
+        },
+        {
+          "heading": "Key Risks to Track",
+          "content": "1. **Equity not formalised** — Sam's incentive to co-found post-build needs to be locked in writing before the platform is complete.\r\n2. **Sam's availability** — He is a solo fund manager. His time is limited. Need to extract compliance guidance and domain knowledge in structured sessions.\r\n3. **Sco"
+        },
+        {
+          "heading": "Source Documents in This Folder",
+          "content": "| File | What It Is |\r\n|------|------------|\r\n| `Ai Transcript.txt` | First Ollie-Amir call (Feb 23) — scoping conversation |\r\n| `Waterspring Ai Transcript.txt` | First 3-way meeting with Sam (Mar 2) — requirements deep dive |\r\n| `Waterspring Ai Transcript (1).txt` | Second 3-way meeting (Mar 5) — p"
+        },
+        {
+          "heading": "How to Be Useful in This Project",
+          "content": "- **For planning:** Reference BUILD_PLAN.md and ARCHITECTURE.md\r\n- **For feature scoping:** Always anchor to the MVP first, then add modules\r\n- **For business decisions:** Apply Business Guru frameworks — especially Hormozi (offer/value), Greene (power/partnership dynamics), and Blue Ocean (position"
+        }
+      ],
+      "size": 8366,
+      "keywords": [
+        "waterspring",
+        "platform",
+        "data",
+        "investor",
+        "meeting",
+        "build",
+        "fund",
+        "amir",
+        "ollie",
+        "board",
+        "compliance",
+        "first",
+        "marketing",
+        "onboarding",
+        "real",
+        "packs",
+        "view",
+        "admin",
+        "customer",
+        "system",
+        "proposal",
+        "project",
+        "systems",
+        "architecture",
+        "industry",
+        "network",
+        "business",
+        "regulated",
+        "domain",
+        "knowledge"
+      ],
+      "preview": "You are embedded as a long-term thinking partner and planning tool for this project. Read this file  | Build an AI-native SaaS platform for EIS investment fund managers, starting with Waterspring Venture"
+    },
+    {
+      "title": "Project Brief — Waterspring AI Platform",
+      "path": "CLIENTS/waterspring/.claude/skills/waterspring-build/references/PROJECT_BRIEF.md",
+      "sections": [
+        {
+          "heading": "Vision",
+          "content": "An AI-native operations platform that allows a single EIS investment fund manager to run what previously required a team of 4-6 people. The platform ingests all data about the fund (board packs, investor records, meeting notes, market content) into a secure, private RAG system, and surfaces that int"
+        },
+        {
+          "heading": "The Client: Samuel Huxtable / Waterspring Ventures",
+          "content": "- **What Waterspring is:** An EIS (Enterprise Investment Scheme) fund manager, 4 years old, UK-based. Sam raises up to £2M/year into early-stage companies and manages a portfolio of investments.\r\n- **How Sam currently operates:** Solo. No employees. Everything done manually — reading board packs, em"
+        },
+        {
+          "heading": "The Problem This Solves",
+          "content": "### For Sam today:\r\n| Pain | Scale |\r\n|------|-------|\r\n| Reading 20-30 page board packs for each portfolio company | ~10 companies, monthly |\r\n| Manually reconciling investor data between Mainspring (custodian) and Further (investor platform) | Every time balances change |\r\n| Following up leads fro"
+        },
+        {
+          "heading": "The Platform",
+          "content": "### Core Concept\r\nA two-view platform powered by a central RAG system. The RAG engine is fed with all of Waterspring's data (board packs, meeting transcripts, investor records, emails, reports) and powers every intelligent feature across both views.\r\n\r\n### Admin View (Sam)\r\nEverything Sam needs to r"
+        },
+        {
+          "heading": "Feature Modules",
+          "content": "### MVP (Phase 1)\r\n1. **Platform shell** — auth, routing, admin/customer role split, navigation\r\n2. **Admin dashboard** — overview widgets, campaign settings\r\n3. **Customer portal** — onboarding flow, portfolio view, basic analytics\r\n4. **Core RAG system** — data ingestion pipeline, vector storage, "
+        },
+        {
+          "heading": "Business Model",
+          "content": "### Phase 1: Waterspring build\r\n- Fixed fee: £8,000 (£2.5K upfront / £2.5K week 4 / £3K completion)\r\n- Rationale: Covers time investment at minimum, delivers a live product, establishes the partnership\r\n\r\n### Phase 2: Market expansion\r\n- SaaS subscription tiers based on firm size and module usage\r\n-"
+        },
+        {
+          "heading": "Competitive Landscape",
+          "content": "| Player | What They Do | Gap |\r\n|--------|-------------|-----|\r\n| Hatch | Digital-first EIS fund — content-led investor acquisition | They're a fund, not a platform. We are building what they built, as a product for others. |\r\n| Further | Investor administration platform for EIS funds | Admin-only,"
+        },
+        {
+          "heading": "Key Risks",
+          "content": "| Risk | Mitigation |\r\n|------|-----------|\r\n| Equity not formalised with Sam | Raise this before platform completion. Get it in writing. |\r\n| Sam's time is limited | Structured extraction sessions. Short async check-ins. Batch compliance reviews. |\r\n| Scope creep across 8+ modules | MVP discipline."
+        },
+        {
+          "heading": "Success Metrics (Phase 1)",
+          "content": "- Platform delivered in 6-8 weeks\r\n- Sam using it daily for at least 3 core workflows\r\n- At least 1 other fund manager demo'd the platform (via Sam's network)\r\n- No FCA compliance issues raised\r\n- Both Ollie and Amir paid in full"
+        },
+        {
+          "heading": "Success Metrics (Phase 2)",
+          "content": "- 3+ paying fund manager clients on the platform\r\n- Monthly recurring revenue established\r\n- Company formation documents drafted\r\n- Sam actively pitching the product to his network"
+        }
+      ],
+      "size": 8436,
+      "keywords": [
+        "platform",
+        "investor",
+        "fund",
+        "data",
+        "board",
+        "meeting",
+        "phase",
+        "content",
+        "admin",
+        "compliance",
+        "waterspring",
+        "investment",
+        "manager",
+        "packs",
+        "customer",
+        "first",
+        "reports",
+        "view",
+        "market",
+        "system",
+        "investors",
+        "managers",
+        "manually",
+        "tools",
+        "portfolio",
+        "network",
+        "industry",
+        "potential",
+        "clients",
+        "mainspring"
+      ],
+      "preview": "An AI-native operations platform that allows a single EIS investment fund manager to run what previo | - **What Waterspring is:** An EIS (Enterprise Investment Scheme) fund manager, 4 years old, UK-based"
+    },
+    {
+      "title": "Waterspring AI Platform — RAG Architecture Plan",
+      "path": "CLIENTS/waterspring/.claude/skills/waterspring-build/references/RAG_ARCHITECTURE.md",
+      "sections": [
+        {
+          "heading": "1. What We're Adapting and Why",
+          "content": "RAGX is a CRM automation app Amir built for agencies and law firms. It became a personal internal tool — too many features, scattered focus. But buried inside it is a working, battle-tested RAG skeleton: a Supabase + pgvector document store, a chunking pipeline, a vector similarity search layer, a c"
+        },
+        {
+          "heading": "2. RAGX RAG Skeleton — What It Actually Does",
+          "content": "Before making decisions, here's a precise account of each layer.\r\n\r\n### 2.1 Database Schema (pgvector on Supabase)\r\n\r\nFive tables:\r\n\r\n| Table | Purpose |\r\n|---|---|\r\n| `ragx_documents` | One row per document/entity. Stores title, full content (text), document_type enum, source_id (FK to origin table"
+        },
+        {
+          "heading": "3. What to Reuse vs. What to Change",
+          "content": "| Component | Decision | Rationale |\r\n|---|---|---|\r\n| Supabase + pgvector as the vector store | **Reuse** | Already proven, already the platform DB |\r\n| `ragx_documents` + `ragx_chunks` schema | **Reuse with renames** | Rename to `ws_documents` / `ws_chunks` to avoid namespace collision |\r\n| `ragx_"
+        },
+        {
+          "heading": "4. Waterspring Document Types",
+          "content": "The `document_type` enum needs to reflect Waterspring's data model. Replace the RAGX types with these:\r\n\r\n```sql\r\ndocument_type text NOT NULL CHECK (document_type IN (\r\n  'board_pack',           -- PDF board pack for a portfolio company\r\n  'board_pack_metrics',   -- Extracted financial metrics from "
+        },
+        {
+          "heading": "5. Waterspring Intelligence Agents",
+          "content": "Six agents replace the four RAGX agents. Each maps to a specific platform feature module.\r\n\r\n### Agent 1: `board-pack-analyser`\r\n\r\n**Trigger:** When a board pack PDF is uploaded to Supabase Storage  \r\n**Input:** Extracted text from board pack, company ID  \r\n**What it does:**  \r\n- Extracts structured"
+        },
+        {
+          "heading": "6. Updated Database Schema for Waterspring",
+          "content": "```sql\r\n-- Enable pgvector\r\nCREATE EXTENSION IF NOT EXISTS vector;\r\n\r\n-- ============================================\r\n-- Waterspring Knowledge Store\r\n-- ============================================\r\n\r\nCREATE TABLE public.ws_documents (\r\n  id             uuid DEFAULT uuid_generate_v4() PRIMARY KEY,\r"
+        },
+        {
+          "heading": "7. Ingestion Pipeline — WaterspringKnowledgeIngestion",
+          "content": "Replace the RAGX `RAGxKnowledgeIngestion` class with a `WaterspringKnowledgeIngestion` class. The structure is identical; the entity methods change.\r\n\r\n**Critical change: real embeddings**\r\n\r\n```typescript\r\n// Replace createKeywordEmbedding() with this:\r\n// Uses Google text-embedding-004 via @google"
+        },
+        {
+          "heading": "8. The Chat API for Waterspring",
+          "content": "The chat API structure is identical to RAGX with three changes. LLM is Gemini 2.5 Flash via `@google/generative-ai`:\r\n\r\n```typescript\r\nimport { GoogleGenerativeAI } from '@google/generative-ai'\r\n\r\nconst genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY!)\r\n\r\nasync function generateResponse"
+        },
+        {
+          "heading": "9. Board Pack Ingestion Flow (the Critical Path)",
+          "content": "This is the most complex and most important flow. Step by step:\r\n\r\n```\r\n1. Sam uploads board-pack PDF via Admin view\r\n   → Stored in Supabase Storage bucket: 'board-packs/{company_id}/{date}.pdf'\r\n\r\n2. Storage trigger fires Edge Function: extract-document\r\n   → Downloads file, sends to OCR provider "
+        },
+        {
+          "heading": "10. Implementation Sequence",
+          "content": "Build in this order. Each phase is independently deployable.\r\n\r\n### Phase 1 — RAG Foundation (Week 1)\r\n\r\n1. Run `ws_documents` + `ws_chunks` + `ws_conversations` + `ws_messages` schema SQL on Supabase\r\n2. Run `ws_similarity_search` + `ws_entity_search` function SQL\r\n3. Create IVFFlat index (after ad"
+        },
+        {
+          "heading": "11. Key Engineering Decisions and Tradeoffs",
+          "content": "**Decision: Google stack throughout — Gemini 2.5 Flash for LLM, `text-embedding-004` for embeddings**  \r\nSingle SDK (`@google/generative-ai`), single API key, single billing account. Gemini 2.5 Flash has a 1M token context window — large enough to pass multiple board packs into a single call if need"
+        },
+        {
+          "heading": "12. Files to Create in the Waterspring Repo",
+          "content": "**Dependencies to install:**\r\n```bash\r\nnpm install @google/generative-ai\r\n```\r\nOne package covers both Gemini 2.5 Flash and `text-embedding-004`. No separate SDK for embeddings.\r\n\r\n```\r\nsrc/\r\n├── lib/\r\n│   ├── rag/\r\n│   │   ├── ingestion.ts        ← WaterspringKnowledgeIngestion class\r\n│   │   ├── e"
+        },
+        {
+          "heading": "13. Risks and What to Watch",
+          "content": "**Risk 1: Board pack extraction quality**  \r\nBoard packs vary enormously in format, layout, and terminology. The `board-pack-analyser` prompt needs to be calibrated on real Waterspring board packs before going live. Build in a \"review extracted metrics\" screen so Sam can correct errors before they g"
+        }
+      ],
+      "size": 36797,
+      "keywords": [
+        "text",
+        "board",
+        "pack",
+        "investor",
+        "embedding",
+        "agent",
+        "company",
+        "default",
+        "public",
+        "waterspring",
+        "string",
+        "ragx",
+        "create",
+        "meeting",
+        "content",
+        "document",
+        "vector",
+        "table",
+        "function",
+        "null",
+        "uuid",
+        "reuse",
+        "google",
+        "supabase",
+        "data",
+        "build",
+        "admin",
+        "ingestion",
+        "embeddings",
+        "packs"
+      ],
+      "preview": "RAGX is a CRM automation app Amir built for agencies and law firms. It became a personal internal to | Before making decisions, here's a precise account of each layer.\r\n\r\n### 2.1 Database Schema (pgvecto"
+    },
+    {
+      "title": "Waterspring — Sprint 1 Plan",
+      "path": "CLIENTS/waterspring/.claude/skills/waterspring-build/references/SPRINT_1_PLAN.md",
+      "sections": [
+        {
+          "heading": "The Five Sprint 1 Deliverables",
+          "content": "### 1. Platform Shell\r\nTwo authenticated views — Admin (Sam) and Investor (portal). Clean dashboard as the landing page for both, sidebar navigation to all sections, persistent AI chat at the bottom of every screen. The shell is the frame everything else lives inside.\r\n\r\n### 2. AI Chat (RAG Skeleton"
+        },
+        {
+          "heading": "Stage 2 Placeholders (Not Sprint 1)",
+          "content": "These are built out after the platform structure is signed off. Placeholder UI exists in Sprint 1.\r\n\r\n- **Board Pack Analysis** — AI extraction of financial metrics from uploaded PDFs, discrepancy detection between board pack versions\r\n- **Pre-Meeting Briefing** — AI-generated prep notes combining b"
+        },
+        {
+          "heading": "How the RAG Skeleton Connects Everything",
+          "content": "Every deliverable either feeds data into the RAG store or queries it:\r\n\r\n| Deliverable | Relationship to RAG |\r\n|---|---|\r\n| AI Chat | The query interface — how both users get data out |\r\n| Investor Onboarding | Feeds investor profiles into the RAG store on completion |\r\n| Customer Journey | Feeds p"
+        }
+      ],
+      "size": 3551,
+      "keywords": [
+        "investor",
+        "into",
+        "board",
+        "pack",
+        "store",
+        "data",
+        "platform",
+        "admin",
+        "feeds",
+        "content",
+        "sprint",
+        "panel",
+        "meeting",
+        "queries",
+        "investors",
+        "both",
+        "chat",
+        "skeleton",
+        "holdings",
+        "onboarding",
+        "automated",
+        "automation",
+        "prospects",
+        "generated",
+        "metrics"
+      ],
+      "preview": "### 1. Platform Shell\r\nTwo authenticated views — Admin (Sam) and Investor (portal). Clean dashboard  | These are built out after the platform structure is signed off. Placeholder UI exists in Sprint 1.\r\n"
+    },
+    {
+      "title": "Waterspring — Sprint 1 Work Breakdown",
+      "path": "CLIENTS/waterspring/.claude/skills/waterspring-build/references/workmap.md",
+      "sections": [
+        {
+          "heading": "1. Platform Shell",
+          "content": "- [ ] Next.js project initialisation with TypeScript\r\n- [ ] Supabase project setup and environment config\r\n- [ ] Auth: admin and investor roles, login/signup/password reset pages\r\n- [ ] Middleware: role-based routing (admin → `/admin/*`, investor → `/portal/*`)\r\n- [ ] Admin layout: sidebar, top nav,"
+        },
+        {
+          "heading": "2. AI Chat / RAG Skeleton",
+          "content": "**Infrastructure**\r\n- [ ] GCP project setup, Vertex AI API enabled, service account created, `europe-west2` region locked\r\n- [ ] `@google-cloud/vertexai` installed, env vars configured\r\n\r\n**Database**\r\n- [ ] Supabase migration: `ws_documents`, `ws_chunks`, `ws_conversations`, `ws_messages`, `ws_agen"
+        },
+        {
+          "heading": "3. Investor Onboarding",
+          "content": "**Admin side**\r\n- [ ] Investor record creation form in admin panel\r\n- [ ] Onboarding pipeline view (all investors, their current stage, progress)\r\n- [ ] Stage management: manually move investor between stages if needed\r\n- [ ] Sam approval flow: review and approve each automated comms template before"
+        },
+        {
+          "heading": "4. Customer Journey Automation",
+          "content": "**Data model**\r\n- [ ] Prospect/lead record schema (name, email, source, status, last contact)\r\n- [ ] Sequence schema (name, steps: [{type, delay, template}])\r\n- [ ] Prospect-sequence assignment\r\n\r\n**Admin panel**\r\n- [ ] Prospect list view (all leads, status, assigned sequence)\r\n- [ ] Prospect record"
+        },
+        {
+          "heading": "5. Marketing Automation",
+          "content": "**LinkedIn**\r\n- [ ] LinkedIn OAuth connection + token storage\r\n- [ ] Post composer UI (write, preview, schedule)\r\n- [ ] Post scheduling: pick date/time, queue management\r\n- [ ] Content calendar view (scheduled + published posts)\r\n- [ ] AI draft button: queries RAG for recent portfolio news → drafts "
+        },
+        {
+          "heading": "Stage 2 — Placeholder Pages Only",
+          "content": "For each: create the route, the page layout, a title, a description of what it will do, and a \"Coming soon\" state. No logic.\r\n\r\n- [ ] `/admin/board-packs` — Board Pack Analysis placeholder\r\n- [ ] `/admin/meeting-prep` — Pre-Meeting Briefing placeholder\r\n- [ ] `/admin/reports` — Investor Reporting pl"
+        },
+        {
+          "heading": "Infrastructure / Cross-cutting",
+          "content": "- [ ] `.env.example` with all required variables documented\r\n- [ ] Supabase migrations folder structure (`supabase/migrations/`)\r\n- [ ] Basic error handling and logging pattern established\r\n- [ ] Deployment setup (Vercel recommended — works natively with Next.js + Supabase)\r\n- [ ] README covering lo"
+        }
+      ],
+      "size": 6281,
+      "keywords": [
+        "admin",
+        "investor",
+        "sequence",
+        "prospect",
+        "placeholder",
+        "supabase",
+        "chat",
+        "post",
+        "onboarding",
+        "document",
+        "record",
+        "lead",
+        "sprint",
+        "setup",
+        "portal",
+        "dashboard",
+        "data",
+        "ingestion",
+        "method",
+        "upload",
+        "trigger",
+        "form",
+        "steps",
+        "tracking",
+        "completion",
+        "shell",
+        "project",
+        "pages",
+        "layout",
+        "basic"
+      ],
+      "preview": "- [ ] Next.js project initialisation with TypeScript\r\n- [ ] Supabase project setup and environment c | **Infrastructure**\r\n- [ ] GCP project setup, Vertex AI API enabled, service account created, `europe"
+    },
+    {
+      "title": "Architecture — Waterspring AI Platform",
+      "path": "CLIENTS/waterspring/ARCHITECTURE.md",
+      "sections": [
+        {
+          "heading": "Guiding Principles",
+          "content": "1. **RAG is the core, not a feature.** Everything intelligent in this platform flows through the RAG system. Design it first, build features on top.\r\n2. **Data isolation is non-negotiable.** This is FCA-regulated, financially sensitive data. One fund's data must never be accessible by another. Enfor"
+        },
+        {
+          "heading": "Tech Stack",
+          "content": "| Layer | Choice | Rationale |\r\n|-------|--------|-----------|\r\n| Frontend + Backend | Next.js 15 (App Router, TypeScript) | Server Actions for AI calls, native Vercel deployment, Edge Runtime for PDF extraction, no separate API layer needed |\r\n| Styling | Tailwind CSS + Shadcn/ui | Fast, consistent"
+        },
+        {
+          "heading": "Database Schema (Draft)",
+          "content": "### Core tables\r\n\r\n```sql\r\n-- Funds (multi-tenant root entity)\r\nfunds (\r\n  id uuid PRIMARY KEY,\r\n  name text,\r\n  slug text UNIQUE,           -- used in URLs\r\n  fca_reference text,\r\n  created_at timestamptz\r\n)\r\n\r\n-- Users (admin + investors)\r\nusers (\r\n  id uuid PRIMARY KEY,        -- matches Supabase"
+        },
+        {
+          "heading": "Row Level Security (RLS) — Critical",
+          "content": "Every table with `fund_id` must have RLS enabled. Example policy:\r\n\r\n```sql\r\n-- Users can only see data for their fund\r\nCREATE POLICY \"Fund isolation\" ON companies\r\n  FOR ALL USING (fund_id = (\r\n    SELECT fund_id FROM users WHERE id = auth.uid()\r\n  ));\r\n```\r\n\r\nThis must be applied to: companies, ho"
+        },
+        {
+          "heading": "RAG Pipeline Architecture",
+          "content": "### Ingestion Flow (Amir to build)\r\n\r\n```\r\nInput (PDF board pack uploaded via admin UI)\r\n    │\r\n    ▼\r\nText Extraction — Next.js Edge Runtime\r\n    │ (pdf-parse or pdfjs-dist; runs on Vercel Edge for speed)\r\n    ▼\r\nPreprocessing & Cleaning\r\n    │ (strip headers/footers, normalise whitespace, detect t"
+        },
+        {
+          "heading": "CSV Import System",
+          "content": "Sam (and future clients) will receive Excel/CSV exports from Mainspring/Apex (legacy custodian). The import system needs to:\r\n\r\n1. Accept CSV/Excel upload via drag-and-drop in admin UI\r\n2. Auto-detect column headers (or let admin map them)\r\n3. Parse and validate rows (flag errors: missing investor I"
+        },
+        {
+          "heading": "Secure AI — Data Privacy Architecture",
+          "content": "### Rules\r\n1. Fund data NEVER goes to any public AI endpoint without explicit controls\r\n2. All AI calls are made server-side (Supabase Edge Functions or backend API), never from the browser directly\r\n3. API keys are server-side only — never exposed to frontend\r\n4. Prompts are sanitised: no PII in em"
+        },
+        {
+          "heading": "Frontend Architecture (Next.js App Router)",
+          "content": "### Route Structure\r\n\r\n```\r\napp/\r\n  (auth)/\r\n    login/\r\n      page.tsx              ← Email/password login\r\n  (admin)/\r\n    layout.tsx              ← Admin shell: sidebar, topbar, AI chat\r\n    dashboard/\r\n      page.tsx              ← Overview widgets\r\n    board-packs/\r\n      page.tsx              "
+        },
+        {
+          "heading": "Decisions Locked",
+          "content": "| Decision | Outcome |\r\n|---|---|\r\n| Frontend framework | Next.js 15 App Router (TypeScript) — confirmed |\r\n| Embedding model | Google `text-embedding-004` via Vertex AI (europe-west2) — confirmed |\r\n| AI call pattern | Next.js Server Actions + Route Handlers (no client-side AI calls) — confirmed |\r"
+        },
+        {
+          "heading": "Open Questions (still to resolve)",
+          "content": "1. **Mainspring API availability** — Does Mainspring expose an API, or is CSV the only option? Sam to confirm with his contact there. If API exists, what auth mechanism (OAuth, API key, webhook)?\r\n\r\n2. **Further API availability** — Same question for Further. What data can we read/write via their AP"
+        }
+      ],
+      "size": 17494,
+      "keywords": [
+        "text",
+        "uuid",
+        "data",
+        "references",
+        "board",
+        "timestamptz",
+        "server",
+        "page",
+        "primary",
+        "supabase",
+        "fund",
+        "side",
+        "mainspring",
+        "embedding",
+        "funds",
+        "investor",
+        "vertex",
+        "agent",
+        "feature",
+        "users",
+        "date",
+        "meeting",
+        "report",
+        "next",
+        "client",
+        "further",
+        "import",
+        "pack",
+        "admin",
+        "query"
+      ],
+      "preview": "1. **RAG is the core, not a feature.** Everything intelligent in this platform flows through the RAG | | Layer | Choice | Rationale |\r\n|-------|--------|-----------|\r\n| Frontend + Backend | Next.js 15 (A"
+    },
+    {
+      "title": "Build Plan — Waterspring AI Platform",
+      "path": "CLIENTS/waterspring/BUILD_PLAN.md",
+      "sections": [
+        {
+          "heading": "Scope Clarification",
+          "content": "- **Tom** owns the marketing/sales funnel (Pipedrive + Mailchimp). Not our concern until real data exists.\r\n- **Further** handles regulated investor onboarding end to end. We are not rebuilding this.\r\n- **Ollie + Amir** focus on portfolio intelligence, automated reporting, and platform integration.\r"
+        },
+        {
+          "heading": "Timeline Overview",
+          "content": "| Phase | Duration | Goal |\r\n|-------|----------|------|\r\n| Phase 0: Setup | Days 1-3 | Repo, environments, Supabase schema, design system |\r\n| Phase 1: Shell | Week 1 | Auth, routing, admin/investor split, basic navigation |\r\n| Phase 2: Core RAG | Weeks 2-3 | Data ingestion pipeline, vector store, "
+        },
+        {
+          "heading": "Division of Labour",
+          "content": "### Amir — Architecture, AI, Data\r\n**Focus:** Everything that powers the intelligence of the platform. The foundation everything else is built on.\r\n\r\n| Module | Details |\r\n|--------|---------|\r\n| App skeleton & routing | React project setup, page structure, route guards |\r\n| Supabase schema design |"
+        },
+        {
+          "heading": "Phase 0: Setup (Days 1-3)",
+          "content": "### Amir\r\n- [ ] Create GitHub repo, set up branching strategy\r\n- [ ] Initialise React project (Vite + TypeScript)\r\n- [ ] Set up Supabase project, initial schema draft\r\n- [ ] Define environment variables structure (.env)\r\n- [ ] Set up Cursor project with shared context\r\n\r\n### Ollie\r\n- [ ] Audit exist"
+        },
+        {
+          "heading": "Phase 1: Shell (Week 1)",
+          "content": "**Goal:** A working app where you can log in as admin or as an investor and land on the correct view.\r\n\r\n### Amir\r\n- [ ] Auth implementation (Supabase Auth)\r\n- [ ] Role-based routing (admin vs investor)\r\n- [ ] Layout components (sidebar, topbar, mobile responsiveness)\r\n- [ ] Protected route guards\r\n"
+        },
+        {
+          "heading": "Phase 2: Core RAG System (Weeks 2-3)",
+          "content": "**Goal:** Working data ingestion and retrieval pipeline. This is Amir's main responsibility and the platform's core differentiator.\r\n\r\n### Amir\r\n- [ ] Choose and set up embedding model (OpenAI `text-embedding-3-small` or equivalent)\r\n- [ ] Set up vector store (Supabase pgvector extension — keeps it "
+        },
+        {
+          "heading": "Phase 3: MVP Features (Weeks 3-5)",
+          "content": "Running in parallel across both developers. Focus is entirely on portfolio intelligence, automated reporting, and platform integration.\r\n\r\n### Amir — Board Pack Analysis\r\n- [ ] PDF ingestion pipeline: upload → extract text → chunk by section → embed → store\r\n- [ ] Metric extraction: revenue, burn ra"
+        },
+        {
+          "heading": "Phase 4: Polish & Test (Weeks 6-7)",
+          "content": "### Both\r\n- [ ] Full end-to-end walkthrough with Sam (structured UAT session)\r\n- [ ] Bug fix sprint — capture all issues in single session, fix in priority order\r\n- [ ] Performance check — large PDF ingestion, many investors, slow queries\r\n- [ ] Mobile responsiveness check on investor portal\r\n\r\n### "
+        },
+        {
+          "heading": "Phase 5: Handover (Week 8)",
+          "content": "- [ ] Deployment to production (Vercel for frontend, Supabase for backend)\r\n- [ ] Custom domain and SSL\r\n- [ ] Sam given admin access and walkthrough\r\n- [ ] Loom video walkthrough of each module for Sam's reference\r\n- [ ] Documentation: how to add a new investor, upload board packs, manage campaigns"
+        },
+        {
+          "heading": "Sam Touchpoints (Scheduled)",
+          "content": "| When | What |\r\n|------|------|\r\n| End of Week 1 | Shell review — does the navigation feel right? |\r\n| End of Week 2 | RAG demo — can it answer questions from his real board pack? |\r\n| End of Week 4 | Second instalment due. MVP features review. |\r\n| Mid Week 6 | Full UAT walkthrough session |\r\n| We"
+        },
+        {
+          "heading": "Milestones Summary",
+          "content": "| Milestone | Target | Owner |\r\n|-----------|--------|-------|\r\n| Repo and Supabase live | Day 3 | Amir |\r\n| Auth and shell working | End Week 1 | Amir |\r\n| RAG pipeline ingests PDFs | End Week 2 | Amir |\r\n| Board pack metric extraction working | End Week 3 | Amir |\r\n| Version comparison + discrepan"
+        }
+      ],
+      "size": 12079,
+      "keywords": [
+        "week",
+        "amir",
+        "investor",
+        "board",
+        "data",
+        "phase",
+        "pack",
+        "further",
+        "admin",
+        "briefing",
+        "meeting",
+        "reporting",
+        "automated",
+        "supabase",
+        "mainspring",
+        "ollie",
+        "schema",
+        "pipeline",
+        "report",
+        "review",
+        "both",
+        "portfolio",
+        "ingestion",
+        "test",
+        "version",
+        "upload",
+        "build",
+        "platform",
+        "integration",
+        "weeks"
+      ],
+      "preview": "- **Tom** owns the marketing/sales funnel (Pipedrive + Mailchimp). Not our concern until real data e | | Phase | Duration | Goal |\r\n|-------|----------|------|\r\n| Phase 0: Setup | Days 1-3 | Repo, enviro"
+    },
+    {
+      "title": "CLAUDE.md — Waterspring AI Platform Project",
+      "path": "CLIENTS/waterspring/CLAUDE.md",
+      "sections": [
+        {
+          "heading": "What This Is",
+          "content": "You are embedded as a long-term thinking partner and planning tool for this project. Read this file at the start of every session before doing anything. All source documents (transcripts, proposals) are in this folder.\r\n\r\n---"
+        },
+        {
+          "heading": "The Project in One Sentence",
+          "content": "Build an AI-native SaaS platform for EIS investment fund managers, starting with Waterspring Ventures as the live test bed, with the goal of scaling it into a 3-way product company.\r\n\r\n---"
+        },
+        {
+          "heading": "The People",
+          "content": "| Person | Role | What They Bring |\r\n|--------|------|-----------------|\r\n| **Amir Gulubayli** (user) | Lead developer | RAG systems, app architecture, data pipelines, AI integrations. Has built CRMs, trading platforms, similar systems before. |\r\n| **Ollie Stanley** | Co-developer / BD | Marketing a"
+        },
+        {
+          "heading": "The Business Model",
+          "content": "**Phase 1 (now):** Build the platform for Sam at £8K (3 instalments). This is the minimum viable commercial deal — it covers time investment even if nothing else materialises.\r\n\r\n**Phase 2:** Waterspring is the live test bed. Real fund, real investors, real board packs, real regulatory requirements."
+        },
+        {
+          "heading": "Payment Terms (Settled)",
+          "content": "- £2,500 upfront on signing\r\n- £2,500 at end of week 4\r\n- £3,000 on completion\r\n- **Total: £8,000**\r\n\r\nRationale: low enough that even if Sam walks away post-build, it was worth the time. The real upside is the SaaS equity play and the industry network access.\r\n\r\n---"
+        },
+        {
+          "heading": "The Platform — What It Is",
+          "content": "A two-view AI-driven platform:\r\n\r\n### Admin View (Sam's side)\r\n- Dashboard overview of everything\r\n- Marketing outreach campaign settings and management\r\n- Board paper ingestion and analysis\r\n- Pre-meeting briefing generation\r\n- Investor reporting controls\r\n- CSV import from legacy custodian systems"
+        },
+        {
+          "heading": "The 8 Feature Modules (from proposals)",
+          "content": "1. **Marketing Automation** — LinkedIn scheduling, AI-drafted posts from portfolio news, lead capture into Pipedrive. Goal: transition Sam from personal-network fundraising to digital-first (like Hatch).\r\n\r\n2. **Investor Onboarding** — Full FCA-regulated workflow: welcome emails, document requests, "
+        },
+        {
+          "heading": "Sprint Sequencing (confirmed 2026-04-28)",
+          "content": "**Long-term vision unchanged** — an all-in-one platform that replaces Further (onboarding), Mailchimp (marketing), and Pipedrive (CRM) for EIS fund managers. That vision is still the destination.\r\n\r\n**Sprint 1 — what we build now:**\r\n1. Platform shell — Next.js App Router, auth, admin/investor split"
+        },
+        {
+          "heading": "Division of Labour",
+          "content": "| Amir | Ollie |\r\n|------|-------|\r\n| App skeleton and architecture | Marketing automation flows |\r\n| RAG system design and implementation | Investor onboarding workflows |\r\n| Data model and database schema | Customer journey automation |\r\n| Secure AI data pipeline | UI/frontend polish |\r\n| CSV impo"
+        },
+        {
+          "heading": "Key Technical Decisions",
+          "content": "- **Frontend + Backend:** Next.js 15 (App Router, TypeScript). Server Actions for all AI calls. Edge Runtime for PDF extraction. Native Vercel deployment.\r\n- **Database:** Supabase (PostgreSQL + pgvector). Auth, storage, real-time, vector search in one.\r\n- **Embeddings:** Google `text-embedding-004`"
+        },
+        {
+          "heading": "Key Risks to Track",
+          "content": "1. **Equity not formalised** — Sam's incentive to co-found post-build needs to be locked in writing before the platform is complete.\r\n2. **Sam's availability** — He is a solo fund manager. His time is limited. Need to extract compliance guidance and domain knowledge in structured sessions.\r\n3. **Sco"
+        },
+        {
+          "heading": "Source Documents in This Folder",
+          "content": "| File | What It Is |\r\n|------|------------|\r\n| `Ai Transcript.txt` | First Ollie-Amir call (Feb 23) — scoping conversation |\r\n| `Waterspring Ai Transcript.txt` | First 3-way meeting with Sam (Mar 2) — requirements deep dive |\r\n| `Waterspring Ai Transcript (1).txt` | Second 3-way meeting (Mar 5) — p"
+        },
+        {
+          "heading": "How to Be Useful in This Project",
+          "content": "- **For planning:** Reference BUILD_PLAN.md and ARCHITECTURE.md\r\n- **For feature scoping:** Always anchor to the MVP first, then add modules\r\n- **For business decisions:** Apply Business Guru frameworks — especially Hormozi (offer/value), Greene (power/partnership dynamics), and Blue Ocean (position"
+        }
+      ],
+      "size": 9366,
+      "keywords": [
+        "investor",
+        "build",
+        "data",
+        "waterspring",
+        "platform",
+        "fund",
+        "meeting",
+        "board",
+        "ollie",
+        "real",
+        "automation",
+        "amir",
+        "marketing",
+        "onboarding",
+        "first",
+        "compliance",
+        "packs",
+        "admin",
+        "mainspring",
+        "customer",
+        "automated",
+        "sprint",
+        "proposal",
+        "project",
+        "long",
+        "systems",
+        "architecture",
+        "industry",
+        "network",
+        "business"
+      ],
+      "preview": "You are embedded as a long-term thinking partner and planning tool for this project. Read this file  | Build an AI-native SaaS platform for EIS investment fund managers, starting with Waterspring Venture"
+    },
+    {
+      "title": "Project Brief — Waterspring AI Platform",
+      "path": "CLIENTS/waterspring/PROJECT_BRIEF.md",
+      "sections": [
+        {
+          "heading": "Vision",
+          "content": "An AI-native operations platform that allows a single EIS investment fund manager to run what previously required a team of 4-6 people. The platform ingests all data about the fund (board packs, investor records, meeting notes, market content) into a secure, private RAG system, and surfaces that int"
+        },
+        {
+          "heading": "The Client: Samuel Huxtable / Waterspring Ventures",
+          "content": "- **What Waterspring is:** An EIS (Enterprise Investment Scheme) fund manager, 4 years old, UK-based. Sam raises up to £2M/year into early-stage companies and manages a portfolio of investments.\r\n- **How Sam currently operates:** Solo. No employees. Everything done manually — reading board packs, em"
+        },
+        {
+          "heading": "The Problem This Solves",
+          "content": "### For Sam today:\r\n| Pain | Scale |\r\n|------|-------|\r\n| Reading 20-30 page board packs for each portfolio company | ~10 companies, monthly |\r\n| Manually reconciling investor data between Mainspring (custodian) and Further (investor platform) | Every time balances change |\r\n| Following up leads fro"
+        },
+        {
+          "heading": "The Platform",
+          "content": "### Core Concept\r\nA two-view platform powered by a central RAG system. The RAG engine is fed with all of Waterspring's data (board packs, meeting transcripts, investor records, emails, reports) and powers every intelligent feature across both views.\r\n\r\n### Admin View (Sam)\r\nEverything Sam needs to r"
+        },
+        {
+          "heading": "Feature Modules",
+          "content": "### MVP (Phase 1)\r\n1. **Platform shell** — auth, routing, admin/customer role split, navigation\r\n2. **Admin dashboard** — overview widgets, campaign settings\r\n3. **Customer portal** — onboarding flow, portfolio view, basic analytics\r\n4. **Core RAG system** — data ingestion pipeline, vector storage, "
+        },
+        {
+          "heading": "Business Model",
+          "content": "### Phase 1: Waterspring build\r\n- Fixed fee: £8,000 (£2.5K upfront / £2.5K week 4 / £3K completion)\r\n- Rationale: Covers time investment at minimum, delivers a live product, establishes the partnership\r\n\r\n### Phase 2: Market expansion\r\n- SaaS subscription tiers based on firm size and module usage\r\n-"
+        },
+        {
+          "heading": "Competitive Landscape",
+          "content": "| Player | What They Do | Gap |\r\n|--------|-------------|-----|\r\n| Hatch | Digital-first EIS fund — content-led investor acquisition | They're a fund, not a platform. We are building what they built, as a product for others. |\r\n| Further | Investor administration platform for EIS funds | Admin-only,"
+        },
+        {
+          "heading": "Key Risks",
+          "content": "| Risk | Mitigation |\r\n|------|-----------|\r\n| Equity not formalised with Sam | Raise this before platform completion. Get it in writing. |\r\n| Sam's time is limited | Structured extraction sessions. Short async check-ins. Batch compliance reviews. |\r\n| Scope creep across 8+ modules | MVP discipline."
+        },
+        {
+          "heading": "Success Metrics (Phase 1)",
+          "content": "- Platform delivered in 6-8 weeks\r\n- Sam using it daily for at least 3 core workflows\r\n- At least 1 other fund manager demo'd the platform (via Sam's network)\r\n- No FCA compliance issues raised\r\n- Both Ollie and Amir paid in full"
+        },
+        {
+          "heading": "Success Metrics (Phase 2)",
+          "content": "- 3+ paying fund manager clients on the platform\r\n- Monthly recurring revenue established\r\n- Company formation documents drafted\r\n- Sam actively pitching the product to his network"
+        }
+      ],
+      "size": 8436,
+      "keywords": [
+        "platform",
+        "investor",
+        "fund",
+        "data",
+        "board",
+        "meeting",
+        "phase",
+        "content",
+        "admin",
+        "compliance",
+        "waterspring",
+        "investment",
+        "manager",
+        "packs",
+        "customer",
+        "first",
+        "reports",
+        "view",
+        "market",
+        "system",
+        "investors",
+        "managers",
+        "manually",
+        "tools",
+        "portfolio",
+        "network",
+        "industry",
+        "potential",
+        "clients",
+        "mainspring"
+      ],
+      "preview": "An AI-native operations platform that allows a single EIS investment fund manager to run what previo | - **What Waterspring is:** An EIS (Enterprise Investment Scheme) fund manager, 4 years old, UK-based"
+    },
+    {
+      "title": "Waterspring AI Platform — RAG Architecture Plan",
+      "path": "CLIENTS/waterspring/RAG_ARCHITECTURE.md",
+      "sections": [
+        {
+          "heading": "1. What We're Adapting and Why",
+          "content": "RAGX is a CRM automation app Amir built for agencies and law firms. It became a personal internal tool — too many features, scattered focus. But buried inside it is a working, battle-tested RAG skeleton: a Supabase + pgvector document store, a chunking pipeline, a vector similarity search layer, a c"
+        },
+        {
+          "heading": "2. RAGX RAG Skeleton — What It Actually Does",
+          "content": "Before making decisions, here's a precise account of each layer.\r\n\r\n### 2.1 Database Schema (pgvector on Supabase)\r\n\r\nFive tables:\r\n\r\n| Table | Purpose |\r\n|---|---|\r\n| `ragx_documents` | One row per document/entity. Stores title, full content (text), document_type enum, source_id (FK to origin table"
+        },
+        {
+          "heading": "3. What to Reuse vs. What to Change",
+          "content": "| Component | Decision | Rationale |\r\n|---|---|---|\r\n| Supabase + pgvector as the vector store | **Reuse** | Already proven, already the platform DB |\r\n| `ragx_documents` + `ragx_chunks` schema | **Reuse with renames** | Rename to `ws_documents` / `ws_chunks` to avoid namespace collision |\r\n| `ragx_"
+        },
+        {
+          "heading": "4. Waterspring Document Types",
+          "content": "The `document_type` enum needs to reflect Waterspring's data model. Replace the RAGX types with these:\r\n\r\n```sql\r\ndocument_type text NOT NULL CHECK (document_type IN (\r\n  'board_pack',           -- PDF board pack for a portfolio company\r\n  'board_pack_metrics',   -- Extracted financial metrics from "
+        },
+        {
+          "heading": "5. Waterspring Intelligence Agents",
+          "content": "Six agents replace the four RAGX agents. Each maps to a specific platform feature module.\r\n\r\n### Agent 1: `board-pack-analyser`\r\n\r\n**Trigger:** When a board pack PDF is uploaded to Supabase Storage  \r\n**Input:** Extracted text from board pack, company ID  \r\n**What it does:**  \r\n- Extracts structured"
+        },
+        {
+          "heading": "6. Updated Database Schema for Waterspring",
+          "content": "```sql\r\n-- Enable pgvector\r\nCREATE EXTENSION IF NOT EXISTS vector;\r\n\r\n-- ============================================\r\n-- Waterspring Knowledge Store\r\n-- ============================================\r\n\r\nCREATE TABLE public.ws_documents (\r\n  id             uuid DEFAULT uuid_generate_v4() PRIMARY KEY,\r"
+        },
+        {
+          "heading": "7. Ingestion Pipeline — WaterspringKnowledgeIngestion",
+          "content": "Replace the RAGX `RAGxKnowledgeIngestion` class with a `WaterspringKnowledgeIngestion` class. The structure is identical; the entity methods change.\r\n\r\n**Critical change: real embeddings**\r\n\r\n```typescript\r\n// Replace createKeywordEmbedding() with this:\r\n// Uses Google text-embedding-004 via @google"
+        },
+        {
+          "heading": "8. The Chat API for Waterspring",
+          "content": "The chat API structure is identical to RAGX with three changes. LLM is Gemini 2.5 Flash via `@google/generative-ai`:\r\n\r\n```typescript\r\nimport { GoogleGenerativeAI } from '@google/generative-ai'\r\n\r\nconst genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY!)\r\n\r\nasync function generateResponse"
+        },
+        {
+          "heading": "9. Board Pack Ingestion Flow (the Critical Path)",
+          "content": "This is the most complex and most important flow. Step by step:\r\n\r\n```\r\n1. Sam uploads board-pack PDF via Admin view\r\n   → Stored in Supabase Storage bucket: 'board-packs/{company_id}/{date}.pdf'\r\n\r\n2. Storage trigger fires Edge Function: extract-document\r\n   → Downloads file, sends to OCR provider "
+        },
+        {
+          "heading": "10. Implementation Sequence",
+          "content": "Build in this order. Each phase is independently deployable.\r\n\r\n### Phase 1 — RAG Foundation (Week 1)\r\n\r\n1. Run `ws_documents` + `ws_chunks` + `ws_conversations` + `ws_messages` schema SQL on Supabase\r\n2. Run `ws_similarity_search` + `ws_entity_search` function SQL\r\n3. Create IVFFlat index (after ad"
+        },
+        {
+          "heading": "11. Key Engineering Decisions and Tradeoffs",
+          "content": "**Decision: Google stack throughout — Gemini 2.5 Flash for LLM, `text-embedding-004` for embeddings**  \r\nSingle SDK (`@google/generative-ai`), single API key, single billing account. Gemini 2.5 Flash has a 1M token context window — large enough to pass multiple board packs into a single call if need"
+        },
+        {
+          "heading": "12. Files to Create in the Waterspring Repo",
+          "content": "**Dependencies to install:**\r\n```bash\r\nnpm install @google/generative-ai\r\n```\r\nOne package covers both Gemini 2.5 Flash and `text-embedding-004`. No separate SDK for embeddings.\r\n\r\n```\r\nsrc/\r\n├── lib/\r\n│   ├── rag/\r\n│   │   ├── ingestion.ts        ← WaterspringKnowledgeIngestion class\r\n│   │   ├── e"
+        },
+        {
+          "heading": "13. Risks and What to Watch",
+          "content": "**Risk 1: Board pack extraction quality**  \r\nBoard packs vary enormously in format, layout, and terminology. The `board-pack-analyser` prompt needs to be calibrated on real Waterspring board packs before going live. Build in a \"review extracted metrics\" screen so Sam can correct errors before they g"
+        }
+      ],
+      "size": 36797,
+      "keywords": [
+        "text",
+        "board",
+        "pack",
+        "investor",
+        "embedding",
+        "agent",
+        "company",
+        "default",
+        "public",
+        "waterspring",
+        "string",
+        "ragx",
+        "create",
+        "meeting",
+        "content",
+        "document",
+        "vector",
+        "table",
+        "function",
+        "null",
+        "uuid",
+        "reuse",
+        "google",
+        "supabase",
+        "data",
+        "build",
+        "admin",
+        "ingestion",
+        "embeddings",
+        "packs"
+      ],
+      "preview": "RAGX is a CRM automation app Amir built for agencies and law firms. It became a personal internal to | Before making decisions, here's a precise account of each layer.\r\n\r\n### 2.1 Database Schema (pgvecto"
+    },
+    {
+      "title": "Waterspring — Sprint 1 Plan",
+      "path": "CLIENTS/waterspring/SPRINT_1_PLAN.md",
+      "sections": [
+        {
+          "heading": "Scope Change — What Shifted and Why",
+          "content": "Sam confirmed the following after Wednesday's meeting:\r\n\r\n- **Marketing automation (LinkedIn/Pipedrive/Mailchimp)** — Tom will own this using off-the-shelf tools. Pipedrive is already in place; Tom has Mailchimp experience. Ollie and Amir are not building this upfront. Once real funnel data exists, "
+        },
+        {
+          "heading": "The Five Sprint 1 Deliverables",
+          "content": "### 1. Platform Shell\r\nTwo authenticated views — Admin (Sam) and Investor (portal). Clean dashboard as the landing page for both, sidebar navigation to all sections, persistent AI chat at the bottom of every screen. The shell is the frame everything else lives inside.\r\n\r\n**Owner:** Amir (architectur"
+        },
+        {
+          "heading": "Stage 2 Placeholders (Not Sprint 1)",
+          "content": "These are off the plate for now with clear reasons:\r\n\r\n| Feature | Why Deferred |\r\n|---|---|\r\n| Investor onboarding flow | Further handles this end to end |\r\n| Customer journey automation | Deprioritised; Tom owns the funnel |\r\n| Marketing automation (LinkedIn, Pipedrive) | Tom owns with Mailchimp +"
+        },
+        {
+          "heading": "How the RAG Skeleton Connects Everything",
+          "content": "Every deliverable either feeds data into the RAG store or queries it:\r\n\r\n| Deliverable | Relationship to RAG |\r\n|---|---|\r\n| AI Chat | The query interface — how both users get data out |\r\n| Board Pack Analysis | Primary data feed — raw metrics, discrepancy records, version history |\r\n| Pre-Meeting B"
+        },
+        {
+          "heading": "What We Need From Sam (Before We Can Build)",
+          "content": "| Item | Needed For |\r\n|---|---|\r\n| Historical board packs (Distil, Atherton, Operati) | RAG testing, metric extraction, version comparison |\r\n| TFI reporting templates | Automated reporting — TFI |\r\n| Co-investor reporting formats | Automated reporting — DBW, FSE, Angel Invest Wales |\r\n| Mainspring"
+        }
+      ],
+      "size": 6952,
+      "keywords": [
+        "data",
+        "further",
+        "investor",
+        "board",
+        "reporting",
+        "meeting",
+        "mainspring",
+        "pack",
+        "owner",
+        "amir",
+        "integration",
+        "sprint",
+        "platform",
+        "ollie",
+        "briefing",
+        "will",
+        "onboarding",
+        "handles",
+        "analysis",
+        "automated",
+        "holdings",
+        "metrics",
+        "store",
+        "automation",
+        "pipedrive",
+        "both",
+        "packs",
+        "version",
+        "between",
+        "portfolio"
+      ],
+      "preview": "Sam confirmed the following after Wednesday's meeting:\r\n\r\n- **Marketing automation (LinkedIn/Pipedri | ### 1. Platform Shell\r\nTwo authenticated views — Admin (Sam) and Investor (portal). Clean dashboard "
+    },
+    {
+      "title": "Business Brain 2.0: FINAL COMPLETION STATUS",
+      "path": "COACH/BUSINESS_BRAIN_FINAL_STATUS.md",
+      "sections": [
+        {
+          "heading": "📊 PROJECT COMPLETION SUMMARY",
+          "content": "### What Was Built\nA comprehensive, hierarchical knowledge system containing **303 interconnected business concepts** extracted from **33 elite business books**, organized in a three-tier taxonomy with **368 semantic connections** and an interactive D3.js force-directed graph visualization.\n\n### Key"
+        },
+        {
+          "heading": "🎯 TIER 1: CORE PRINCIPLES (12 Concepts)",
+          "content": "The foundational pillars underlying all business success:\n\n1. **Value Creation** - All wealth flows from solving problems\n2. **Fearlessness** - Acting despite uncertainty and risk\n3. **Human Irrationality** - People decide emotionally, justify rationally\n4. **Power Dynamics** - Information and reput"
+        },
+        {
+          "heading": "📚 TIER 2: DOMAIN SYSTEMS (56 Concepts)",
+          "content": "Organized frameworks within 10 major business domains:\n\n### Offers & Value (6 concepts)\n- Dream Outcome, Value Equation, Pricing Psychology, Guarantees, Offer Stacking, Hook-Story-Offer\n\n### Leads & Outreach (5 concepts)\n- Content Engine, Cold Email, Warm Outreach, Paid Advertising, Referral Systems"
+        },
+        {
+          "heading": "🔧 TIER 3: IMPLEMENTATION TACTICS (235 Concepts)",
+          "content": "Specific, actionable tactics organized by domain:\n\n**Offers & Value (65 concepts)**\n- Dream Client Psychographics, Transformation Identity Shift, Status Elevation, Freedom Definition\n- Value Equation components: Tangible Deliverables, Intangible Benefits, Speed of Results, Effort Minimization\n- Pric"
+        },
+        {
+          "heading": "🔗 CONNECTION ARCHITECTURE",
+          "content": "### Foundation Links (TIER 1 → TIER 2): 56 connections\nEach core principle (T1) connects to relevant domain systems (T2):\n- Value Creation → Dream Outcome, Value Equation, Pricing Psychology\n- Fearlessness → Execution & Speed, Competitive Advantage\n- Human Irrationality → Pricing Psychology, Scarcit"
+        },
+        {
+          "heading": "📁 DELIVERABLE FILES",
+          "content": "### Core Databases\n1. **business-brain-complete.json** (303 concepts + 368 connections)\n   - Complete integrated database ready for visualization\n   - All three tiers with full metadata\n   - All semantic connections pre-computed\n\n2. **final-brain-database.json** (TIER 1 + metadata)\n   - Core princip"
+        },
+        {
+          "heading": "🎓 HOW TO USE THE BUSINESS BRAIN",
+          "content": "### For Individual Learning\n1. **Start with a TIER 1 principle** - \"What do I want to understand?\"\n2. **Explore related TIER 2 domains** - \"What systems apply to this?\"\n3. **Deep dive into TIER 3 tactics** - \"What specific actions should I take?\"\n4. **Follow cross-domain connections** - \"How does th"
+        },
+        {
+          "heading": "🔮 POTENTIAL ENHANCEMENTS (Future Phases)",
+          "content": "### Phase 1: Modal Enhancements\n- Full concept detail modals with direct quotes from source books\n- Real-world examples and case studies\n- Prerequisite concepts and learning paths\n- Difficulty level ratings\n\n### Phase 2: Interactive Features\n- \"People studying X also study Y\" recommendation engine\n-"
+        },
+        {
+          "heading": "📖 SOURCE BOOKS (33 Total)",
+          "content": "### Robert Greene (8 books)\n- 48 Laws of Power\n- Mastery\n- 33 Strategies of War\n- The 50th Law\n- Art of Seduction\n- Laws of Human Nature\n- Concise Mastery\n- Daily Laws\n\n### Alex Hormozi (5 books)\n- $100M Offers\n- $100M Leads\n- $100M Money Models\n- Leads (supplemental)\n- Money Models (bonus)\n\n### Inf"
+        },
+        {
+          "heading": "✅ PROJECT CHECKLIST",
+          "content": "### ✅ Completed\n- [x] Extract 303 concepts from 33 books (12 T1 + 56 T2 + 235 T3)\n- [x] Build three-tier hierarchical taxonomy\n- [x] Create 368 semantic connections (56 foundation + 235 implementation + 77 reinforcement)\n- [x] Design interactive D3.js visualization with hover, click, and drag\n- [x] "
+        },
+        {
+          "heading": "🎯 FINAL STATISTICS",
+          "content": "```\nBUSINESS BRAIN 2.0 - COMPLETE SYSTEM\n\nConcepts:           303\n├─ TIER 1 (Core):   12\n├─ TIER 2 (Domain): 56\n└─ TIER 3 (Tactics):235\n\nConnections:        368\n├─ Foundation:      56\n├─ Implementation:  235\n└─ Reinforcement:   77\n\nDomains:            10\nBooks:              33\nGraph Density:      1."
+        },
+        {
+          "heading": "🚀 DEPLOYMENT",
+          "content": "The Business Brain is ready to be:\n1. **Embedded in web applications** as a React component\n2. **Used in educational contexts** as an interactive knowledge map\n3. **Referenced in business strategy** for decision-making frameworks\n4. **Shared as learning material** with interconnected concept explana"
+        }
+      ],
+      "size": 16092,
+      "keywords": [
+        "concepts",
+        "tier",
+        "business",
+        "domain",
+        "value",
+        "connects",
+        "connections",
+        "brain",
+        "books",
+        "tactics",
+        "concept",
+        "systems",
+        "strategy",
+        "creation",
+        "learning",
+        "principles",
+        "first",
+        "psychology",
+        "status",
+        "implementation",
+        "complete",
+        "visualization",
+        "wealth",
+        "power",
+        "reputation",
+        "mastery",
+        "pricing",
+        "email",
+        "ready",
+        "core"
+      ],
+      "preview": "### What Was Built\nA comprehensive, hierarchical knowledge system containing **303 interconnected bu | The foundational pillars underlying all business success:\n\n1. **Value Creation** - All wealth flows "
+    },
+    {
+      "title": "Business Brain 2.0: Quick Start Guide",
+      "path": "COACH/QUICK_START_GUIDE.md",
+      "sections": [
+        {
+          "heading": "🎯 What You Have",
+          "content": "A complete knowledge system of **303 interconnected business concepts** organized in a **3-tier hierarchy** with **368 semantic connections**, ready to use and visualize."
+        },
+        {
+          "heading": "📊 The Numbers",
+          "content": "- **303 total concepts** (12 core principles + 56 domain systems + 235 tactics)\n- **368 connections** showing how concepts relate and reinforce\n- **10 business domains** fully mapped\n- **33 source books** (Greene, Hormozi, Cialdini, Brunson, Hill, Kiyosaki, etc.)"
+        },
+        {
+          "heading": "📁 Key Files",
+          "content": "### Use These to Display the Brain\n- **`business-brain-v3.jsx`** ← Latest interactive visualization\n  - React component using D3.js\n  - Search, filter by domain, click to explore\n  - Perfect for web apps\n  \n- **`business-brain-complete.json`** ← All 303 concepts + 368 connections\n  - Complete databa"
+        },
+        {
+          "heading": "🚀 Getting Started in 3 Ways",
+          "content": "### 1. **For Web Developers**\nCopy `business-brain-v3.jsx` into your React project:\n```jsx\nimport BusinessBrainV3 from './business-brain-v3'\nexport default function App() {\n  return <BusinessBrainV3 />\n}\n```\n\n### 2. **For Data Analysis**\nLoad the JSON database:\n```python\nimport json\nwith open('busin"
+        },
+        {
+          "heading": "💡 How the Brain is Organized",
+          "content": "### 3-Tier Hierarchy\n```\nTIER 1: Core Principles (12)\n    ↓ Foundation Links (56)\nTIER 2: Domain Systems (56)\n    ↓ Implementation Links (235)\nTIER 3: Tactics (235)\n    ↔ Reinforcement Links (77)\n```\n\n### 10 Domains\n1. **Offers & Value** - Creating irresistible offers\n2. **Leads & Outreach** - Gener"
+        },
+        {
+          "heading": "🔍 Search Examples",
+          "content": "The visualization has built-in search. Try:\n- `\"value\"` → Find all value-related concepts\n- `\"pricing\"` → Find pricing tactics\n- `\"cold email\"` → Find email outreach concepts\n- `\"authority\"` → Find influence concepts\n\n---"
+        },
+        {
+          "heading": "📊 Data Structure",
+          "content": "```json\n{\n  \"metadata\": {\n    \"totalConcepts\": 303,\n    \"totalConnections\": 368,\n    \"domains\": 10\n  },\n  \"concepts\": [\n    {\n      \"id\": \"t1-value-creation\",\n      \"label\": \"Value Creation\",\n      \"tier\": 1,\n      \"domain\": \"Offers\",\n      \"description\": \"...\",\n      \"parent\": \"...\",\n      \"book\": "
+        },
+        {
+          "heading": "🎨 Visual Guide",
+          "content": "### Node Sizes (by Tier)\n- **Large circles** (45px radius) = TIER 1 Core Principles\n- **Medium circles** (28px radius) = TIER 2 Domain Systems\n- **Small circles** (12px radius) = TIER 3 Tactics\n\n### Link Colors (by Type)\n- **Red lines** (3px) = Foundation links (T1→T2)\n- **Teal lines** (2px) = Imple"
+        },
+        {
+          "heading": "🧠 Example Learning Paths",
+          "content": "### Path 1: Build an Irresistible Offer\n1. Start: **Value Creation** (T1)\n2. Explore: **Dream Outcome** (T2) → **Value Equation** (T2) → **Pricing Psychology** (T2)\n3. Implement: \n   - Dream Client Psychographics\n   - Tangible Deliverable Specificity\n   - Anchoring Effect Application\n   - 30-Day Mon"
+        },
+        {
+          "heading": "⚡ Key Insights",
+          "content": "### Cross-Domain Reinforcement\nConcepts don't exist in isolation. The brain maps how:\n- **Pricing Psychology** (Offers) reinforces **Scarcity Activation** (Influence)\n- **Content Engine** (Leads) drives **Social Proof** (Influence)\n- **Personal Branding** (Power) supports **Execution Speed** (Mindse"
+        },
+        {
+          "heading": "📈 Statistics",
+          "content": "```\nConcept Distribution by Tier:\nTIER 1: 12 concepts (core principles)\nTIER 2: 56 concepts (56 parent relationships)\nTIER 3: 235 concepts (235 children tactics)\n\nConnection Distribution:\nT1→T2: 56 foundation links\nT2→T3: 235 implementation links\nT3↔T3: 77 cross-domain reinforcements\n\nMost Connected"
+        },
+        {
+          "heading": "🔧 Technical Stack",
+          "content": "- **Frontend**: React 18+\n- **Visualization**: D3.js v7\n- **Data Format**: JSON\n- **Styling**: Tailwind CSS\n- **Interactivity**: Click, drag, search, filter\n\n---"
+        },
+        {
+          "heading": "✨ Features",
+          "content": "✅ Real-time search across all 303 concepts\n✅ Domain filtering (10 domains)\n✅ Color-coded visual hierarchy\n✅ Click to explore concept details\n✅ Drag nodes to reorganize\n✅ Hover effects and connections\n✅ Side panel with concept metadata\n✅ Connected concepts display\n✅ Book source attribution\n✅ Responsi"
+        },
+        {
+          "heading": "🎓 What's Inside Each Concept",
+          "content": "**TIER 1 Example:**\n```\nValue Creation\n├─ Core Idea: All wealth flows from solving problems\n├─ Book Sources: Hormozi-Offers, Blue-Ocean, Rich-Dad-Poor-Dad\n├─ Examples: Uber (transportation), Apple (design), Amazon (convenience)\n└─ Connected to: 6 TIER 2 concepts\n```\n\n**TIER 2 Example:**\n```\nDream Ou"
+        },
+        {
+          "heading": "💾 File Sizes",
+          "content": "- `business-brain-complete.json` - ~50KB\n- `business-brain-v3.jsx` - ~12KB\n- Total deliverables - ~65KB (extremely portable)\n\n---"
+        }
+      ],
+      "size": 8713,
+      "keywords": [
+        "tier",
+        "concepts",
+        "brain",
+        "business",
+        "domain",
+        "connections",
+        "links",
+        "tactics",
+        "offers",
+        "value",
+        "json",
+        "complete",
+        "domains",
+        "connected",
+        "influence",
+        "core",
+        "principles",
+        "source",
+        "visualization",
+        "search",
+        "explore",
+        "data",
+        "reinforcement",
+        "strategy",
+        "creation",
+        "dream",
+        "into",
+        "concept",
+        "circles",
+        "foundation"
+      ],
+      "preview": "A complete knowledge system of **303 interconnected business concepts** organized in a **3-tier hier | - **303 total concepts** (12 core principles + 56 domain systems + 235 tactics)\n- **368 connections*"
+    },
+    {
+      "title": "🧠 Business Brain 2.0: Complete Knowledge System",
+      "path": "COACH/README.md",
+      "sections": [
+        {
+          "heading": "Overview",
+          "content": "**Business Brain 2.0** is a comprehensive, hierarchical knowledge system containing **303 interconnected business concepts** extracted from **33 elite business books**, organized in a **three-tier taxonomy** with **368 semantic connections**.\n\nThis is a complete, production-ready platform for unders"
+        },
+        {
+          "heading": "⚡ Quick Start",
+          "content": "### 1. **View the Visualization**\nOpen `business-brain-v3.jsx` in a React app:\n```jsx\nimport BusinessBrainV3 from './business-brain-v3'\nexport default App() { return <BusinessBrainV3 /> }\n```\n\n### 2. **Load the Data**\nAccess the complete database:\n```javascript\nconst data = require('./business-brain"
+        },
+        {
+          "heading": "📊 What's Inside",
+          "content": "### The System\n```\n303 Concepts\n├── TIER 1: 12 Core Principles\n├── TIER 2: 56 Domain Systems  \n└── TIER 3: 235 Implementation Tactics\n\n368 Connections\n├── 56 Foundation links (T1→T2)\n├── 235 Implementation links (T2→T3)\n└── 77 Reinforcement links (T3↔T3)\n\n10 Domains\n├── Offers & Value\n├── Leads & Ou"
+        },
+        {
+          "heading": "📁 Deliverable Files",
+          "content": "### Core Visualization\n- **`business-brain-v3.jsx`** ⭐ **START HERE**\n  - Latest interactive React component\n  - D3.js force-directed graph\n  - Search, filter, click-to-explore\n  - ~15KB, production-ready\n\n### Complete Database\n- **`business-brain-complete.json`** ⭐ **THE FULL SYSTEM**\n  - 303 conce"
+        },
+        {
+          "heading": "🎯 Use Cases",
+          "content": "### 1. **Learning & Education**\n- Interactive knowledge map for understanding business principles\n- Self-guided learning from foundational concepts to tactics\n- Visual hierarchy shows progression from theory to practice\n\n### 2. **Business Strategy**\n- Reference system for decision-making\n- Cross-dom"
+        },
+        {
+          "heading": "💡 Key Features",
+          "content": "✅ **Three-Tier Hierarchy** - From principles to specific tactics\n✅ **368 Semantic Connections** - Shows how concepts reinforce each other\n✅ **10 Business Domains** - Covers all major areas of business\n✅ **33 Source Books** - Based on elite business literature\n✅ **Interactive Visualization** - Click,"
+        },
+        {
+          "heading": "📈 Statistics",
+          "content": "```\nConcept Coverage:        303 total\n├─ TIER 1 (Principles): 12  (4%)\n├─ TIER 2 (Systems):    56  (18%)\n└─ TIER 3 (Tactics):    235 (78%)\n\nConnection Density:      368 total (1.21 per concept)\n├─ Foundation (T1→T2):  56\n├─ Implementation (T2→T3): 235\n└─ Reinforcement (T3↔T3): 77\n\nDomain Distributi"
+        },
+        {
+          "heading": "🚀 How the Brain Works",
+          "content": "### Foundation Architecture\nEvery TIER 1 principle connects to relevant TIER 2 domain systems:\n- **Value Creation** → Dream Outcome, Value Equation, Pricing Psychology\n- **Human Irrationality** → Pricing Psychology, Scarcity/Urgency, Social Proof\n\n### Implementation Chain\nEvery TIER 2 domain system "
+        },
+        {
+          "heading": "💻 Technical Stack",
+          "content": "- **Language**: JavaScript/React\n- **Visualization**: D3.js v7\n- **Data Format**: JSON\n- **Styling**: Tailwind CSS\n- **Framework**: React 18+\n- **Size**: ~15KB (v3) + ~113KB (data)\n\n---"
+        },
+        {
+          "heading": "🎓 Learning Paths",
+          "content": "### Path 1: Build a High-Ticket Offer\n1. Study: Value Creation (T1)\n2. Learn: Dream Outcome, Value Equation, Pricing Psychology (T2)\n3. Apply: Dream Client Profile, Anchoring Effect, Money-Back Guarantee, Bonus Stacking (T3)\n\n### Path 2: Generate 100 Qualified Leads\n1. Study: Attention Scarcity (T1)"
+        },
+        {
+          "heading": "🔄 Connection Types",
+          "content": "### Foundation Links (T1→T2)\nShow how core principles apply to domain systems:\n- Red color, 3px width\n- Strongest connections (strength: 1.0)\n- Direct principle-to-system mapping\n\n### Implementation Links (T2→T3)\nShow how domain systems break into tactics:\n- Teal color, 2px width\n- Strong connection"
+        },
+        {
+          "heading": "📖 Reading the Data",
+          "content": "### Concept Structure\n```json\n{\n  \"id\": \"t3-1-01\",\n  \"label\": \"Dream Client Psychographics\",\n  \"tier\": 3,\n  \"domain\": \"Offers\",\n  \"parent\": \"t2-dream-outcome\",\n  \"description\": \"Understanding the psychology of your ideal customer\",\n  \"book\": \"Hormozi-Offers\"\n}\n```\n\n### Connection Structure\n```json\n{"
+        },
+        {
+          "heading": "✨ Unique Features",
+          "content": "### Semantic Density\nNot just a list - concepts are **semantically interconnected** showing:\n- How principles apply across domains\n- How tactics compound effectiveness\n- Which concepts to study together\n\n### Multi-Source Validation\nEach concept is **sourced from 33 books**, giving:\n- Multiple perspe"
+        },
+        {
+          "heading": "🛠️ Implementation Examples",
+          "content": "### Using with D3.js\n```javascript\nimport * as d3 from 'd3';\nconst data = require('./business-brain-complete.json');\n\nconst nodes = data.concepts;\nconst links = data.connections;\n\nconst simulation = d3.forceSimulation(nodes)\n  .force('link', d3.forceLink(links).distance(100))\n  .force('charge', d3.f"
+        },
+        {
+          "heading": "📞 Files at a Glance",
+          "content": "| File | Size | Purpose | Use |\n|------|------|---------|-----|\n| `business-brain-v3.jsx` | 15KB | Interactive visualization | View/explore the brain |\n| `business-brain-complete.json` | 113KB | Complete system data | Load into apps |\n| `BUSINESS_BRAIN_FINAL_STATUS.md` | 16KB | Full documentation | "
+        }
+      ],
+      "size": 14103,
+      "keywords": [
+        "business",
+        "concepts",
+        "tier",
+        "brain",
+        "tactics",
+        "connections",
+        "complete",
+        "json",
+        "domain",
+        "system",
+        "principles",
+        "learning",
+        "dream",
+        "data",
+        "value",
+        "domains",
+        "source",
+        "books",
+        "visualization",
+        "implementation",
+        "links",
+        "offers",
+        "strategy",
+        "concept",
+        "text",
+        "systems",
+        "creation",
+        "pricing",
+        "psychology",
+        "each"
+      ],
+      "preview": "**Business Brain 2.0** is a comprehensive, hierarchical knowledge system containing **303 interconne | ### 1. **View the Visualization**\nOpen `business-brain-v3.jsx` in a React app:\n```jsx\nimport Busines"
+    },
+    {
+      "title": "copy",
+      "path": "RAG/copy.md",
+      "sections": [],
+      "size": 19566,
+      "keywords": [
+        "linkedin",
+        "just",
+        "will",
+        "company",
+        "https",
+        "better",
+        "like",
+        "being",
+        "most",
+        "gemini",
+        "more",
+        "know",
+        "tech",
+        "only",
+        "very",
+        "google",
+        "work",
+        "comment",
+        "even",
+        "well",
+        "time",
+        "good",
+        "using",
+        "year",
+        "access",
+        "make",
+        "need",
+        "business",
+        "studio",
+        "start"
+      ],
+      "preview": "I won $10,000 at Google's AI Hackathon in London,  \nwithout writing a single line of code\n\nfrom a 10am start to the results at 10pm in the center of Moorgate, it was a roller coaster of a day\\!\n\nbe"
+    },
+    {
+      "title": "Grademy Complete Redesign: Full System Guide",
+      "path": "RAG/grademy_complete_system_guide.md",
+      "sections": [
+        {
+          "heading": "Overview",
+          "content": "The redesigned Grademy is a **unified learning ecosystem** built on:\n1. **Chat-first primary interaction** (core entry point)\n2. **Intelligent intent detection** (routes to right mode/page)\n3. **One adaptive Story Mode** (lesson/practice/assessment/marking/study)\n4. **Subject-aware context** (left s"
+        },
+        {
+          "heading": "COMPLETE INFORMATION ARCHITECTURE",
+          "content": "```\n┌─────────────────────── GRADEMY DASHBOARD (Landing) ─────────────────────────┐\n│                                                                               │\n│  LEFT SIDEBAR          │  MAIN CONTENT AREA        │  RIGHT PANEL (Tabs)    │\n│  ─────────────────     │  ─────────────────────    │"
+        },
+        {
+          "heading": "CHAT INTENT → PAGE/MODE ROUTING",
+          "content": "When a user types in the chat input, the intent detection engine analyzes it and routes to the right interface:\n\n| User Input | Intent Detected | Routes To | Interface Shows |\n|---|---|---|---|\n| \"Explain photosynthesis\" | `lesson` | Story Mode | Formatted lesson + diagrams in main area; Chat sugges"
+        },
+        {
+          "heading": "COMPLETE PAGE BREAKDOWN",
+          "content": "### 1. DASHBOARD (Landing / Home)\n\n**Purpose:** Entry point. Chat-first. Shows context + suggestions + quick navigation.\n\n**Left Sidebar (Subject Selector)**\n- List of enrolled subjects (Biology, Chemistry, Maths, Physics)\n- Currently active subject highlighted in blue (#378ADD)\n- Shows confidence %"
+        },
+        {
+          "heading": "RESPONSIVE BEHAVIOR",
+          "content": "### Desktop (1440px+)\n- Left sidebar (subjects): 180px fixed\n- Main content: flexible, min 60%\n- Right panel (tabs): 180px fixed\n- All tabs visible, click to switch\n- Side panel always open\n\n### Tablet (768px–1440px)\n- Left sidebar: collapsible hamburger\n- Main content: full width\n- Right panel: tog"
+        },
+        {
+          "heading": "USER JOURNEYS (Example Flows)",
+          "content": "### Journey 1: New User Lands on Dashboard\n\n1. User sees dashboard with greeting\n2. Reads personalized suggestions (generated from profile)\n3. Clicks \"Practice weak areas\" suggestion card\n4. Chat input auto-fills: \"Give me hard MCQs on genetics\"\n5. Intent detected: `practice`\n6. Story Mode launches "
+        },
+        {
+          "heading": "HOW EVERYTHING STAYS CLEAN & ORGANIZED",
+          "content": "**Problem:** You mentioned \"too much, too cluttered\" — here's how we avoid that:\n\n### 1. **Intent Detection Simplifies Choices**\n- No mode selector buttons cluttering the interface\n- User just types naturally\n- System understands intent and shows right interface\n- → User sees only what they need rig"
+        },
+        {
+          "heading": "BRANDING & COLOR SYSTEM",
+          "content": "Using your existing design palette (from component specs):\n\n- **Info Blue** (#378ADD) — Primary actions, links, active state, suggestions\n- **Success Green** (#639922) — Correct answers, completed tasks, badges\n- **Warning Amber** (#BA7517) — Cautions, low confidence, deadlines\n- **Error Red** (#E24"
+        },
+        {
+          "heading": "TECHNICAL INTEGRATION POINTS",
+          "content": "### API Contracts (Already Defined)\n```\nPOST /api/detect-intent\nInput: { message: string, subject?: string, history?: Message[] }\nOutput: { intent: string, confidence: number, mode: string }\n\nPOST /api/generate-content\nInput: { intent: string, subject: string, topic?: string, ... }\nOutput: Stream of"
+        },
+        {
+          "heading": "NEXT STEPS FOR ENGINEERING",
+          "content": "1. **Week 1 Kickoff:**\n   - Review architecture with team\n   - Finalize API contracts\n   - Set up feature flags for each section\n\n2. **Phase 1 (Weeks 1–3):**\n   - Build dashboard layout (left sidebar + main + right panel structure)\n   - Implement chat input component\n   - Build intent detection serv"
+        },
+        {
+          "heading": "SUCCESS METRICS",
+          "content": "- **Adoption:** 30% increase in DAU within 1 month\n- **Engagement:** 40% more chat messages per session\n- **Learning:** 10% improvement in practice scores\n- **Performance:** <2s dashboard load, <200ms intent detection\n- **Satisfaction:** ≥4/5 student-reported UI satisfaction\n\n---\n\n**Maintained by:**"
+        }
+      ],
+      "size": 22698,
+      "keywords": [
+        "chat",
+        "right",
+        "panel",
+        "content",
+        "exam",
+        "subject",
+        "mode",
+        "settings",
+        "main",
+        "shows",
+        "lesson",
+        "click",
+        "practice",
+        "intent",
+        "story",
+        "feedback",
+        "string",
+        "input",
+        "question",
+        "page",
+        "calendar",
+        "bottom",
+        "area",
+        "interface",
+        "study",
+        "biology",
+        "buttons",
+        "topic",
+        "full",
+        "marking"
+      ],
+      "preview": "The redesigned Grademy is a **unified learning ecosystem** built on:\n1. **Chat-first primary interac | ```\n┌─────────────────────── GRADEMY DASHBOARD (Landing) ─────────────────────────┐\n│               "
+    },
+    {
+      "title": "Grademy.work — Complete UX Redesign Specification",
+      "path": "RAG/grademy_complete_ux_redesign_2026.md",
+      "sections": [
+        {
+          "heading": "EXECUTIVE SUMMARY",
+          "content": "### The Problem\nCurrent Grademy is **overengineered and cluttered**:\n- 4 separate modes (Study/Practice/Assess/Manage) creating cognitive load\n- Dashboard duplicates components (calendar, tasks, progress) visible elsewhere\n- To start learning: Dashboard → Subject → Mode → Topic → \"Story Mode\" button"
+        },
+        {
+          "heading": "PART 1: INFORMATION ARCHITECTURE",
+          "content": "### Current Hierarchy (Broken)\n```\nDashboard\n├─ Calendar (duplicated elsewhere)\n├─ Task list (duplicated elsewhere)\n├─ Progress graphs (duplicated elsewhere)\n├─ Subject cards (entry point, but cluttered)\n\nNavigation Menu\n├─ Home\n├─ History (redundant with calendar/tasks)\n├─ Calendar (duplicate)\n├─ C"
+        },
+        {
+          "heading": "PART 2: DASHBOARD REDESIGN",
+          "content": "### Goal\nBeautiful, minimal, chat-first. NOT a dashboard filled with cards and graphs.\n\n### Layout\n\n```\n┌─────────────────────────────────────────────────────┐\n│ 📚 grademy      [Algebra 1 ▼]    📅 📊 ⚙          │  Header\n├─────────────────────────────────────────────────────┤\n│                     "
+        },
+        {
+          "heading": "PART 3: STORY MODE ARCHITECTURE",
+          "content": "### Goal\nOne interface that adapts to every learning activity. Student never leaves this space.\n\n### Base Layout\n\n```\n┌──────────────────────────────────┬──────────────────┐\n│ [← Back] Algebra / Eigenvalues   │                  │\n├──────────────────────────────────┼──────────────────┤\n│             "
+        },
+        {
+          "heading": "PART 4: AUTO-SUBJECT DETECTION",
+          "content": "### Flow\n\n```\nStudent uploads a file\n    ↓\nAI analyzes: Filename, content preview, metadata\n    ↓\nDetects: Subject (e.g., \"Analysis 1\") + Topic (e.g., \"Sequences & Series\")\n    ↓\nAppends to student's profile (if new)\n    ↓\nUpdates sidebar: Shows new subject in list\n    ↓\nChat context shifts: \"Analyz"
+        },
+        {
+          "heading": "PART 5: CLAUDE VISUALIZATION INTEGRATION",
+          "content": "### What Gets Visualized\n\n**Automatically:**\n- Lesson explanations (graphs, diagrams, transformations)\n- Worked examples (step-by-step calculations with visual breaks)\n- Practice question diagrams (geometry, networks, chemical structures)\n- Assessment solution visualizations\n\n**On Demand:**\n- Studen"
+        },
+        {
+          "heading": "PART 6: IMPLEMENTATION ROADMAP",
+          "content": "### Phase 1: Foundation (Weeks 1-3)\n- [ ] Dashboard redesign (chat-first interface, sidebar)\n- [ ] Story Mode skeleton (header, main area, side tabs)\n- [ ] Basic chat→mode detection (lesson, practice, marking)\n- [ ] Settings tab with content toggles\n\n### Phase 2: Intelligence (Weeks 4-6)\n- [ ] Claud"
+        },
+        {
+          "heading": "PART 7: DESIGN SYSTEM",
+          "content": "### Colors\n- **Background:** #F8F6F1 (warm, soft)\n- **Surface:** #FFFFFF (clean)\n- **Text Primary:** #2C2C2C (dark, readable)\n- **Text Secondary:** #6B6B6B (muted)\n- **Accent Primary:** #E8684A (coral, action items)\n- **Accent Success:** #4CAF7F (green, correct)\n- **Accent Warning:** #F5A623 (orange"
+        },
+        {
+          "heading": "PART 8: CRITICAL SUCCESS FACTORS",
+          "content": "### Simplicity\n✓ No mode selection buttons  \n✓ No overwhelming dashboard  \n✓ Chat is always the starting point  \n✓ Settings are visible, not hidden  \n\n### Functionality\n✓ Every content type accessible (MCQ, essay, diagrams, etc.)  \n✓ Customizable via Settings (students control what appears)  \n✓ Inte"
+        },
+        {
+          "heading": "NEXT STEPS",
+          "content": "1. **Visualize Critical Pieces**\n   - Detailed Settings tab design\n   - Specific lesson examples with visualizations\n   - Assessment mode interface\n   - Mobile layouts\n\n2. **Validate with User Testing**\n   - Does chat-driven mode detection feel natural?\n   - Are visualizations helpful?\n   - Settings"
+        },
+        {
+          "heading": "SUMMARY TABLE: OLD vs NEW",
+          "content": "| Aspect | Old ❌ | New ✅ |\n|--------|--------|--------|\n| **Entry Point** | Cluttered dashboard | Chat-first, minimal |\n| **Mode Selection** | 4 separate tabs | Chat intent → auto-adaptation |\n| **Navigation** | 5+ clicks to learning | Dashboard → Story Mode (2 clicks) |\n| **Settings** | Hidden butt"
+        }
+      ],
+      "size": 18042,
+      "keywords": [
+        "chat",
+        "mode",
+        "subject",
+        "practice",
+        "content",
+        "student",
+        "settings",
+        "interface",
+        "dashboard",
+        "lesson",
+        "learning",
+        "marking",
+        "claude",
+        "story",
+        "eigenvalues",
+        "visualizations",
+        "exam",
+        "visualization",
+        "interactive",
+        "question",
+        "diagram",
+        "calendar",
+        "progress",
+        "detection",
+        "sidebar",
+        "auto",
+        "side",
+        "explain",
+        "assessment",
+        "always"
+      ],
+      "preview": "### The Problem\nCurrent Grademy is **overengineered and cluttered**:\n- 4 separate modes (Study/Pract | ### Current Hierarchy (Broken)\n```\nDashboard\n├─ Calendar (duplicated elsewhere)\n├─ Task list (duplic"
+    },
+    {
+      "title": "Grademy Redesign: Component Specification Guide",
+      "path": "RAG/grademy_component_specifications.md",
+      "sections": [
+        {
+          "heading": "Color System",
+          "content": "### Primary Semantic Colors\n- **Info (Blue):** `#378ADD` — Actions, links, highlights, intent detection\n- **Success (Green):** `#639922` — Correct answers, passing scores, confirmations\n- **Warning (Amber):** `#BA7517` — Cautions, low confidence, incomplete tasks\n- **Error (Red):** `#E24B4A` — Mista"
+        },
+        {
+          "heading": "Typography",
+          "content": "### Font Family\n- **Default:** \"Anthropic Sans\" or system sans-serif fallback\n- **Serif (rare):** Georgia or equivalent (never for UI, only editorial moments)\n- **Monospace:** Monaco / Courier New (code snippets, math notation)\n\n### Scales\n| Use | Size | Weight | Line Height |\n|-----|------|--------"
+        },
+        {
+          "heading": "Component Library",
+          "content": "### 1. Chat Input\n\n**States:** default, focused, filled, disabled\n\n```\n┌─────────────────────────────────────────────┐\n│ Type your question... explain... practice...│ ↗\n└─────────────────────────────────────────────┘\n```\n\n**Specs:**\n- Height: 44px (touch target)\n- Padding: 12px left, 12px right (tex"
+        },
+        {
+          "heading": "Layout Patterns",
+          "content": "### Card Grid (2–4 columns)\n\n**Desktop (1440px):**\n```\n┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐\n│ Card 1      │ │ Card 2      │ │ Card 3      │ │ Card 4      │\n└─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘\nGap: 12px between cards\n```\n\n**Tablet (768px):**\n```\n"
+        },
+        {
+          "heading": "Micro-Interactions",
+          "content": "### Loading State\n- Skeleton loader: gray placeholder with slight pulse (0.5s cycle)\n- Spinner: rotating circle (default 1s rotation)\n- Typing indicator (chat): three animated dots\n\n### Hover Feedback\n- Delay: 50ms (avoid jitter)\n- Transition: 100ms ease\n- Effects: border color change, background sh"
+        },
+        {
+          "heading": "Accessibility Checklist",
+          "content": "### Touch Targets\n- ✅ All interactive elements ≥44px × 44px\n- ✅ Spacing between targets ≥8px\n- ✅ No nested buttons (label children of button only)\n\n### Color & Contrast\n- ✅ Text on background ≥4.5:1 contrast ratio\n- ✅ UI elements (icons, borders) ≥3:1 contrast\n- ✅ Never rely on color alone (pair wit"
+        },
+        {
+          "heading": "Example Component Code Snippets",
+          "content": "### Chat Input\n```jsx\n<input\n  type=\"text\"\n  placeholder=\"Explain photosynthesis... or mark my work...\"\n  value={input}\n  onChange={(e) => setInput(e.target.value)}\n  onKeyDown={(e) => {\n    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {\n      handleSend();\n    }\n  }}\n  aria-label=\"Chat messag"
+        },
+        {
+          "heading": "Usage Guidelines",
+          "content": "### When to Use Each Component\n\n| Need | Component | Notes |\n|------|-----------|-------|\n| User input | Chat Input | Always primary for this redesign |\n| Quick action | Suggestion Card | Groups related ideas |\n| Toggle setting | Toggle Switch | For binary (on/off) choices |\n| Multiple options | Dro"
+        },
+        {
+          "heading": "Q&A for Designers & Engineers",
+          "content": "**Q: Can we use these components for other parts of grademy?**\nA: Yes. This is the system-wide spec. Maintain consistency.\n\n**Q: What about dark mode?**\nA: All colors auto-adapt via CSS variables. Test both modes (prefers-color-scheme: dark).\n\n**Q: Do we need to support older browsers (IE 11)?**\nA: "
+        }
+      ],
+      "size": 15628,
+      "keywords": [
+        "background",
+        "text",
+        "border",
+        "card",
+        "padding",
+        "label",
+        "button",
+        "color",
+        "icon",
+        "radius",
+        "right",
+        "hover",
+        "input",
+        "bottom",
+        "solid",
+        "primary",
+        "secondary",
+        "dark",
+        "scale",
+        "specs",
+        "left",
+        "style",
+        "white",
+        "chat",
+        "disabled",
+        "width",
+        "info",
+        "light",
+        "font",
+        "weight"
+      ],
+      "preview": "### Primary Semantic Colors\n- **Info (Blue):** `#378ADD` — Actions, links, highlights, intent detect | ### Font Family\n- **Default:** \"Anthropic Sans\" or system sans-serif fallback\n- **Serif (rare):** Ge"
+    },
+    {
+      "title": "Grademy Redesign Project — Complete Conversation History & Specifications",
+      "path": "RAG/grademy_conversation_history_and_specifications.md",
+      "sections": [
+        {
+          "heading": "PART 1: CONVERSATION TIMELINE & KEY DECISIONS",
+          "content": "### Initial Project Scope\nUser requested a chat-first interface redesign for Grademy, emphasizing:\n- Intuitive natural language intent detection\n- Integration with existing modes (subject interface, etc.)\n- Simplicity as the primary design principle\n- Need for comprehensive UX overhaul\n\n**User's Cor"
+        },
+        {
+          "heading": "PART 2: SYSTEM ARCHITECTURE & DESIGN SPECIFICATIONS",
+          "content": "### Core Concept: Chat-First Interface with Intent Detection Routing\n\nThe redesigned Grademy system centers on a natural language chat interface that intelligently routes user queries to specialized sub-interfaces based on detected intent.\n\n#### Intent Detection Routing Matrix\n\n| User Intent | Prima"
+        },
+        {
+          "heading": "PART 3: TECHNICAL SPECIFICATIONS",
+          "content": "### API Contracts\n\n#### Intent Detection Endpoint\n```\nPOST /api/v1/intent-detection\nRequest:\n  - query: string (user input)\n  - subject_context: string (optional, current subject)\n  - user_history: object (optional, past queries)\n\nResponse:\n  - detected_intent: enum (lesson|practice|assessment|marki"
+        },
+        {
+          "heading": "PART 4: IMPLEMENTATION ROADMAP (12 Weeks, 4 Phases)",
+          "content": "### Phase 1: Foundation & Intent Detection (Weeks 1-3)\n\n**Week 1: Project Setup & Architecture**\n- Initialize project repository\n- Set up development environment\n- Configure build and deployment pipeline\n- Create project structure and component folders\n- Set up state management (Redux/Context)\n- Imp"
+        },
+        {
+          "heading": "PART 5: SUCCESS METRICS & VALIDATION",
+          "content": "### Engagement Metrics\n- User daily active rate: Target >60% of registered users\n- Session duration: Target >15 minutes average\n- Feature usage: Each mode used by >40% of active users\n- Chat interaction rate: >70% of sessions initiated via chat\n\n### Learning Outcomes\n- Assessment performance: >70% a"
+        },
+        {
+          "heading": "PART 6: DESIGN SYSTEM & COMPONENT LIBRARY",
+          "content": "### Component Inventory\n\n**Layout Components**\n- Sidebar (collapsible, responsive)\n- TopNav (primary navigation, user menu)\n- RightPanel (toggleable tabs system)\n- MainContent (flexible content area)\n- BottomSheet (mobile primary actions)\n\n**Chat Components**\n- ChatInput (with autocomplete, intent s"
+        },
+        {
+          "heading": "PART 7: CONSTRAINTS & LIMITATIONS",
+          "content": "### Known Constraints\n1. **Offline Functionality**: Current architecture requires internet connection; future phase could implement offline content caching\n2. **Assessment Marking**: AI-generated feedback may require human review for subjective assessments\n3. **Content Availability**: Depends on ava"
+        },
+        {
+          "heading": "PART 8: DEPLOYMENT & ROLLOUT STRATEGY",
+          "content": "### Pre-Launch Checklist\n- [ ] All components tested in all breakpoints\n- [ ] Accessibility audit complete (WCAG AA)\n- [ ] Performance optimized (Lighthouse >90)\n- [ ] Security audit completed\n- [ ] API contracts validated\n- [ ] Database schema tested with sample data\n- [ ] Feature flags configured\n"
+        },
+        {
+          "heading": "PART 9: APPROVAL & SIGN-OFF MATRIX",
+          "content": "### Required Approvals\n\n**Product Manager**\n- Feature set completeness\n- User value alignment\n- Launch readiness\n\n**Engineering Lead**\n- Technical architecture\n- Implementation feasibility\n- Timeline accuracy\n\n**Design Lead**\n- Visual design consistency\n- Accessibility compliance\n- Responsive implem"
+        },
+        {
+          "heading": "PART 10: DOCUMENT HISTORY",
+          "content": "**Version 1.0** (May 13, 2026)\n- Initial comprehensive PRD creation\n- Complete conversation history documentation\n- Full technical specifications\n- 12-week implementation roadmap\n- Success metrics and validation criteria\n\n---"
+        },
+        {
+          "heading": "PART 11: APPENDICES",
+          "content": "### A. Exhaustive Chat Intent Examples\n\n**Lesson Intent Examples**\n- \"explain photosynthesis\"\n- \"how do derivatives work?\"\n- \"teach me about world war 2\"\n- \"what is quantum entanglement?\"\n- \"break down the carbon cycle\"\n\n**Practice Intent Examples**\n- \"test me on integration\"\n- \"give me some maths p"
+        },
+        {
+          "heading": "CONCLUSION",
+          "content": "This comprehensive document represents the complete synthesis of all feedback, design discussions, technical specifications, and requirements gathered throughout the Grademy redesign project. The architecture centers on intuitive chat-driven intent detection that routes users to specialized learning"
+        }
+      ],
+      "size": 30564,
+      "keywords": [
+        "user",
+        "intent",
+        "state",
+        "create",
+        "mode",
+        "content",
+        "feedback",
+        "interface",
+        "system",
+        "subject",
+        "practice",
+        "uuid",
+        "chat",
+        "detection",
+        "implement",
+        "assessment",
+        "primary",
+        "progress",
+        "learning",
+        "text",
+        "marking",
+        "week",
+        "performance",
+        "navigation",
+        "users",
+        "build",
+        "design",
+        "panel",
+        "response",
+        "lesson"
+      ],
+      "preview": "### Initial Project Scope\nUser requested a chat-first interface redesign for Grademy, emphasizing:\n- | ### Core Concept: Chat-First Interface with Intent Detection Routing\n\nThe redesigned Grademy system "
+    },
+    {
+      "title": "GRADEMY REDESIGN PRD v2.0",
+      "path": "RAG/grademy_hyper_detailed_clean_design_prd.md",
+      "sections": [
+        {
+          "heading": "HYPER-DETAILED MINIMALIST DESIGN SPECIFICATION",
+          "content": "### \"Clean by Constraint\" Engineering Manual\n\n**Document Status**: Critical Design Correction\n**Severity**: HIGH — Previous PRD missed minimalism discipline\n**Prepared**: May 2026\n\n---"
+        },
+        {
+          "heading": "EXECUTIVE SUMMARY: THE PROBLEM WITH THE CURRENT DESIGN",
+          "content": "### What's Wrong with the Current Interface (Screenshot Analysis)\n\n**Current State Issues**:\n1. **Cognitive Overload**: Dashboard shows 6+ distinct information zones simultaneously (sidebar subjects, main content, personalized suggestions, quick access, recent activity, right panel buttons)\n2. **Lac"
+        },
+        {
+          "heading": "SECTION 1: DESIGN DISCIPLINE PRINCIPLES",
+          "content": "### 1.1 Whitespace as First-Class Design Element\n\n**Definition**: Empty space is not \"wasted\" space—it is the primary design tool.\n\n**Enforcement Specifications**:\n\n#### Minimum Whitespace Around Content\n- Page margin: Minimum 40px (not 24px)\n- Section vertical spacing: 48px minimum (not 32px)\n- Car"
+        },
+        {
+          "heading": "SECTION 2: DASHBOARD REDESIGN — MINIMAL INTENT",
+          "content": "### 2.1 Dashboard Layout Architecture\n\n**Previous Design Problem**: \n- Showed 6+ sections simultaneously\n- Sidebar consumed 20% width but provided low-value content\n- Right panel buttons took up space\n- \"Personalized suggestions\" competed with main chat\n\n**New Design**:\n```\n┌────────────────────────"
+        },
+        {
+          "heading": "SECTION 3: SECONDARY PAGES — MINIMAL STRUCTURE",
+          "content": "### 3.1 Calendar Page (Minimal Timeline)\n\n**Current Problem**: Could show clutter of month view, event details, etc.\n\n**New Design Philosophy**: \n- Show upcoming 7 days in a simple timeline\n- Minimal decoration\n- Clear event hierarchy\n\n**Specification**:\n```\nHeader: \"Calendar\" (28px H1)\n\nTimeline Vi"
+        },
+        {
+          "heading": "SECTION 4: STORY MODE — MINIMAL CONTENT FOCUS",
+          "content": "### 4.1 Story Mode Container (Universal)\n\n**Principle**: Remove ALL UI except content and essential controls.\n\n**Layout**:\n```\n┌─────────────────────────────────────┐\n│ [Breadcrumb: Home > Chemistry]      │ 40px top, left-aligned, simple\n├─────────────────────────────────────┤\n│                     "
+        },
+        {
+          "heading": "SECTION 5: RIGHT PANEL SYSTEM (MINIMAL)",
+          "content": "### 5.1 Right Panel Architecture\n\n**Design Change**: \n- Desktop only (≥768px)\n- Toggle tabs on top right (vertical icon bar)\n- Single panel visible at once\n- Width: 280px fixed\n- Slides in from right\n\n**Tab Structure**:\n```\n❏  Notes\n⊡  Whiteboard  \n▶  Video Tips\n⋯  Settings (optional)\n```\n\n**Styling"
+        },
+        {
+          "heading": "SECTION 6: BOTTOM NAVIGATION (MOBILE & DESKTOP)",
+          "content": "### 6.1 Bottom Navigation Structure\n\n**Mobile** (<768px):\n```\n┌──────────────────────────────────┐\n│ 🏠  📅  📚  🎯  ⋯               │ Height: 56px\n└──────────────────────────────────┘\n\nIcons: 24x24px, centered\nSpacing: Equal distribution\nActive icon: Terracotta background circle (40x40px)\n```\n\n**De"
+        },
+        {
+          "heading": "SECTION 7: RESPONSIVE RULES (WITH DISCIPLINE)",
+          "content": "### 7.1 Desktop (≥1440px)\n\n```\nLayout:\n- Sidebar: Hidden (never visible)\n- Content width: Max 900px (centered)\n- Right panel: 280px (visible when toggled)\n- Total max: 900px + 280px = 1180px (leaves 260px margins)\n\nFont sizes: As specified (28px H1, 16px body, etc.)\nSpacing: As specified (40px margi"
+        },
+        {
+          "heading": "SECTION 8: ACCESSIBILITY (WCAG AA + DISCIPLINE)",
+          "content": "### 8.1 Contrast Ratios (Enforced)\n\nEvery text element must meet WCAG AA:\n\n| Text + Background | Ratio | Pass |\n|---|---|---|\n| Deep Brown (#3D2314) + Cream (#F8F6F1) | 9.1:1 | ✓ |\n| Warm Gray (#5F5E5A) + Cream (#F8F6F1) | 5.8:1 | ✓ |\n| Terracotta (#BA7517) + Cream (#F8F6F1) | 4.2:1 | ✓ (body text, "
+        },
+        {
+          "heading": "SECTION 9: COMPONENT SPECIFICATIONS (EXACT PIXELS)",
+          "content": "### 9.1 Button (Primary Action)\n\n```\nHeight: 44px (never 40px, 48px, or variable)\nPadding: 0 24px (internal padding)\nBorder-radius: 8px\nFont: 16px, weight 600, Deep Brown text\nBackground: Terracotta (#BA7517)\nText color: White (#FFFFFF)\nBorder: None\n\nStates:\n- Default: As above\n- Hover: Background #"
+        },
+        {
+          "heading": "SECTION 10: COLOR SPECIFICATION TABLE",
+          "content": "| Color Name | Hex | RGB | Usage | Contrast Test | Notes |\n|---|---|---|---|---|---|\n| Cream | #F8F6F1 | 248, 246, 241 | Primary background | ✓ | Warm, not pure white |\n| Terracotta | #BA7517 | 186, 117, 23 | Primary action, accents | ✓ | Warm, earthy |\n| Soft Sand | #E8DCC8 | 232, 220, 200 | Border"
+        },
+        {
+          "heading": "SECTION 11: TYPOGRAPHY SPECIFICATION TABLE",
+          "content": "| Use | Font Size | Weight | Line Height | Letter Spacing | Max Width |\n|---|---|---|---|---|---|\n| H1 (main headings) | 28px | 600 | 1.3 | -0.5px | N/A |\n| H2 (section headings) | 20px | 600 | 1.4 | -0.25px | N/A |\n| H3 (sub-headings) | 18px | 600 | 1.4 | 0px | N/A |\n| Body (primary text) | 16px | "
+        },
+        {
+          "heading": "SECTION 12: SPACING GRID REFERENCE",
+          "content": "**Base: 8px**\n\n| Token | Value | Usage |\n|---|---|---|\n| xs | 8px | Micro-spacing (between text elements) |\n| sm | 16px | Input padding, small gaps |\n| md | 24px | Component padding, card padding |\n| lg | 32px | Section gaps, vertical spacing |\n| xl | 40px | Page margins, large gaps |\n| 2xl | 48px |"
+        },
+        {
+          "heading": "SECTION 13: WHAT NOT TO DO — SPECIFIC CORRECTIONS",
+          "content": "### 13.1 Error #1: Too Many Sections Visible\n\n**Wrong** (Current Design):\n```\nShowing simultaneously:\n- Subject sidebar (10 items)\n- Personalized suggestions (4 cards)\n- Quick access (4 cards)\n- Recent activity (3 items)\n- Right panel (multiple sections)\n= 21+ elements competing for attention\n```\n\n*"
+        }
+      ],
+      "size": 38811,
+      "keywords": [
+        "text",
+        "spacing",
+        "width",
+        "right",
+        "subject",
+        "section",
+        "terracotta",
+        "height",
+        "border",
+        "content",
+        "background",
+        "full",
+        "warm",
+        "input",
+        "card",
+        "color",
+        "minimal",
+        "only",
+        "icon",
+        "padding",
+        "body",
+        "gray",
+        "screen",
+        "button",
+        "design",
+        "primary",
+        "specification",
+        "weight",
+        "below",
+        "bottom"
+      ],
+      "preview": "### \"Clean by Constraint\" Engineering Manual\n\n**Document Status**: Critical Design Correction\n**Seve | ### What's Wrong with the Current Interface (Screenshot Analysis)\n\n**Current State Issues**:\n1. **Co"
+    },
+    {
+      "title": "Grademy UX Redesign: Implementation Roadmap",
+      "path": "RAG/grademy_implementation_roadmap.md",
+      "sections": [
+        {
+          "heading": "Overview",
+          "content": "This document translates the UX redesign specification into a phased implementation plan with specific technical deliverables, engineering priorities, and acceptance criteria."
+        },
+        {
+          "heading": "Phase 1: Foundation & Chat Core (Weeks 1–3)",
+          "content": "### Goal\nBuild the chat interface as the primary entry point and establish intelligent intent detection. This is the architectural backbone — everything else depends on it.\n\n### Deliverables\n\n#### 1.1 Chat Input Component\n**Technical requirement:**\n- Single text input at the bottom of the screen (mo"
+        },
+        {
+          "heading": "Phase 2: Story Mode Core (Weeks 4–6)",
+          "content": "### Goal\nBuild the unified learning interface that adapts to different content types and learning modes.\n\n### Deliverables\n\n#### 2.1 Story Mode Base Layout\n**Technical requirement:**\n- Desktop: two-column layout (main content + side tabs)\n- Mobile: single column with bottom-sheet tabs\n- Main content"
+        },
+        {
+          "heading": "Phase 3: Content Generators & Auto-Subject (Weeks 7–9)",
+          "content": "### Goal\nBuild the AI-powered content generation and smart subject detection that make the platform feel intelligent.\n\n### Deliverables\n\n#### 3.1 Claude Visualization Integration\n**Technical requirement:**\n- Generate SVG/interactive visualizations using Claude's API\n- Visualization types by subject:"
+        },
+        {
+          "heading": "Phase 4: Polish, Testing & Launch (Weeks 10–12)",
+          "content": "### Goal\nRefinement, performance, accessibility, and go-live readiness.\n\n### Deliverables\n\n#### 4.1 Mobile Responsiveness Audit\n**Technical requirement:**\n- Test on: iPhone 12/14, iPad Air, Samsung Galaxy S21, Android tablet\n- Breakpoints: 320px, 640px, 768px, 1024px, 1440px\n- Specific mobile behavi"
+        },
+        {
+          "heading": "Technical Architecture Summary",
+          "content": "### Frontend Stack\n- **Framework:** React (existing assumed)\n- **Chat UI:** Custom component or library (e.g., Vercel AI SDK)\n- **Visualization:** D3 / Mermaid for diagrams, custom SVG rendering\n- **State:** Zustand or Redux (whichever is current)\n- **Mobile:** Responsive CSS + touch-optimized compo"
+        },
+        {
+          "heading": "Success Metrics",
+          "content": "### Adoption\n- DAU (Daily Active Users) increase 30% in Month 1 post-launch\n- Time-on-platform increase 25%\n- Student-reported UI satisfaction ≥ 4/5\n\n### Engagement\n- Practice session completion rate ≥ 70% (vs. 45% baseline)\n- Chat messages per session increase 40%\n- Settings adoption (at least one "
+        },
+        {
+          "heading": "Risk Mitigation",
+          "content": "| Risk | Impact | Mitigation |\n|------|--------|-----------|\n| Intent detection inaccuracy | Users confused, abandon chat | Start with rule-based classifier, invest in training data early |\n| Chat latency (API dependency) | Perceived slowness, frustration | Stream responses, show typing indicator, i"
+        },
+        {
+          "heading": "Rollout Strategy",
+          "content": "### Beta (Week 12–13)\n- 100 students, full feature access\n- Daily feedback collection, bug bounty\n- Measure: intent accuracy, task completion, satisfaction\n\n### Soft Launch (Week 14–15)\n- Gradual rollout to 50% of users\n- Feature flags for all major components (killswitch if needed)\n- Monitor error "
+        },
+        {
+          "heading": "Dependencies & Assumptions",
+          "content": "**Assumptions:**\n- Claude API available with stable latency\n- Existing database schema supports new settings/intent tracking\n- Current authentication system works for new UI\n- File upload infrastructure in place\n\n**External dependencies:**\n- Claude API (primary bottleneck for intent + content genera"
+        },
+        {
+          "heading": "Open Questions for Engineering",
+          "content": "1. **Intent detection:** Should we retrain a custom model (weeks 4–6), or rely on Claude API long-term?\n2. **State management:** Can we reuse existing Redux structure, or is Zustand preferred?\n3. **Chat streaming:** Should we use Vercel AI SDK or build custom streaming?\n4. **Mobile bottom-sheet:** A"
+        },
+        {
+          "heading": "Next Steps",
+          "content": "1. **Week 1:** Engineering kickoff, review architecture, finalize API contracts\n2. **Week 1:** Set up feature flags, monitoring, error tracking\n3. **Week 2:** Prototype Chat + Intent Detection, test with 3–5 sample prompts\n4. **Week 3:** Dashboard redesign, Settings tab MVP\n5. **Week 4+:** Proceed p"
+        }
+      ],
+      "size": 18034,
+      "keywords": [
+        "intent",
+        "chat",
+        "content",
+        "subject",
+        "detection",
+        "string",
+        "user",
+        "mobile",
+        "technical",
+        "acceptance",
+        "criteria",
+        "practice",
+        "requirement",
+        "input",
+        "claude",
+        "text",
+        "confidence",
+        "visualization",
+        "lesson",
+        "settings",
+        "dashboard",
+        "exam",
+        "marking",
+        "mode",
+        "based",
+        "feedback",
+        "assessment",
+        "study",
+        "data",
+        "test"
+      ],
+      "preview": "This document translates the UX redesign specification into a phased implementation plan with specif | ### Goal\nBuild the chat interface as the primary entry point and establish intelligent intent detect"
+    },
+    {
+      "title": "GRADEMY IMPROVEMENT & FIX GUIDE",
+      "path": "RAG/grademy_improvement_guide_for_implementation.md",
+      "sections": [
+        {
+          "heading": "Complete List: From Minor Tweaks to Major Overhauls",
+          "content": "### Organized for Logical Development Implementation\n\n**Document Purpose**: Comprehensive checklist for both product owner and engineer to understand every change needed, prioritized by implementation logic (foundation first, features second, polish third)\n\n**Current State**: Original design with id"
+        },
+        {
+          "heading": "PART 1: ARCHITECTURE & FOUNDATION CHANGES",
+          "content": "### (Must be done first — affects all subsequent work)\n\n### 1.1 Information Architecture Restructuring\n\n#### Issue: Dashboard Shows Too Much Information\n**Current Problem**: \n- 6+ sections visible simultaneously (sidebar subjects, suggestions, quick access, recent activity, right panel)\n- User overw"
+        },
+        {
+          "heading": "PART 2: CORE FEATURE IMPLEMENTATION",
+          "content": "### (Built on foundation from Part 1)\n\n### 2.1 Intent Detection System\n\n#### Issue: No Intent Detection; Chat Doesn't Know What User Wants\n**Current Problem**:\n- Chat input exists but doesn't route to anything specific\n- No system to detect if user wants \"lesson\" vs \"practice\" vs \"test\"\n- User has t"
+        },
+        {
+          "heading": "PART 3: SECONDARY PAGES (Built on Story Mode)",
+          "content": "### 3.1 Calendar Page\n\n#### Issue: No Dedicated Calendar View; Events Only in Dashboard Timeline\n**Current Problem**:\n- No calendar page exists\n- Can only see events in dashboard\n- No way to plan ahead\n- Monthly view not available\n\n**Fix Level**: NEW PAGE\n**Change**:\n- Create dedicated Calendar page"
+        },
+        {
+          "heading": "PART 4: VISUAL & UX POLISH",
+          "content": "### (Applied to all components)\n\n### 4.1 Spacing & Layout Refinement\n\n#### Issue: Inconsistent Spacing; Some Areas Cramped, Others Empty\n**Current Problem**:\n- Spacing varies: 8px, 12px, 15px, 20px, etc. (no consistency)\n- Some sections too dense\n- Some sections too sparse\n- No clear rhythm\n\n**Fix L"
+        },
+        {
+          "heading": "PART 5: RESPONSIVE & MOBILE OPTIMIZATION",
+          "content": "### 5.1 Mobile Layout Simplification\n\n#### Issue: Mobile Experience Not Optimized; Desktop Squeezed to Small Screen\n**Current Problem**:\n- Desktop layout just gets shrunk on mobile\n- Right panel still takes up space\n- Sidebar removed but content still dense\n- Bottom navigation doesn't exist\n\n**Fix L"
+        },
+        {
+          "heading": "PART 6: ACCESSIBILITY IMPROVEMENTS",
+          "content": "### 6.1 Contrast Ratio Verification\n\n#### Issue: Some Text May Not Meet WCAG AA Contrast\n**Current Problem**:\n- Some Warm Gray text on Cream might be too light\n- Some Terracotta text needs verification\n- No systematic contrast checking\n\n**Fix Level**: MINOR POLISH\n**Change**:\n- Verify all text color"
+        },
+        {
+          "heading": "PART 7: PERFORMANCE OPTIMIZATION",
+          "content": "### 7.1 Page Load Performance\n\n#### Issue: Pages May Load Slowly; No Optimization Targets\n**Current Problem**:\n- No performance targets defined\n- Unknown page load times\n- Possible unnecessary re-renders\n\n**Fix Level**: FOUNDATIONAL\n**Change**:\n- Set performance targets:\n  - Dashboard: <2 seconds lo"
+        },
+        {
+          "heading": "PART 8: DATA & API INTEGRATION",
+          "content": "### 8.1 API Endpoints Definition\n\n#### Issue: No Defined API Contracts; Frontend/Backend Misalignment Risk\n**Current Problem**:\n- No documented API endpoints\n- Frontend doesn't know what data to expect\n- Potential type mismatches\n\n**Fix Level**: FOUNDATIONAL\n**Change**:\n- Document all required API e"
+        },
+        {
+          "heading": "PART 9: TESTING & QUALITY ASSURANCE",
+          "content": "### 9.1 Component Testing\n\n#### Issue: No Tests; Manual Testing Insufficient\n**Current Problem**:\n- No automated tests\n- Risk of regression\n- Hard to maintain quality\n\n**Fix Level**: FOUNDATIONAL\n**Change**:\n- Add unit tests for key components\n- Test: Rendering, user interactions, state changes, API"
+        },
+        {
+          "heading": "PART 10: DOCUMENTATION & HANDOFF",
+          "content": "### 10.1 Component Documentation\n\n#### Issue: No Component Documentation; New Team Members Struggle\n**Current Problem**:\n- No component docs\n- Hard to know how to use components\n- Inconsistent component usage\n\n**Fix Level**: PROCESS\n**Change**:\n- Create Storybook (or similar) for component documenta"
+        },
+        {
+          "heading": "IMPLEMENTATION SEQUENCE & TIMELINE",
+          "content": "### Phase 1: Foundation (Weeks 1-2)\nPriority: CRITICAL\nTasks:\n- [ ] 1.1 Information Architecture Restructuring\n- [ ] 1.2 Navigation System Redesign\n- [ ] 1.3 State Management Architecture\n- [ ] 8.1 API Endpoints Definition\n- [ ] 8.2 State Persistence\n- [ ] 9.1 Component Testing Setup\n- [ ] 9.2 Acces"
+        },
+        {
+          "heading": "TRACKING & CHECKLIST",
+          "content": "Use this table to track progress:\n\n| Phase | Task | Priority | Status | Owner | Notes |\n|---|---|---|---|---|---|\n| 1 | Information Architecture | CRITICAL | [ ] | | |\n| 1 | Navigation System | CRITICAL | [ ] | | |\n| 1 | State Management | CRITICAL | [ ] | | |\n| 2 | Intent Detection | CRITICAL | [ ]"
+        },
+        {
+          "heading": "SUMMARY",
+          "content": "This guide contains **50+ specific improvements** organized in a logical development sequence:\n\n1. **Part 1**: Foundation (architecture changes that affect everything)\n2. **Part 2**: Core features (Intent detection, Story Mode, Chat)\n3. **Part 3**: Secondary pages (Calendar, History, Library, etc.)\n"
+        }
+      ],
+      "size": 44447,
+      "keywords": [
+        "subject",
+        "component",
+        "problem",
+        "mode",
+        "level",
+        "current",
+        "change",
+        "create",
+        "intent",
+        "implementation",
+        "page",
+        "files",
+        "button",
+        "mobile",
+        "color",
+        "issue",
+        "steps",
+        "affected",
+        "test",
+        "text",
+        "navigation",
+        "build",
+        "practice",
+        "system",
+        "icons",
+        "state",
+        "input",
+        "lesson",
+        "spacing",
+        "user"
+      ],
+      "preview": "### Organized for Logical Development Implementation\n\n**Document Purpose**: Comprehensive checklist  | ### (Must be done first — affects all subsequent work)\n\n### 1.1 Information Architecture Restructuri"
+    },
+    {
+      "title": "Grademy.work — Comprehensive Redesign Specification",
+      "path": "RAG/grademy_redesign_specification.md",
+      "sections": [
+        {
+          "heading": "EXECUTIVE REDESIGN VISION",
+          "content": "### From This ❌\n```\nDashboard (with duplicate components)\n  ↓\nSelect Subject (unclear which mode to use)\n  ↓\n4 Separate Tabs: Study | Practice | Assess | Manage\n  ↓\nClick topic → view overview (no content!)\n  ↓\nClick \"Story Mode\" (hidden feature discovery)\n  ↓\nChat + Whiteboard interface\n  ↓\nConfuse"
+        },
+        {
+          "heading": "KEY CHANGES SUMMARY",
+          "content": "| Aspect | Current ❌ | Redesigned ✅ |\n|--------|----------|-------------|\n| **Modes** | 4 separate tabs (Study, Practice, Assess, Manage) | 1 unified \"Story Mode\" + Settings side-tab |\n| **Navigation** | Dashboard → Subject → Mode → Topic → Story Mode (5 steps) | Dashboard → Subject → Story Mode (2 "
+        },
+        {
+          "heading": "DETAILED SPECIFICATIONS",
+          "content": "### 1. NAVIGATION ARCHITECTURE\n\n#### Current Flow (Too Deep)\n```\nHome → Dashboard \n  → Subject List \n    → Subject Page (Study tab showing modules)\n      → Click Topic\n        → Topic Overview (no actual content!)\n          → Click \"Story Mode\" Button\n            → Story Mode Interface (where teachi"
+        },
+        {
+          "heading": "NEXT STEPS",
+          "content": "1. **Answer the 15 questions above** — These clarify the design direction\n2. **I'll create wireframes/mockups** — Visual representations of the redesigned interface\n3. **I'll test the current app thoroughly** — Actually use every feature to document bugs and friction points\n4. **I'll create detailed"
+        },
+        {
+          "heading": "DESIGN PRINCIPLES TO GUIDE IMPLEMENTATION",
+          "content": "**1. One-Click Rule**\n- Any primary task should be reachable in 1-2 clicks from dashboard\n- If it takes more, reconsider the architecture\n\n**2. No Hidden Features**\n- If a feature is important, it shouldn't require discovering a button\n- Story Mode shouldn't be behind a button; clicking subject shou"
+        },
+        {
+          "heading": "SUMMARY OF MAIN CHANGES",
+          "content": "| Component | Change | Benefit |\n|-----------|--------|---------|\n| **Main Modes** | Study/Practice/Assess tabs → One unified \"Story Mode\" | 60% less cognitive load |\n| **Dashboard** | Remove duplication (calendar, tasks, graphs) | 70% cleaner interface |\n| **Navigation** | 5-step deep → 2-step (Sub"
+        },
+        {
+          "heading": "WAITING FOR YOUR FEEDBACK",
+          "content": "This spec is ready for discussion. Please answer the 15 questions above, and I'll proceed with:\n1. Detailed wireframes\n2. Component designs\n3. Interaction specifications\n4. Mobile layouts\n5. Engineering implementation guide"
+        }
+      ],
+      "size": 25670,
+      "keywords": [
+        "mode",
+        "practice",
+        "subject",
+        "settings",
+        "story",
+        "dashboard",
+        "side",
+        "whiteboard",
+        "learning",
+        "chat",
+        "assessment",
+        "exam",
+        "show",
+        "past",
+        "mobile",
+        "questions",
+        "calendar",
+        "content",
+        "progress",
+        "topic",
+        "paper",
+        "user",
+        "review",
+        "tabs",
+        "interface",
+        "modes",
+        "design",
+        "current",
+        "main",
+        "papers"
+      ],
+      "preview": "### From This ❌\n```\nDashboard (with duplicate components)\n  ↓\nSelect Subject (unclear which mode to  | | Aspect | Current ❌ | Redesigned ✅ |\n|--------|----------|-------------|\n| **Modes** | 4 separate t"
+    },
+    {
+      "title": "Grademy.work - Comprehensive UX Audit & Analysis",
+      "path": "RAG/grademy_ux_audit_detailed_findings.md",
+      "sections": [
+        {
+          "heading": "EXECUTIVE SUMMARY",
+          "content": "Grademy.work is a powerful AI-powered educational platform designed to replace traditional tutoring. While the technology is robust and feature-rich, the **user experience is fragmented, cluttered, and unintuitive**. The app suffers from:\n\n- **Navigation Inconsistency**: Multiple entry points and un"
+        },
+        {
+          "heading": "PRODUCT STRUCTURE DISCOVERED",
+          "content": "### Core Navigation\n- **Home/Root**: Landing page with login/signup\n- **Dashboard**: `/dashboard` - Subject listing view\n- **Subject View**: `/dashboard?view=map&subjectId=XXX&tab=study` - Main subject workspace\n- **Story Mode**: `/dashboard/subjects/XXX/story?topic=YYY` - Interactive learning view\n"
+        },
+        {
+          "heading": "THE FOUR MODES (Study, Practice, Assess, Manage)",
+          "content": "### 1. STUDY MODE\n**Current State**: Displays curriculum modules in a hierarchical list\n- **Features Discovered**:\n  - Curriculum modules organized by topic\n  - Topics listed: \"Matrices, Vectors, and Linear Systems\", \"Subspaces and Dimension\", \"Linear Maps\", etc.\n  - \"Story Mode\" button for interact"
+        },
+        {
+          "heading": "IDENTIFIED UX PROBLEMS",
+          "content": "### 🔴 CRITICAL ISSUES\n\n1. **Navigation Complexity**\n   - Multiple navigation menus (top nav, sidebar, subject selector)\n   - Unclear how to switch between subjects or modes\n   - No breadcrumbs or clear \"location\" indicator\n   - Deep linking seems broken (subject clicks on dashboard don't navigate)\n"
+        },
+        {
+          "heading": "NAVIGATION FLOW ANALYSIS",
+          "content": "### Current (Confusing) Flow:\n```\nLanding Page\n    ↓\nLogin/Dashboard\n    ↓\nSelect Subject (sidebar or list?)\n    ↓\nSubject View (Study Mode showing curriculum)\n    ↓\nClick Topic\n    ↓\nTopic Overview (no content!)\n    ↓\nClick \"Story Mode\" Button\n    ↓\nInteractive Learning (where actual teaching happe"
+        },
+        {
+          "heading": "INTERFACE ELEMENTS DISCOVERY",
+          "content": "### Study Tab\n- **Curriculum Modules** heading\n- Topic list (e.g., \"Matrices, Vectors, and Linear Systems\")\n- Story Mode button\n- Navigation/progress sidebar\n\n### Story Mode Interface  \n- Chat input field (\"Chat with your AI tutor...\")\n- Three mode buttons: Chat, Explain, Mark\n- Whiteboard button\n- "
+        },
+        {
+          "heading": "UNRESOLVED QUESTIONS / NOT YET EXPLORED",
+          "content": "1. **Practice Mode**: What does practice look like?\n2. **Assess Mode**: How are assessments delivered?\n3. **Manage Mode**: What settings/options are available?\n4. **History View**: What is this showing?\n5. **Companion Feature**: What is this separate feature?\n6. **Progress Tracking**: How does the s"
+        },
+        {
+          "heading": "TECHNICAL OBSERVATIONS",
+          "content": "- **URL Patterns**:\n  - `/` - Landing page\n  - `/dashboard` - Subject list\n  - `/dashboard?view=map&subjectId=XXX&tab=study` - Subject view with mode\n  - `/dashboard/subjects/XXX/story?topic=YYY` - Story mode\n  - `/dashboard/journey` - Dashboard journey view (mentioned in nav)\n  - `/companion` - Sep"
+        },
+        {
+          "heading": "CORE DESIGN PHILOSOPHY ISSUES",
+          "content": "The app seems to treat \"Learning\" as composed of 4 separate, equal activities:\n- **Study** (acquire knowledge)\n- **Practice** (apply knowledge)  \n- **Assess** (test knowledge)\n- **Manage** (configuration)\n\n**But for students, this is backwards.** Students think: \"I want to learn Algebra.\" They don't"
+        },
+        {
+          "heading": "WHAT'S WORKING WELL ✅",
+          "content": "1. **Story Mode concept** - Combining chat, whiteboard, and interactive learning is excellent\n2. **AI tutor integration** - Clear that AI is available for help\n3. **Subject organization** - Math subjects are structured logically\n4. **Multiple interaction modes** - Chat, Whiteboard, File upload shows"
+        },
+        {
+          "heading": "SUMMARY: WHY IT FEELS \"CLUNKY\"",
+          "content": "1. **Too many navigation layers** → Cognitive overload\n2. **Four separate modes** → Unclear how they work together\n3. **Hidden primary feature** (Story Mode) → Friction to access\n4. **Inconsistent mental model** → App thinks in \"modes\", users think in \"topics\"\n5. **Sidebar redundancy** → Duplicate n"
+        }
+      ],
+      "size": 11399,
+      "keywords": [
+        "mode",
+        "subject",
+        "unclear",
+        "navigation",
+        "button",
+        "story",
+        "chat",
+        "study",
+        "learning",
+        "dashboard",
+        "practice",
+        "subjects",
+        "sidebar",
+        "progress",
+        "assess",
+        "view",
+        "topic",
+        "students",
+        "separate",
+        "modes",
+        "issues",
+        "does",
+        "whiteboard",
+        "manage",
+        "interactive",
+        "click",
+        "file",
+        "upload",
+        "feature",
+        "content"
+      ],
+      "preview": "Grademy.work is a powerful AI-powered educational platform designed to replace traditional tutoring. | ### Core Navigation\n- **Home/Root**: Landing page with login/signup\n- **Dashboard**: `/dashboard` - "
+    },
+    {
+      "title": "rag story",
+      "path": "RAG/rag story.md",
+      "sections": [],
+      "size": 41817,
+      "keywords": [
+        "like",
+        "just",
+        "very",
+        "really",
+        "because",
+        "first",
+        "time",
+        "know",
+        "yeah",
+        "kind",
+        "obviously",
+        "well",
+        "actually",
+        "stuff",
+        "doing",
+        "think",
+        "started",
+        "around",
+        "even",
+        "always",
+        "didn",
+        "into",
+        "more",
+        "work",
+        "good",
+        "remember",
+        "lead",
+        "going",
+        "myself",
+        "business"
+      ],
+      "preview": "Okay, so I'm just going to rant about my life for a bit so that you have full context of what my history is, my background is, and everything.\n\nOkay, so I've been coding ever since I was seven years o"
+    },
+    {
+      "title": "Rag's Personal Voice Skill",
+      "path": "RAG/rag-voice/SKILL.md",
+      "sections": [
+        {
+          "heading": "Who He Is",
+          "content": "**Full identity:** Amir — goes by Rag. Azerbaijani, raised in the UK. Currently 18/19, studying Maths at UCL. Founder of RAG Media. Builder, AI-native entrepreneur, and pragmatist.\n\n**In one sentence:** A technically elite, fiercely competitive young founder who turned academic excellence into entre"
+        },
+        {
+          "heading": "His Story (Summary — read `references/story.md` for full narrative)",
+          "content": "- **Childhood:** Coding at 7. Chess champion at 8. Loom band business at ~9. Academic overachiever. Big gamer (Starcraft). Judo (4 years, regional medals).\n- **Age 16:** First job at Hlaal Booking (hotel data, 2h commute, unpaid 2 weeks) → got paid role. Became a software engineer at 16. Got Arkwrig"
+        },
+        {
+          "heading": "His Values & Worldview",
+          "content": "**On business:**\n- Leverage is everything. One person + right tools = output of 10. AI gives him that.\n- He is building products, not services. Services are a stepping stone.\n- Distribution > product. Having the right connections means the product sells itself.\n- He hates the \"sunk cost\" trap — if a"
+        },
+        {
+          "heading": "Writing Voice",
+          "content": "> The full annotated breakdown is in `references/voice-guide.md`. Below is the quick summary for immediate use.\n\n### Tone\n- Direct. Punchy. Confident without being polished.\n- Casual intelligence — he sounds smart but never corporate.\n- Self-aware. Slightly self-deprecating at the right moments.\n- B"
+        },
+        {
+          "heading": "Current Business Context (April 2026)",
+          "content": "- **RAG Media** — his brand/agency vehicle. AI solutions, custom builds, white-label SaaS.\n- **RAG-X** — AI-first CRM. Built. Currently being repositioned as a demo/template for custom client builds.\n- **GradeMe** — AI maths tutor/examiner. Won Google Hackathon. Targeting students.\n- **LamaTrader** "
+        },
+        {
+          "heading": "How to Apply This Context",
+          "content": "**For writing tasks (LinkedIn posts, copy, emails):**\n- Match the voice above. Short. Punchy. Real. Specific.\n- Use his actual experiences as raw material where relevant.\n- Never sound like ChatGPT wrote it. If it reads clean and generic, it's wrong.\n- Read `references/voice-guide.md` for annotated "
+        },
+        {
+          "heading": "Quick Reference Card",
+          "content": "| Dimension | Rag's default |\n|---|---|\n| Voice | Punchy, real, lowercase-casual, fragment-heavy |\n| Hook style | Result first, then story |\n| CTA | Comment-based or question at end |\n| AI stance | Pro but pragmatic, calls out fluff |\n| Business model | Custom AI builds, templatised delivery |\n| Ris"
+        }
+      ],
+      "size": 10358,
+      "keywords": [
+        "voice",
+        "first",
+        "business",
+        "maths",
+        "real",
+        "identity",
+        "context",
+        "story",
+        "never",
+        "writing",
+        "references",
+        "doesn",
+        "personal",
+        "full",
+        "content",
+        "read",
+        "line",
+        "azerbaijani",
+        "coding",
+        "builds",
+        "custom",
+        "leverage",
+        "think",
+        "skill",
+        "building",
+        "values",
+        "media",
+        "founder",
+        "technical",
+        "british"
+      ],
+      "preview": "**Full identity:** Amir — goes by Rag. Azerbaijani, raised in the UK. Currently 18/19, studying Math | - **Childhood:** Coding at 7. Chess champion at 8. Loom band business at ~9. Academic overachiever. "
+    },
+    {
+      "title": "Rag's Life Story — Full Narrative Reference",
+      "path": "RAG/rag-voice/references/story.md",
+      "sections": [
+        {
+          "heading": "Childhood & Early Formation",
+          "content": "Rag has been coding since he was 7. His dad is a software engineer, so he grew up in a technical household — but he always knew that wasn't his path. He was technically capable, eventually specialising in frontend, but the passion was never there for a developer career. (He's grateful now — AI has m"
+        },
+        {
+          "heading": "The Turning Point (~Year 12, Age 16-17)",
+          "content": "By around Year 12, personal circumstances shifted his perspective dramatically. He got tired of wasting potential on games and wanted to prove something more. He didn't know what that looked like yet.\n\n**First job:** The day he turned 16 (July 2023, just finished GCSEs), he applied to a job. Within "
+        },
+        {
+          "heading": "RAG Media v1 — The SMMA Era (April 2024 onwards)",
+          "content": "After falling into the YouTube rabbit hole of SMMA gurus and \"make money online\" content, he publicly launched RAG Media — a social media management agency, plus web design, plus ads. He was 16. The first post is still on his Instagram.\n\n**His first niche was hotels** — the thing he knew from his jo"
+        },
+        {
+          "heading": "The AI Pivot & A-Levels (Late 2024 – Mid 2025)",
+          "content": "By late 2024, AI was becoming genuinely useful — real websites, real code. He saw it early. Started building with AI. Started positioning RAG Media around AI solutions and automation.\n\n**TME failure (November 2024):** Applied for Maths at top unis. Failed the TME entrance exam badly — scored 3.6 out"
+        },
+        {
+          "heading": "University Year 1 & Current State (Sept 2025 – April 2026)",
+          "content": "UCL Maths. First term was a trap — surrounded by uni friends, attending every lecture, taking notes. Goofing around. Not the best habits. Uni sucked his productivity for the first term.\n\n**Co-founder implosion:** A deal with the founder of the largest marketing agency in London to build a marketing "
+        },
+        {
+          "heading": "Key Facts & Numbers (for reference)",
+          "content": "| Fact | Detail |\n|---|---|\n| Age | ~19 (born July 2007) |\n| Location | London (UCL student) |\n| Ethnicity | Azerbaijani British |\n| Education | UCL Maths Year 1; 4 A*s A-level |\n| First job | Age 16, Hlaal Booking, July 2023 |\n| RAG Media founded | April 27, 2024 (domain registered) |\n| Hackathon w"
+        }
+      ],
+      "size": 9303,
+      "keywords": [
+        "first",
+        "into",
+        "google",
+        "business",
+        "time",
+        "real",
+        "content",
+        "maths",
+        "made",
+        "around",
+        "year",
+        "started",
+        "media",
+        "software",
+        "best",
+        "money",
+        "didn",
+        "turned",
+        "engineering",
+        "custom",
+        "working",
+        "build",
+        "agency",
+        "built",
+        "cold",
+        "views",
+        "email",
+        "founder",
+        "london",
+        "full"
+      ],
+      "preview": "Rag has been coding since he was 7. His dad is a software engineer, so he grew up in a technical hou | By around Year 12, personal circumstances shifted his perspective dramatically. He got tired of wast"
+    },
+    {
+      "title": "Rag's Voice Guide — Annotated Examples & Style Rules",
+      "path": "RAG/rag-voice/references/voice-guide.md",
+      "sections": [
+        {
+          "heading": "The Core Principle",
+          "content": "Rag writes the way he thinks: fast, direct, unpolished in a deliberate way. His writing doesn't sound like it was written. It sounds like it was said. There's always a tension between confidence and self-awareness that makes it feel real rather than performative.\n\nEvery sentence earns its place or i"
+        },
+        {
+          "heading": "Annotated Examples From His Real Copy",
+          "content": "---\n\n### Example 1: The Google Hackathon post\n\n```\nI won $10,000 at Google's AI Hackathon in London,\nwithout writing a single line of code\n```\n\n**What's happening here:**\n- Lead with the result. Don't bury it. The hook is the outcome.\n- The second line is a reveal that reframes the first — it makes "
+        },
+        {
+          "heading": "Style Rules Summarised",
+          "content": "### Do this:\n- **Lead with the result or the counterintuitive claim.**\n- **Use line breaks aggressively** — they're pacing, not formatting.\n- **Specific numbers and dates.** £80, 3.6/9, 10am to 10pm, $10k. Never approximate when exact is available.\n- **Short sentences to land a point.** The shorter,"
+        },
+        {
+          "heading": "Email Voice",
+          "content": "His email voice is slightly more professional but still him. The key differences:\n\n- More complete sentences, fewer fragments\n- Still concise — he doesn't write 300-word emails\n- Gets to the point in the first sentence\n- Casually direct (\"I'll be honest\", \"here's what I'm thinking\", \"let me know wha"
+        },
+        {
+          "heading": "Tone by Context",
+          "content": "| Context | Tone settings |\n|---|---|\n| LinkedIn post (insight) | Punchy, confident, builds to a thesis, question at end |\n| LinkedIn post (personal story) | Lowercase, slow-building narrative, vulnerable then triumphant |\n| Cold outreach | Direct, human, specific, no guru-speak |\n| Strategic email "
+        },
+        {
+          "heading": "The Test",
+          "content": "Before finalising any piece of Rag's content, ask: **\"Would a 19-year-old technically excellent Azerbaijani British founder who codes every day, trains Jiu-Jitsu, and hates corporate speak say this?\"**\n\nIf the answer is no — rewrite it."
+        }
+      ],
+      "size": 10716,
+      "keywords": [
+        "here",
+        "happening",
+        "post",
+        "like",
+        "linkedin",
+        "sentences",
+        "doesn",
+        "real",
+        "short",
+        "self",
+        "sentence",
+        "example",
+        "line",
+        "know",
+        "lowercase",
+        "work",
+        "voice",
+        "makes",
+        "immediately",
+        "never",
+        "email",
+        "direct",
+        "tension",
+        "hook",
+        "first",
+        "human",
+        "specific",
+        "good",
+        "caps",
+        "metaphor"
+      ],
+      "preview": "Rag writes the way he thinks: fast, direct, unpolished in a deliberate way. His writing doesn't soun | ---\n\n### Example 1: The Google Hackathon post\n\n```\nI won $10,000 at Google's AI Hackathon in London,"
+    },
+    {
+      "title": "RAG-X v2 — Engineer Handoff Document",
+      "path": "RAG/ragx-engineer-handoff.md",
+      "sections": [
+        {
+          "heading": "What is RAG-X?",
+          "content": "RAG-X is Rag's personal outreach command center — a unified CRM + AI reply engine that manages:\n- **SMS outbound** (Twilio US number → forwards to Rag's UK number)\n- **Email outbound** (1000 Gmail accounts, ~10k emails/day) + ReachInbox sequences\n- **Lead management** across multiple businesses (Rim"
+        },
+        {
+          "heading": "Existing Infrastructure (DO NOT BREAK)",
+          "content": "| Layer | Tool | Status |\n|---|---|---|\n| Database | Supabase (Postgres) | Live |\n| Workflow orchestration | n8n | Live (some workflows active) |\n| SMS | Twilio US number | Live — forwards inbound to Rag's UK number |\n| Email | 1000 Gmail accounts via SMTP rotation | Live — ~10k emails/day capacity "
+        },
+        {
+          "heading": "Architecture (High Level)",
+          "content": "```\nINBOUND CHANNELS\n  Twilio SMS webhook → Supabase Edge Function\n  ReachInbox webhook → Supabase Edge Function\n  Gmail SMTP replies → n8n → Supabase\n\n                    ↓\n\nAI RESPONSE ENGINE (NEW)\n  Supabase Edge Function triggers on new message\n  → Calls Claude Haiku with persona + knowledge bas"
+        },
+        {
+          "heading": "Data Models (Supabase)",
+          "content": "### leads\n```sql\nid uuid PRIMARY KEY,\nname text,\nphone text,\nemail text,\nsource_campaign_id uuid REFERENCES campaigns(id),\nstatus text CHECK (status IN ('new','contacted','replied','interested','qualified','closed','dead')),\ntags text[],\nnotes text,\ncustom_fields jsonb,\ncreated_at timestamptz DEFAUL"
+        },
+        {
+          "heading": "AI Engine Spec",
+          "content": "### System Prompt Template\n```\nROLE: {{persona.name}}, {{persona.role}} at {{persona.company}}\nGOAL: {{campaign.goal}}\nTONE: {{persona.tone}}\nKNOWLEDGE BASE:\n{{campaign.knowledge_base}}\n\nINTENT RULES — classify the lead's message as one of:\n- INTERESTED: wants to know more / positive signal\n- QUESTI"
+        },
+        {
+          "heading": "UI Modules (React/Next.js)",
+          "content": "### 1. Unified Inbox\n- All SMS + email conversations in one feed\n- Filter by: business, channel, status, AI-active/human\n- Click conversation → see full thread → reply inline\n- AI badge on messages + confidence score shown\n- \"Take over\" button disables AI for that conversation\n\n### 2. Lead Manager\n-"
+        },
+        {
+          "heading": "Build Phases",
+          "content": "### Phase 1 — Foundation (Week 1-2)\n- [ ] Supabase schema migration (create all 5 tables above)\n- [ ] Twilio webhook → Edge Function → insert message to DB\n- [ ] ReachInbox webhook → Edge Function → insert message to DB\n- [ ] Basic auth (Supabase Auth, single user)\n\n### Phase 2 — Core UI (Week 3-4)\n"
+        },
+        {
+          "heading": "Key Decisions",
+          "content": "- **No VA** — Rag wants AI to handle first 2-3 exchanges, escalate hot leads only\n- **Claude Haiku** — chosen for speed + cost (~$0.001/reply), not Sonnet\n- **Keep n8n** — it already handles some SMTP routing, don't replace it\n- **Supabase Realtime** — use for inbox live updates, no polling\n- **One "
+        },
+        {
+          "heading": "Questions to Confirm Before Starting",
+          "content": "1. Is there an existing Supabase schema to migrate from, or starting fresh?\n2. Are any n8n workflows currently live/sending? (Don't break them during Phase 1)\n3. Twilio webhook — is it already pointed somewhere, or needs to be set up?\n4. Preferred deployment: Vercel (Next.js) + Supabase? Or self-hos"
+        },
+        {
+          "heading": "Files in This Folder",
+          "content": "- `ragx-prd.html` — Full PRD with architecture diagram, all module specs, visual design\n- `ragx-engineer-handoff.md` — This file\n- `mindmap.html` — Rag's business empire mindmap (context, not needed for build)"
+        }
+      ],
+      "size": 8745,
+      "keywords": [
+        "text",
+        "supabase",
+        "reply",
+        "campaign",
+        "status",
+        "uuid",
+        "email",
+        "confidence",
+        "lead",
+        "leads",
+        "escalate",
+        "check",
+        "default",
+        "twilio",
+        "intent",
+        "webhook",
+        "persona",
+        "manager",
+        "config",
+        "number",
+        "live",
+        "edge",
+        "function",
+        "message",
+        "name",
+        "references",
+        "unified",
+        "engine",
+        "gmail",
+        "reachinbox"
+      ],
+      "preview": "RAG-X is Rag's personal outreach command center — a unified CRM + AI reply engine that manages:\n- ** | | Layer | Tool | Status |\n|---|---|---|\n| Database | Supabase (Postgres) | Live |\n| Workflow orchest"
+    },
+    {
+      "title": "API Reference",
+      "path": "marketing/content empire/docs/API-REFERENCE.md",
+      "sections": [
+        {
+          "heading": "Health",
+          "content": "- `GET /health`\n\nReturns API liveness plus basic service metadata."
+        },
+        {
+          "heading": "Projects",
+          "content": "- `GET /api/projects`\n- `POST /api/projects`\n\nExample:\n\n```json\n{\n  \"name\": \"Ragmedium\",\n  \"slug\": \"ragmedium\",\n  \"description\": \"AI media and publishing project\",\n  \"voice\": \"Confident, direct, insight-led.\"\n}\n```"
+        },
+        {
+          "heading": "Accounts and setup",
+          "content": "- `GET /api/accounts`\n- `POST /api/accounts`\n- `GET /api/platforms`\n- `GET /api/platform-setup`\n- `GET /api/accounts/:accountId/profile`\n- `POST /api/accounts/setup`\n- `POST /api/accounts/connect`\n- `POST /api/accounts/certify`\n- `POST /api/accounts/:accountId/refresh-auth`\n- `POST /api/accounts/:ac"
+        },
+        {
+          "heading": "OAuth start and callback routes",
+          "content": "Start routes:\n\n- `GET /api/auth/facebook/start?accountId=...`\n- `GET /api/auth/instagram/start?accountId=...`\n- `GET /api/auth/threads/start?accountId=...`\n- `GET /api/auth/tiktok/start?accountId=...`\n- `GET /api/auth/x/start?accountId=...`\n- `GET /api/auth/linkedin/start?accountId=...`\n- `GET /api/"
+        },
+        {
+          "heading": "Session vault",
+          "content": "- `GET /api/session-vault`\n- `POST /api/session-vault/capture`\n- `POST /api/session-vault/import`\n\nImport example:\n\n```json\n{\n  \"accountId\": \"acc_reddit_123\",\n  \"mode\": \"bundle\",\n  \"notes\": \"Imported from browser-state export\",\n  \"bundle\": {\n    \"cookies\": [],\n    \"localStorage\": {},\n    \"sessionSto"
+        },
+        {
+          "heading": "Proxies",
+          "content": "- `GET /api/proxies`\n- `POST /api/proxies`\n- `POST /api/proxies/delete`\n- `POST /api/proxies/assignments/rotate`\n\nProxy upsert example:\n\n```json\n{\n  \"label\": \"US Residential 01\",\n  \"raw\": \"http://user:pass@203.0.113.20:8080\",\n  \"provider\": \"NetNut\",\n  \"countryCode\": \"US\",\n  \"platformTargets\": [\"inst"
+        },
+        {
+          "heading": "Dashboard, content, inbox, and queue",
+          "content": "- `GET /api/dashboard`\n- `GET /api/content`\n- `GET /api/inbox`\n- `GET /api/queue`\n- `POST /api/queue`\n\nQueue example:\n\n```json\n{\n  \"accountId\": \"acc_instagram_123\",\n  \"platform\": \"instagram\",\n  \"type\": \"publish\",\n  \"scheduledFor\": \"2026-04-15T19:30:00.000Z\",\n  \"owner\": \"Operator\"\n}\n```"
+        },
+        {
+          "heading": "Content studio",
+          "content": "- `GET /api/content-studio`\n- `POST /api/content-studio/assets`\n- `POST /api/content-studio/assets/analyze`\n- `GET /api/content-studio/assets/:assetId/download`\n- `POST /api/content-studio/edit-jobs`\n\nAsset upload expectations:\n\n- project id\n- title\n- description\n- media kind\n- file bytes\n- optional"
+        },
+        {
+          "heading": "OpenClaw",
+          "content": "- `POST /api/openclaw/actions`\n\nSupported normalized actions:\n\n- `connect_account`\n- `publish_post`\n- `edit_post`\n- `reply_comment`\n- `send_dm`\n- `engage`\n- `refresh_session`\n- `analyze_performance`\n\nExample:\n\n```json\n{\n  \"action\": \"publish_post\",\n  \"accountId\": \"acc_instagram_123\",\n  \"payload\": {\n "
+        },
+        {
+          "heading": "Practical notes",
+          "content": "- The OpenClaw endpoint is the only machine-auth surface in the current API.\n- The session-runner should not be called directly by external automation.\n- Inbox population is not yet webhook-driven in this repo, so treat `/api/inbox` as an app surface rather than a fully automated ingestion pipeline."
+        }
+      ],
+      "size": 5611,
+      "keywords": [
+        "post",
+        "accountid",
+        "auth",
+        "start",
+        "callback",
+        "oauth",
+        "example",
+        "accounts",
+        "json",
+        "session",
+        "content",
+        "instagram",
+        "studio",
+        "proxies",
+        "queue",
+        "http",
+        "ragmedium",
+        "setup",
+        "token",
+        "account",
+        "notes",
+        "vault",
+        "inbox",
+        "machine",
+        "projects",
+        "media",
+        "platform",
+        "connect",
+        "true",
+        "first"
+      ],
+      "preview": "- `GET /health`\n\nReturns API liveness plus basic service metadata. | - `GET /api/projects`\n- `POST /api/projects`\n\nExample:\n\n```json\n{\n  \"name\": \"Ragmedium\",\n  \"slug\": \""
+    },
+    {
+      "title": "Meta Platform Setup",
+      "path": "marketing/content empire/docs/META-PLATFORM-SETUP.md",
+      "sections": [
+        {
+          "heading": "Recommended app layout",
+          "content": "Use separate Meta apps per platform and per environment:\n\n- dev Facebook Pages app\n- dev Instagram Login app\n- dev Threads app\n- prod Facebook Pages app\n- prod Instagram Login app\n- prod Threads app\n\nThe code still supports `META_APP_ID` and `META_APP_SECRET` as shared fallback values, but the prefe"
+        },
+        {
+          "heading": "Required env",
+          "content": "```env\nAPP_URL=https://your-public-app-url\nMETA_API_VERSION=v23.0\nTHREADS_API_VERSION=v1.0\n\nMETA_FACEBOOK_APP_ID=your-facebook-pages-app-id\nMETA_FACEBOOK_APP_SECRET=your-facebook-pages-app-secret\n\nMETA_INSTAGRAM_APP_ID=your-instagram-login-app-id\nMETA_INSTAGRAM_APP_SECRET=your-instagram-login-app-se"
+        },
+        {
+          "heading": "Callback URLs",
+          "content": "Register these exact redirect URIs:\n\n- Facebook: `https://your-public-app-url/api/oauth/facebook/callback`\n- Instagram: `https://your-public-app-url/api/oauth/instagram/callback`\n- Threads: `https://your-public-app-url/api/oauth/threads/callback`"
+        },
+        {
+          "heading": "Start routes inside ContentMaster",
+          "content": "- Facebook: `/api/auth/facebook/start?accountId=...`\n- Instagram: `/api/auth/instagram/start?accountId=...`\n- Threads: `/api/auth/threads/start?accountId=...`"
+        },
+        {
+          "heading": "Facebook Pages",
+          "content": "### Permissions\n\n- `pages_show_list`\n- `pages_read_engagement`\n- `pages_manage_posts`\n- `pages_manage_metadata`\n- `pages_messaging`\n\n### Setup steps\n\n1. Create or open the Facebook Pages Meta app.\n2. Add the Pages use case.\n3. Request the required permissions.\n4. Register the Facebook callback URL.\n"
+        },
+        {
+          "heading": "Instagram Login",
+          "content": "### What this lane is\n\nThis repo implements Instagram Login for business or professional account workflows.\n\nIt does not implement a separate consumer Instagram \"friends connection\" feature. If someone asks whether the system already supports direct friend-graph style Instagram connections, the accu"
+        },
+        {
+          "heading": "Threads",
+          "content": "### Permissions\n\n- `threads_basic`\n- `threads_content_publish`\n- `threads_manage_replies`\n- `threads_manage_insights`\n\n### Setup steps\n\n1. Create or open the Threads app.\n2. Add the Threads use case.\n3. Request the required permissions.\n4. Register the Threads callback URL.\n5. Put the Threads app cr"
+        },
+        {
+          "heading": "Recommended modes",
+          "content": "- Facebook: `hybrid_auth`\n- Instagram: `hybrid_auth`\n- Threads: `api_auth`\n\nWhy:\n\n- Facebook sometimes benefits from controlled browser fallback for edge workflows.\n- Instagram sometimes benefits from browser fallback for UI-only cases.\n- Threads is cleanest as API-only."
+        },
+        {
+          "heading": "Meta gaps still not implemented",
+          "content": "- Meta webhook verification\n- inbound webhook event processing\n- automated comment or DM ingestion from webhooks\n- app-review evidence tooling\n\nIf you implement webhooks later, add:\n\n```env\nMETA_WEBHOOK_VERIFY_TOKEN=replace-with-random-string\n```\n\nThen add routes such as:\n\n- `/api/webhooks/meta/face"
+        },
+        {
+          "heading": "Recommended rollout order",
+          "content": "1. Facebook Pages\n2. Instagram Login\n3. Threads\n\nReason:\n\n- Facebook validates the broadest Meta business surface first.\n- Instagram has the most tester and permission friction.\n- Threads is the simplest once the Meta operational lane is already proven."
+        }
+      ],
+      "size": 7187,
+      "keywords": [
+        "instagram",
+        "threads",
+        "facebook",
+        "meta",
+        "token",
+        "account",
+        "oauth",
+        "callback",
+        "pages",
+        "login",
+        "page",
+        "publishing",
+        "setup",
+        "into",
+        "fallback",
+        "only",
+        "start",
+        "permissions",
+        "access",
+        "open",
+        "profile",
+        "public",
+        "business",
+        "webhooks",
+        "separate",
+        "wired",
+        "repo",
+        "storage",
+        "required",
+        "https"
+      ],
+      "preview": "Use separate Meta apps per platform and per environment:\n\n- dev Facebook Pages app\n- dev Instagram L | ```env\nAPP_URL=https://your-public-app-url\nMETA_API_VERSION=v23.0\nTHREADS_API_VERSION=v1.0\n\nMETA_FAC"
+    },
+    {
+      "title": "Platform Connections",
+      "path": "marketing/content empire/docs/PLATFORM-CONNECTIONS.md",
+      "sections": [
+        {
+          "heading": "Status legend",
+          "content": "- `Official auth`: OAuth, app password, or validated token connect exists in the app\n- `Official execution`: real provider API calls exist in `apps/api`\n- `Session execution`: the session-runner can execute browser workflows for the platform\n- `Recommended mode`: the posture the current app and UI g"
+        },
+        {
+          "heading": "Platform matrix",
+          "content": "| Platform | Recommended mode | Official auth | Official execution | Session execution | Notes |\n| --- | --- | --- | --- | --- | --- |\n| X | `api_auth` or `hybrid_auth` | Yes | Publish and metrics | Yes | Use API first. Session fallback exists for edge workflows only. |\n| LinkedIn | `hybrid_auth` | "
+        },
+        {
+          "heading": "Per-platform feature summary",
+          "content": "### X\n\n- Best path: official API for posting and metrics\n- Session fallback can cover comments, inbox, DMs, or engagement if required\n- Browser automation risk is higher than the official API path\n\n### LinkedIn\n\n- Best path: OAuth for publishing\n- Session runner is the intended route for non-posting"
+        },
+        {
+          "heading": "Session-backed platforms",
+          "content": "These platforms either require or strongly benefit from a healthy session bundle:\n\n- Medium\n- Substack\n- Quora\n- Reddit\n- Pinterest\n- Instagram when using hybrid-only fallback workflows\n- Facebook when using hybrid-only fallback workflows\n- TikTok when using hybrid-only fallback workflows\n- LinkedIn"
+        },
+        {
+          "heading": "Current caveats",
+          "content": "- A platform appearing in the UI does not automatically mean every advertised feature is fully production-complete.\n- The account readiness and certification flows are real, but webhook-driven inbox ingestion is still missing.\n- Some connector metadata is more optimistic than the underlying control-"
+        }
+      ],
+      "size": 5435,
+      "keywords": [
+        "session",
+        "publish",
+        "first",
+        "comment",
+        "official",
+        "oauth",
+        "workflows",
+        "fallback",
+        "path",
+        "reply",
+        "current",
+        "execution",
+        "metrics",
+        "analytics",
+        "implemented",
+        "platform",
+        "token",
+        "only",
+        "inbox",
+        "required",
+        "exists",
+        "browser",
+        "posture",
+        "posting",
+        "reddit",
+        "instagram",
+        "callback",
+        "account",
+        "password",
+        "connect"
+      ],
+      "preview": "- `Official auth`: OAuth, app password, or validated token connect exists in the app\n- `Official exe | | Platform | Recommended mode | Official auth | Official execution | Session execution | Notes |\n| -"
+    },
+    {
+      "title": "ContentMaster System Guide",
+      "path": "marketing/content empire/docs/SYSTEM-GUIDE.md",
+      "sections": [
+        {
+          "heading": "What the system is",
+          "content": "ContentMaster is a private, self-hosted social operations platform for:\n\n- managing multi-project content programs\n- connecting social accounts with official OAuth, app passwords, manual access tokens, or encrypted browser sessions\n- storing session bundles and optional encrypted browser profiles fo"
+        },
+        {
+          "heading": "Monorepo layout",
+          "content": "- `apps/web`: Next.js operator dashboard with login, account setup, session vault, proxies, content studio, inbox, audit, and OpenClaw pages\n- `apps/api`: Fastify control API, OAuth callbacks, token storage, session execution handoff, content hub endpoints, and queue APIs\n- `apps/worker`: BullMQ wor"
+        },
+        {
+          "heading": "Services and storage",
+          "content": "The standard stack runs:\n\n- PostgreSQL for projects, accounts, setup state, content items, media assets, edit jobs, alerts, queue items, and audit records\n- Redis for BullMQ-backed orchestration\n- MinIO for durable object storage used by the content hub\n- API for control, OAuth callbacks, content hu"
+        },
+        {
+          "heading": "Operator surfaces",
+          "content": "The web app currently exposes these main surfaces:\n\n- `Overview`: status cards, account matrix, alerts, queue snapshot, and audit summary\n- `Connect`: create projects and accounts, review platform setup rules, and choose connector modes\n- `Accounts`: per-account mode, readiness, certification, provi"
+        },
+        {
+          "heading": "Core workflow",
+          "content": "The intended account onboarding sequence is:\n\n1. Create a project in `Connect`.\n2. Create a platform account and choose `api_auth`, `session_auth`, or `hybrid_auth`.\n3. Save account-specific setup fields.\n4. Complete official OAuth or app-password setup when the platform supports it.\n5. Capture or i"
+        },
+        {
+          "heading": "Auth modes",
+          "content": "- `api_auth`: official OAuth, app-password, or direct provider credential path only\n- `session_auth`: encrypted session bundle and optional encrypted persistent browser profile\n- `hybrid_auth`: official auth first, with session fallback kept available for unsupported workflows"
+        },
+        {
+          "heading": "Current platform coverage",
+          "content": "See [PLATFORM-CONNECTIONS.md](./PLATFORM-CONNECTIONS.md) for the full matrix. High-level summary:\n\n- API-first: X, Bluesky, Threads, YouTube\n- Hybrid-first: LinkedIn, Facebook, Instagram, TikTok\n- Session-first: Medium, Substack, Quora, Reddit, Pinterest"
+        },
+        {
+          "heading": "Important implementation boundaries",
+          "content": "This repo is materially further along than the old docs suggested, but a few areas are still partial or scaffolded:\n\n- The renderer currently accepts render jobs and marks edit jobs as rendering, but it does not yet persist finished video outputs back into storage.\n- The worker is a BullMQ orchestra"
+        },
+        {
+          "heading": "Instagram and \"direct friends\" clarification",
+          "content": "Because this was a major documentation request, this deserves a direct note:\n\n- The implemented Instagram connection is `Instagram Login` plus the Graph/Instagram API lane for business or professional accounts.\n- The repo also supports optional browser-session fallback for Instagram UI workflows.\n- "
+        },
+        {
+          "heading": "Environment and setup",
+          "content": "Minimum local setup:\n\n1. Copy `.env.example` to `.env`.\n2. Run `npm install`.\n3. Fill required env keys.\n4. Run `npm run env:validate`.\n5. Run `npm run db:generate`.\n6. Start infra:\n\n```bash\ndocker compose -f infra/docker/docker-compose.yml up -d postgres redis minio\n```\n\n7. Start the app surfaces y"
+        },
+        {
+          "heading": "Canonical docs",
+          "content": "- [SYSTEM-GUIDE.md](./SYSTEM-GUIDE.md): architecture, surfaces, workflows, and current boundaries\n- [PLATFORM-CONNECTIONS.md](./PLATFORM-CONNECTIONS.md): per-platform auth and execution matrix\n- [API-REFERENCE.md](./API-REFERENCE.md): current API endpoints and payloads\n- [META-PLATFORM-SETUP.md](./M"
+        }
+      ],
+      "size": 7385,
+      "keywords": [
+        "session",
+        "platform",
+        "content",
+        "setup",
+        "instagram",
+        "account",
+        "jobs",
+        "browser",
+        "deployment",
+        "workflows",
+        "execution",
+        "repo",
+        "system",
+        "accounts",
+        "official",
+        "oauth",
+        "manual",
+        "encrypted",
+        "apps",
+        "queue",
+        "docker",
+        "connect",
+        "create",
+        "first",
+        "connections",
+        "contentmaster",
+        "guide",
+        "current",
+        "packages",
+        "private"
+      ],
+      "preview": "ContentMaster is a private, self-hosted social operations platform for:\n\n- managing multi-project co | - `apps/web`: Next.js operator dashboard with login, account setup, session vault, proxies, content "
+    },
+    {
+      "title": "VPS Deployment",
+      "path": "marketing/content empire/docs/VPS-DEPLOYMENT.md",
+      "sections": [
+        {
+          "heading": "Assumptions",
+          "content": "- Ubuntu VPS\n- Docker is not yet installed\n- target app directory is `/opt/content-empire`\n- Tailscale or another private network layer is available"
+        },
+        {
+          "heading": "What the compose stack starts",
+          "content": "`infra/docker/docker-compose.yml` brings up:\n\n- `postgres`\n- `redis`\n- `minio`\n- `api`\n- `web`\n- `worker`\n- `session-runner`\n- `renderer`\n- `nginx`\n\nNginx binds to `${APP_BIND_IP}:8088`."
+        },
+        {
+          "heading": "Security posture",
+          "content": "- Keep the web app and API private behind Tailscale or a private reverse proxy whenever possible.\n- Do not expose `session-runner`, `renderer`, `redis`, `postgres`, or `minio` directly to the public internet.\n- Never let machine automation call the session-runner directly; route through the API.\n- S"
+        },
+        {
+          "heading": "1. Bootstrap the VPS",
+          "content": "Run as `root`:\n\n```bash\nmkdir -p /opt/content-empire\napt-get update\napt-get install -y git\ngit clone <your-repo-url> /opt/content-empire\ncd /opt/content-empire\nbash scripts/bootstrap-vps.sh\n```\n\nThe bootstrap script installs:\n\n- Docker Engine\n- Docker Compose plugin\n- buildx\n- base OS packages requi"
+        },
+        {
+          "heading": "2. Generate secrets locally",
+          "content": "From the repo root on your local machine:\n\n```bash\nnpm install\nnpm run secrets:generate\n```\n\nCopy the generated values into the VPS `.env`."
+        },
+        {
+          "heading": "3. Create `.env`",
+          "content": "On the VPS:\n\n```bash\ncd /opt/content-empire\ncp .env.example .env\nnano .env\n```\n\nMinimum production values to set:\n\n- `NODE_ENV=production`\n- `APP_URL=https://your-private-url-or-reverse-proxy-url`\n- `API_URL=http://api:4000`\n- `APP_BIND_IP=<tailscale-or-private-bind-ip>`\n- `DATABASE_URL=postgresql:/"
+        },
+        {
+          "heading": "4. Deploy",
+          "content": "Run:\n\n```bash\ncd /opt/content-empire\nAPP_DIR=/opt/content-empire bash scripts/deploy-vps.sh\n```\n\nThe deploy script currently:\n\n1. checks that `APP_DIR` exists\n2. checks that `.env` exists\n3. runs `npm install`\n4. runs `npm run env:validate`\n5. runs `npm run db:generate`\n6. builds Docker images\n7. st"
+        },
+        {
+          "heading": "5. Verify",
+          "content": "Run:\n\n```bash\ncd /opt/content-empire\nAPP_DIR=/opt/content-empire bash scripts/check-stack.sh\ndocker compose -f infra/docker/docker-compose.yml ps\ndocker compose -f infra/docker/docker-compose.yml logs --tail=100\n```\n\nExpected checks:\n\n- `docker compose ps` shows healthy containers\n- `http://127.0.0."
+        },
+        {
+          "heading": "6. Back up the database",
+          "content": "Run:\n\n```bash\ncd /opt/content-empire\nAPP_DIR=/opt/content-empire BACKUP_DIR=/opt/content-empire-backups bash scripts/backup-data.sh\n```\n\nThis writes a timestamped PostgreSQL dump into `BACKUP_DIR`."
+        },
+        {
+          "heading": "7. Updating the stack later",
+          "content": "For later updates:\n\n```bash\ncd /opt/content-empire\ngit pull\nAPP_DIR=/opt/content-empire bash scripts/deploy-vps.sh\n```"
+        },
+        {
+          "heading": "Operational notes",
+          "content": "- The API container runs `prisma db push` at startup before launching the API service.\n- The web container talks to `http://api:4000` inside the Docker network.\n- `MINIO_ENDPOINT` should be `minio` in Docker and `localhost` or your chosen host outside Docker.\n- `APP_URL` must match the public callba"
+        }
+      ],
+      "size": 3904,
+      "keywords": [
+        "docker",
+        "content",
+        "empire",
+        "bash",
+        "compose",
+        "scripts",
+        "stack",
+        "private",
+        "secret",
+        "redis",
+        "http",
+        "deploy",
+        "runs",
+        "repo",
+        "tailscale",
+        "infra",
+        "postgres",
+        "minio",
+        "session",
+        "runner",
+        "nginx",
+        "public",
+        "bootstrap",
+        "install",
+        "generate",
+        "production",
+        "contentempire",
+        "checks"
+      ],
+      "preview": "- Ubuntu VPS\n- Docker is not yet installed\n- target app directory is `/opt/content-empire`\n- Tailsca | `infra/docker/docker-compose.yml` brings up:\n\n- `postgres`\n- `redis`\n- `minio`\n- `api`\n- `web`\n- `wo"
+    },
+    {
+      "title": "LamaTrader: Complete Product & Brand Knowledge",
+      "path": "startups/lamatrader/.claude/skills/lamatrader/SKILL.md",
+      "sections": [
+        {
+          "heading": "What Is LamaTrader?",
+          "content": "LamaTrader is the **world's first Integrated Trader Environment (ITE)** — the trading equivalent of what an IDE is for software developers.\r\n\r\nThe analogy is important and should be used: just as developers have IDEs (VS Code, Cursor) where writing, running, debugging, and deploying code all happen "
+        },
+        {
+          "heading": "The Problem LamaTrader Solves",
+          "content": "Retail and semi-professional traders have been stuck between two bad options:\r\n\r\n1. **Institutional-grade tools** (Bloomberg Terminal, Reuters Eikon) — powerful but prohibitively expensive ($20K+/year), complex, and built for desks of analysts, not individuals\r\n2. **Consumer apps** (Robinhood, eToro"
+        },
+        {
+          "heading": "Ideal Customer Profile (ICP)",
+          "content": "### B2C: Individual Traders\r\n**Primary:**\r\n- Active retail traders making 5+ trades per week in stocks, crypto, or options\r\n- Semi-professional traders managing their own portfolio with seriousness (not gambling)\r\n- Traders who feel limited by their current broker's interface and want more\r\n- Algori"
+        },
+        {
+          "heading": "Core Features (The Full Picture)",
+          "content": "### 1. Integrated Trader Environment (ITE)\r\nThe flagship concept. Everything in one workspace: research, execution, portfolio management, AI analysis, strategy building. No tab-switching. The whole picture in one place.\r\n\r\n### 2. AI Chat Assistant\r\n- Has **full live context** of the platform: positi"
+        },
+        {
+          "heading": "Unique Selling Propositions (USPs)",
+          "content": "Ranked by strength and frequency of use in messaging:\r\n\r\n### 1. The ITE Concept — \"Cursor for Trading\"\r\nThe clearest differentiator. No competitor positions themselves as an \"Integrated Trader Environment.\" This is LamaTrader's category-defining claim. The analogy: Cursor didn't just add AI to a tex"
+        },
+        {
+          "heading": "Competitive Landscape",
+          "content": "| Competitor | Their Strength | LamaTrader's Advantage |\r\n|---|---|---|\r\n| Bloomberg Terminal | Most powerful data/analytics | 100x cheaper, modern UX, AI-native |\r\n| Robinhood / eToro / Trading 212 | Easy onboarding, zero commission | Infinitely more powerful, not a toy |\r\n| TradingView | Best char"
+        },
+        {
+          "heading": "Brand Voice & Messaging Principles",
+          "content": "**Tone:** Confident, technically credible, slightly audacious. The voice of someone who has built systems for the world's biggest banks and is now frustrated that retail traders have been given inferior tools for too long.\r\n\r\n**Not:** Hype-y, vague, crypto-bro, patronising.\r\n\r\n**Core narrative arc:*"
+        },
+        {
+          "heading": "Team & Founding Story",
+          "content": "**Founder:** Huseyn Guliyev\r\n- 20+ years in fintech and capital markets in London\r\n- Built trading dashboards and systems for: **Barclays, HSBC, BNP Paribas, Nomura** and other global institutions\r\n- Deep expertise in real-time data systems, institutional infrastructure, and regulatory compliance\r\n-"
+        },
+        {
+          "heading": "Pricing",
+          "content": "- **Free tier:** Access to essential trading features — sufficient for most individual traders. LamaTrader's mission is to make advanced tools accessible to everyone.\r\n- **Paid tiers:** Advanced tools, analytics, and premium support (pricing TBC/evolving)\r\n- **Enterprise/White-label:** Custom pricin"
+        },
+        {
+          "heading": "Technical Infrastructure",
+          "content": "- Built on **Alpaca's Trading, Market Data, and Broker APIs** — a battle-tested, regulated US broker infrastructure\r\n- **Alpaca** provides: execution, market data, crypto trading, broker-of-record services for white-label\r\n- Cloud-native microservices architecture\r\n- Cloudflare global edge network f"
+        },
+        {
+          "heading": "Common Questions & Objections",
+          "content": "**Q: Do I need to move to a new broker?**\r\nNo. LamaTrader sits on top of your existing Alpaca-connected brokerage account. You link your account and immediately get a dramatically better interface — no money moves, no new account needed.\r\n\r\n**Q: Is it free?**\r\nYes, there's a free tier with access to"
+        },
+        {
+          "heading": "Recent News & Milestones",
+          "content": "- **May 2026:** LamaTrader 1.0 officially launched — the world's first ITE\r\n- **Apr 2026:** \"Cursor for Trading\" positioning article published — AI-native environment vs. broker MCP\r\n- **Apr 2026:** Advanced order strategies (Bracket, OTO, OCO) launched\r\n- **Apr 2026:** AI Code Mode article — the fe"
+        },
+        {
+          "heading": "How to Use This Skill",
+          "content": "When asked anything about LamaTrader — features, positioning, pricing, competitive comparisons, ICP, content creation — draw fully on this knowledge base. Speak with the confidence of someone who helped build the product. Be specific: name features, use the ITE framing, invoke the institutional pedi"
+        }
+      ],
+      "size": 19066,
+      "keywords": [
+        "lamatrader",
+        "trading",
+        "traders",
+        "data",
+        "broker",
+        "full",
+        "account",
+        "order",
+        "environment",
+        "platform",
+        "multi",
+        "institutional",
+        "code",
+        "strategies",
+        "real",
+        "features",
+        "professional",
+        "advanced",
+        "execution",
+        "charts",
+        "market",
+        "alpaca",
+        "strategy",
+        "tools",
+        "widgets",
+        "white",
+        "label",
+        "built",
+        "retail",
+        "mode"
+      ],
+      "preview": "LamaTrader is the **world's first Integrated Trader Environment (ITE)** — the trading equivalent of  | Retail and semi-professional traders have been stuck between two bad options:\r\n\r\n1. **Institutional-"
+    },
+    {
+      "title": "LamaTrader Landing Page — 50-Point Copy Comparison Report",
+      "path": "startups/lamatrader/landing-page-comparison-report.md",
+      "sections": [
+        {
+          "heading": "How to Use This Report",
+          "content": "Each of the 50 points shows:\r\n- **V1** — copy from Version 1\r\n- **V2** — copy from Version 2  \r\n- **My Pick / Rec** — which I recommend and why (or a new option I've written)\r\n\r\nReply with the number and your choice (e.g. \"1: V2\", \"3: New\", \"6: V1\") and I'll compile the final merged version.\r\n\r\n---"
+        },
+        {
+          "heading": "SECTION 1 — HERO",
+          "content": "### 1. Beta announcement banner\r\n**V1:** \"LamaTrader is now in beta! Try it out->\"  \r\n**V2:** \"LamaTrader beta is open. Try it out->\"  \r\n**My Pick: V2** — calmer, no exclamation mark. But the strongest option:  \r\n**New:** \"LamaTrader 1.0 is live. Try the beta →\" — signals a real milestone, not just "
+        },
+        {
+          "heading": "SECTION 2 — WHY LAMATRADER",
+          "content": "### 6. Section H2\r\n**V1:** \"The Trading Platform That Thinks With You\"  \r\n**V2:** \"One Workspace for the Whole Trade\"  \r\n**My Pick: V2** — concrete, outcome-focused, tells the reader immediately what's different. V1's \"thinks with you\" is a cliché used by dozens of AI platforms.\r\n\r\n---\r\n\r\n### 7. Sec"
+        },
+        {
+          "heading": "SECTION 3 — POST-CAROUSEL ITE BLOCK",
+          "content": "### 9. ITE section H2\r\n**V1:** \"The world's first Integrated Trader Environment (ITE)\"  \r\n**V2:** \"An Integrated Trader Environment for Modern Markets\"  \r\n**My Pick: V1** — \"world's first\" is a powerful, defensible, category-creating claim. \"For Modern Markets\" in V2 is generic filler. Suggested twe"
+        },
+        {
+          "heading": "SECTION 4 — FEATURE GRID (8 features)",
+          "content": "### 13. Multi-device feature headline\r\n**V1:** \"Multi-Device Mastery\"  \r\n**V2:** \"Synced Across Devices\"  \r\n**My Pick: V2** — concrete, tells you what it does. \"Mastery\" is slightly inflated.\r\n\r\n---\r\n\r\n### 14. Dashboard/widget feature headline\r\n**V1:** \"Customizable Dashboards\"  \r\n**V2:** \"50+ Tradi"
+        },
+        {
+          "heading": "SECTION 5 — WHY TRADERS CHOOSE LAMATRADER",
+          "content": "### 21. Section H2 — identical\r\n**Both:** \"Why Traders Choose LamaTrader\"  \r\n**My Pick: Both same** — functional.  \r\n**Suggested new:** \"What Makes LamaTrader Different\" — more benefit-framed, passes curiosity test.\r\n\r\n---\r\n\r\n### 22. Section description text\r\n**V1:** \"LamaTrader is built for traders"
+        },
+        {
+          "heading": "SECTION 6 — MID-PAGE CTA",
+          "content": "### 29. CTA section H2 — identical\r\n**Both:** \"Trade Smarter with LamaTrader\"  \r\n**My Pick: Neither** — vague and generic.  \r\n**New:** \"The Professional Trading Environment — Now Accessible to Everyone.\" (Uses the institutional story and the democratization mission.)\r\n\r\n---\r\n\r\n### 30. CTA subheadlin"
+        },
+        {
+          "heading": "SECTION 7 — ALPACA SECTION",
+          "content": "### 32. Alpaca section main H2 ⚠️ BEST HEADLINE DIFFERENCE IN THE WHOLE PAGE\r\n**V1:** \"Connect Your Brokerage, Own Your Experience\"  \r\n**V2:** \"Your brokerage stays with Alpaca. Your experience gets upgraded.\"  \r\n**My Pick: V2 — this is the best headline on either page.** Two short, punchy sentences"
+        },
+        {
+          "heading": "SECTION 8 — FEATURE DEEP-DIVE SECTIONS",
+          "content": "### 39. \"Fast. Clear. Smart.\" section H2\r\n**V1:** \"Fast. Clear. Smart. Built for traders.\"  \r\n**V2:** \"Your Trading Day, Organized\"  \r\n**My Pick: V1** — it's the brand tagline. Use it consistently throughout the page. \"Your Trading Day, Organized\" is functional but generic.\r\n\r\n---\r\n\r\n### 40. That se"
+        },
+        {
+          "heading": "SECTION 9 — SOCIAL PROOF / TESTIMONIALS",
+          "content": "### 45. Social proof section H2\r\n**V1:** \"Loved by Traders and Fintech Teams\"  \r\n**V2:** \"Built for Serious Traders and Fintech Teams\"  \r\n**My Pick: V1** — \"Loved\" is social proof framing, which is what this section needs. \"Built for\" is a product statement, not a testimonial intro.\r\n\r\n---\r\n\r\n### 46"
+        },
+        {
+          "heading": "SECTION 10 — FINAL CTA",
+          "content": "### 50. Final CTA H2\r\n**V1:** \"Your Trading Environment, Your Way\"  \r\n**V2:** \"Ready to build your trading workspace?\"  \r\n**My Pick: V1** — more powerful. Speaks to ownership and personalization. A question like \"Ready to build?\" can be answered with \"no\" — it creates micro-friction. \"Your Trading E"
+        },
+        {
+          "heading": "Summary: My Overall Picks at a Glance",
+          "content": "| # | Section | My Pick |\r\n|---|---------|---------|\r\n| 1 | Beta banner | New option |\r\n| 2 | Hero H1 | Keep / New option |\r\n| 3 | Hero subheadline | **NEW** (both fail) |\r\n| 4 | Primary CTA | V2 |\r\n| 5 | Secondary CTA | V2 |\r\n| 6 | Why LT H2 | V2 |\r\n| 7 | Why LT body | V2 |\r\n| 8 | Tab labels | V2 |"
+        }
+      ],
+      "size": 22346,
+      "keywords": [
+        "pick",
+        "trading",
+        "lamatrader",
+        "alpaca",
+        "section",
+        "more",
+        "feature",
+        "bullet",
+        "built",
+        "traders",
+        "trader",
+        "workspace",
+        "market",
+        "orders",
+        "trade",
+        "brokerage",
+        "both",
+        "first",
+        "order",
+        "portfolio",
+        "without",
+        "account",
+        "page",
+        "headline",
+        "workflow",
+        "research",
+        "analytics",
+        "powerful",
+        "label",
+        "testimonial"
+      ],
+      "preview": "Each of the 50 points shows:\r\n- **V1** — copy from Version 1\r\n- **V2** — copy from Version 2  \r\n- ** | ### 1. Beta announcement banner\r\n**V1:** \"LamaTrader is now in beta! Try it out->\"  \r\n**V2:** \"LamaT"
+    }
+  ],
+  "fileCount": 39,
+  "totalSize": 620838
+}

@@ -1,0 +1,16 @@
+{
+  "appId": "com.ragmedium.agentcmd",
+  "appName": "AgentCMD",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https",
+    "url": "https://me.ragmedium.com"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchAutoHide": false,
+      "backgroundColor": "#05070d",
+      "showSpinner": false
+    }
+  }
+}

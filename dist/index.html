@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+
+<meta name="theme-color" content="#05070d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="AgentCMD">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Agent Command</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#05070d;--panel:#0a0e17;--card:#0f1520;--line:#1a2438;--cyan:#18e0ff;--mag:#ff5cc8;--grn:#2fe08a;--amb:#ffb020;--red:#ff4466;--txt:#cfe6f5;--dim:#5b6b82;--mut:#3f4c5f;--sb:58px;--hh:48px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;background:#05070d!important;color:var(--txt);font-family:'IBM Plex Mono',monospace;font-size:12px}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--line);border-radius:3px}
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.02) 2px,rgba(0,0,0,.02) 4px)}
+#header{position:fixed;top:0;left:0;right:0;height:var(--hh);z-index:100;background:var(--panel);border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 16px;gap:10px}
+.logo-box{font-size:11px;font-weight:700;letter-spacing:.15em}.logo-cyan{color:var(--cyan);text-shadow:0 0 10px var(--cyan)}.logo-mag{color:var(--mag);text-shadow:0 0 10px var(--mag)}
+.status-cluster{display:flex;align-items:center;gap:6px}.status-dot{width:7px;height:7px;border-radius:50%;background:var(--grn);box-shadow:0 0 8px var(--grn);animation:pulse 2s infinite}
+.status-label{font-size:9px;color:var(--dim);letter-spacing:.08em}.header-center{display:flex;gap:20px;margin:0 auto}
+.header-stat{font-size:10px;color:var(--dim)}.header-stat b{color:var(--cyan);font-size:13px;font-weight:700}
+.header-right{display:flex;align-items:center;gap:12px}.clock{font-size:11px;color:var(--cyan);letter-spacing:.1em}.user-pill{font-size:9px;color:var(--dim);border:1px solid var(--line);padding:2px 8px;border-radius:10px}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+#sb-main{position:fixed;left:0;top:var(--hh);bottom:0;width:var(--sb);background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;align-items:center;padding:8px 0;gap:3px;z-index:90}
+#sb-sec{position:fixed;left:var(--sb);top:var(--hh);bottom:0;width:var(--sb);background:#05070d;border-right:1px solid var(--line);display:flex;flex-direction:column;align-items:center;padding:8px 0;gap:2px;z-index:90}
+.nb{width:42px;height:40px;border:none;background:transparent;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border-radius:8px;color:var(--dim);transition:.15s}
+.nb:hover{background:var(--card);color:var(--txt)}.nb.active{background:rgba(24,224,255,.1);color:var(--cyan);box-shadow:0 0 0 1px rgba(24,224,255,.2)}
+.nb .ic{font-size:15px;line-height:1}.nb .lb{font-size:7px;letter-spacing:.03em}
+.sb-btn{width:36px;height:34px;border:none;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;border-radius:6px;color:var(--mut);font-size:11px;transition:.15s}
+.sb-btn:hover{color:var(--dim)}.sb-btn.active{color:var(--cyan)}
+#main{position:fixed;left:calc(var(--sb)*2);top:var(--hh);right:0;bottom:0;overflow-y:auto;padding:20px}
+.panel{display:none;animation:slideIn .3s ease}.panel.active{display:block}
+@keyframes slideIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:16px;text-align:center;position:relative;overflow:hidden}
+.stat::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,transparent 60%,rgba(24,224,255,.03))}
+.stat .val{font-size:24px;font-weight:700;color:var(--cyan);text-shadow:0 0 12px rgba(24,224,255,.4)}
+.stat .lbl{font-size:8px;text-transform:uppercase;letter-spacing:.1em;color:var(--dim);margin-top:4px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:14px;margin-bottom:10px}
+.card h3{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--dim);margin-bottom:10px}
+.kanban{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;align-items:start}
+.kb-col{background:rgba(255,255,255,.02);border:1px solid var(--line);border-radius:8px;padding:10px;min-height:200px}
+.kb-col h4{font-size:8px;text-transform:uppercase;letter-spacing:.1em;color:var(--dim);margin-bottom:8px}
+.kb-card{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:8px;margin-bottom:6px;font-size:10px;cursor:pointer;transition:.15s;border-left:3px solid transparent}
+.kb-card:hover{border-color:var(--cyan);border-left-color:var(--cyan)}
+.kb-card .title{font-weight:500;margin-bottom:4px}
+.kb-card .meta{display:flex;gap:6px;font-size:8px;color:var(--dim)}
+.badge{display:inline-block;padding:2px 6px;border-radius:8px;font-size:8px;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.badge-active{background:rgba(47,224,138,.12);color:var(--grn)}
+.badge-progress{background:rgba(24,224,255,.12);color:var(--cyan)}
+.badge-backlog{background:rgba(91,107,130,.12);color:var(--dim)}
+.badge-review{background:rgba(255,176,32,.12);color:var(--amb)}
+.pbar{height:3px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden;margin-top:4px}
+.pbar-fill{height:100%;border-radius:2px;transition:width .3s;background:var(--cyan)}
+table{width:100%;border-collapse:collapse}th{padding:8px 10px;text-align:left;font-size:8px;text-transform:uppercase;letter-spacing:.1em;color:var(--dim);border-bottom:1px solid var(--line)}
+td{padding:8px 10px;font-size:10px;border-bottom:1px solid rgba(255,255,255,.03)}tr:hover td{background:rgba(24,224,255,.04)}
+.agent-card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:12px;display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.agent-card .av{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,var(--panel),var(--line));display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--cyan)}
+.agent-card .info{flex:1}.agent-card .name{font-size:11px;font-weight:500}.agent-card .role{font-size:8px;color:var(--dim)}
+.agent-card .st-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.feed-item{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.03)}
+.feed-item .av{width:26px;height:26px;border-radius:50%;background:var(--panel);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--cyan);flex-shrink:0}
+.feed-item .body{flex:1}.feed-item .nm{font-size:10px;font-weight:600;margin-bottom:2px}.feed-item .msg{font-size:9px;color:var(--dim);line-height:1.4}
+.feed-item .ts{font-size:8px;color:var(--mut);white-space:nowrap;margin-left:auto}
+.toggle{display:flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;margin-bottom:14px}
+.tg-btn{flex:1;padding:7px 14px;font-size:9px;letter-spacing:.08em;text-transform:uppercase;background:transparent;border:0;color:var(--dim);cursor:pointer;font-family:'IBM Plex Mono',monospace}
+.tg-btn.active{background:rgba(24,224,255,.12);color:var(--cyan)}
+.filter-row{display:flex;gap:8px;margin-bottom:14px;align-items:center;flex-wrap:wrap}
+.filter-sel{background:var(--card);border:1px solid var(--line);color:var(--dim);font-family:'IBM Plex Mono',monospace;font-size:9px;padding:5px 10px;border-radius:6px;outline:none;cursor:pointer}
+#galaxy-canvas{width:100%;height:320px;background:#05070d;border:1px solid var(--line);border-radius:8px}
+#task-overlay{display:none;position:fixed;inset:0;z-index:200;background:rgba(5,7,13,.85);backdrop-filter:blur(4px);align-items:center;justify-content:center}
+#task-overlay.open{display:flex}
+#task-detail{background:var(--card);border:1px solid var(--line);border-radius:12px;width:500px;max-width:95vw;max-height:80vh;overflow-y:auto;padding:20px;position:relative}
+#task-close{position:absolute;top:12px;right:12px;background:none;border:none;color:var(--dim);font-size:16px;cursor:pointer}
+.sys-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(26,36,56,.5)}.sys-row:last-child{border-bottom:none}
+.sys-name{font-size:10px;color:var(--dim)}.sys-val{font-size:9px;font-weight:600}.sys-ok{color:var(--grn)}.sys-warn{color:var(--amb)}.sys-err{color:var(--red)}
+.proj-card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:12px;margin-bottom:8px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:.15s}
+.proj-card:hover{border-color:var(--cyan)}
+.proj-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.proj-info{flex:1}.proj-name{font-size:11px;font-weight:500}.proj-desc{font-size:9px;color:var(--dim)}
+.int-card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.int-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.int-dot.on{background:var(--grn);box-shadow:0 0 6px var(--grn)}
+.int-dot.warn{background:var(--amb);box-shadow:0 0 6px var(--amb)}
+.int-dot.off{background:var(--red);box-shadow:0 0 6px var(--red)}
+.int-name{font-size:10px;font-weight:500;flex:1}.int-st{font-size:8px;color:var(--mut)}
+.cred-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(26,36,56,.5)}
+.cred-label{font-size:10px;color:var(--dim)}.cred-val{font-size:9px;color:var(--txt)}
+.cred-toggle{background:none;border:1px solid var(--line);color:var(--dim);font-size:8px;padding:3px 8px;border-radius:4px;cursor:pointer;font-family:'IBM Plex Mono',monospace}
+.ph-panel{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:280px;gap:12px;opacity:.4}
+.ph-icon{font-size:48px}.ph-title{font-size:14px;font-weight:600;color:var(--dim)}.ph-sub{font-size:10px;color:var(--mut);text-align:center;max-width:280px;line-height:1.5}
+
+
+/* MOBILE RESPONSIVE */
+@media(max-width:900px){
+  :root{--sb:0px;--hh:56px}
+  #sb-main,#sb-sec{display:none}
+  #main{left:0;top:var(--hh);padding:12px}
+  #header{padding:0 10px;gap:6px;flex-wrap:wrap;height:auto;padding:8px 10px}
+  .header-center{display:none}
+  .header-right{margin-left:auto}
+  .stat-grid{grid-template-columns:repeat(2,1fr);gap:8px}
+  .stat .val{font-size:18px}
+  .grid-2{grid-template-columns:1fr}
+  .kanban{grid-template-columns:repeat(2,1fr);gap:8px}
+  .kb-col{min-height:120px}
+  .toggle{flex-direction:column}
+  .tg-btn{width:100%}
+  .filter-row{flex-direction:column;align-items:flex-start}
+  .agent-card{padding:10px}
+  .card{padding:10px}
+  .proj-card{padding:10px}
+  #galaxy-canvas{height:220px}
+  .ph-panel{min-height:180px}
+  .mobile-nav{display:flex!important}
+  .logo-box{font-size:10px}
+  .clock{font-size:10px}
+}
+@media(max-width:500px){
+  .stat-grid{grid-template-columns:1fr 1fr}
+  .kanban{grid-template-columns:1fr}
+  .header-stat b{font-size:11px}
+}
+
+/* Mobile bottom nav (hidden on desktop) */
+.mobile-nav{display:none;position:fixed;bottom:0;left:0;right:0;height:56px;background:var(--panel);border-top:1px solid var(--line);z-index:200;justify-content:space-around;align-items:center;padding:0 4px}
+.mn-btn{display:flex;flex-direction:column;align-items:center;gap:2px;background:none;border:none;color:var(--mut);font-size:8px;cursor:pointer;padding:4px 8px;border-radius:6px;flex:1;font-family:'IBM Plex Mono',monospace}
+.mn-btn.active{color:var(--cyan);background:rgba(24,224,255,.08)}
+.mn-btn .ic{font-size:16px;line-height:1}
+
+
+/* Notification Widget */
+.notif-badge{position:fixed;top:8px;right:140px;z-index:150;background:#ff4466;color:#fff;font-size:9px;font-weight:700;min-width:18px;height:18px;border-radius:9px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:2px solid #05070d;transition:.2s}
+.notif-badge.hidden{display:none}
+.notif-badge:hover{transform:scale(1.15)}
+.notif-panel{position:fixed;top:48px;right:12px;width:340px;max-height:420px;background:#0a0e17;border:1px solid #1a2438;border-radius:12px;z-index:149;overflow:hidden;display:none;box-shadow:0 8px 32px rgba(0,0,0,.6)}
+.notif-panel.open{display:block}
+.notif-header{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid #1a2438}
+.notif-header h3{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:#cfe6f5}
+.notif-clear{font-size:8px;color:#5b6b82;background:none;border:1px solid #1a2438;border-radius:4px;padding:2px 8px;cursor:pointer;font-family:'IBM Plex Mono',monospace}
+.notif-clear:hover{color:#ff4466;border-color:#ff4466}
+.notif-list{max-height:360px;overflow-y:auto;padding:4px 0}
+.notif-item{display:flex;gap:10px;padding:10px 14px;border-bottom:1px solid rgba(26,36,56,.5);cursor:pointer;transition:.15s}
+.notif-item:hover{background:rgba(24,224,255,.04)}
+.notif-item.seen{opacity:.5}
+.notif-item .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.notif-item .dot.QUESTION{background:#18e0ff}
+.notif-item .dot.IMPORTANT{background:#2fe08a}
+.notif-item .dot.DECISION{background:#ff4466}
+.notif-item .dot.REQUEST{background:#ffb020}
+.notif-item .dot.MENTION{background:#ff5cc8}
+.notif-item .body{flex:1}
+.notif-item .msg{font-size:10px;color:#cfe6f5;line-height:1.4}
+.notif-item .meta{font-size:8px;color:#5b6b82;margin-top:3px}
+.notif-item .ts{font-size:7px;color:#3f4c5f;white-space:nowrap}
+.notif-empty{text-align:center;padding:30px;color:#5b6b82;font-size:10px}
+@media(max-width:900px){
+  .notif-panel{width:calc(100vw - 24px);right:12px}
+  .notif-badge{right:80px}
+}
+</style>
+</head>
+<body>
+<header id="header">
+  <div class="logo-box"><span class="logo-cyan">AGENT</span><span class="logo-mag">CMD</span></div>
+  <div class="status-cluster"><div class="status-dot pulse"></div><span class="status-label">SYSTEMS ONLINE</span></div>
+  <div class="header-center">
+    <span class="header-stat"><b>50</b> TASKS</span>
+    <span class="header-stat"><b>63</b> AGENTS</span>
+    <span class="header-stat"><b>152M</b> LEADS</span>
+  </div>
+  <div class="header-right">
+    <div class="clock" id="clock">--:--:--</div>
+    <div class="user-pill">Amir</div>
+  </div>
+</header>
+<nav id="sb-main">
+  <div class="nb active" data-tab="overview" onclick="setTab('overview')"><span class="ic">⊞</span><span class="lb">Overview</span></div>
+  <div class="nb" data-tab="board" onclick="setTab('board')"><span class="ic">▦</span><span class="lb">Board</span></div>
+  <div class="nb" data-tab="agents" onclick="setTab('agents')"><span class="ic">◉</span><span class="lb">Agents</span></div>
+  <div class="nb" data-tab="activity" onclick="setTab('activity')"><span class="ic">⟁</span><span class="lb">Activity</span></div>
+  <div class="nb" data-tab="messages" onclick="setTab('messages')"><span class="ic">◇</span><span class="lb">Slack</span></div>
+  <div class="nb" data-tab="galaxy" onclick="setTab('galaxy')"><span class="ic">✦</span><span class="lb">Galaxy</span></div>
+</nav>
+
+<nav id="sb-sec">
+  <div class="sb-btn" onclick="setTab('side-projects')" data-side="projects">P</div>
+  <div class="sb-btn" onclick="setTab('side-leads')" data-side="leads">L</div>
+  <div class="sb-btn" onclick="setTab('side-content')" data-side="content">C</div>
+  <div class="sb-btn" onclick="setTab('side-ragx')" data-side="ragx">R</div>
+  <div class="sb-btn" onclick="setTab('side-secrets')" data-side="secrets">S</div>
+  <div class="sb-btn" onclick="setTab('side-integrations')" data-side="integrations">I</div>
+  <div class="sb-btn" onclick="setTab('side-calendar')" data-side="calendar">K</div>
+  <div class="sb-btn" onclick="setTab('side-docs')" data-side="docs">D</div>
+  <div class="sb-btn" onclick="setTab('side-gallery')" data-side="gallery">G</div>
+</nav>
+
+<main id="main">
+<section class="panel active" id="panel-overview">
+  <div class="stat-grid">
+    <div class="stat"><div class="val" id="s-people">--</div><div class="lbl">People</div></div>
+    <div class="stat"><div class="val" id="s-biz">--</div><div class="lbl">Businesses</div></div>
+    <div class="stat"><div class="val" id="s-pros">--</div><div class="lbl">Professionals</div></div>
+    <div class="stat"><div class="val" id="s-agents">--</div><div class="lbl">Agents</div></div>
+  </div>
+  <div class="grid-2">
+    <div class="card"><h3>Recent Activity</h3><div id="activity-feed"></div></div>
+    <div class="card"><h3>System Status</h3>
+      <div class="sys-row"><span class="sys-name">Galaxy API</span><span class="sys-val sys-ok">ONLINE</span></div>
+      <div class="sys-row"><span class="sys-name">Database</span><span class="sys-val sys-ok">CONNECTED</span></div>
+      <div class="sys-row"><span class="sys-name">Lead Records</span><span class="sys-val sys-ok" id="sys-leads">--</span></div>
+      <div class="sys-row"><span class="sys-name">Dashboard</span><span class="sys-val sys-ok">v28</span></div>
+      <div class="sys-row"><span class="sys-name">Active Agents</span><span class="sys-val sys-ok" id="sys-agents">--</span></div>
+    </div>
+  </div>
+</section>
+<section class="panel" id="panel-board">
+  <div class="toggle"><button class="tg-btn active" onclick="setBoardView('kanban')">Kanban</button><button class="tg-btn" onclick="setBoardView('table')">Table</button></div>
+  <div class="filter-row">
+    <select class="filter-sel" id="kb-proj-filter" onchange="renderBoard()"><option value="__all">All Projects</option></select>
+    <select class="filter-sel" id="kb-pri-filter" onchange="renderBoard()"><option value="__all">All Priority</option><option value="P0">P0</option><option value="P1">P1</option><option value="P2">P2</option></select>
+  </div>
+  <div id="board-content"></div>
+</section>
+<section class="panel" id="panel-agents">
+  <div class="card"><h3>Agent Team</h3><input class="filter-sel" id="agent-search" placeholder="Search agents..." oninput="renderAgents()" style="width:100%;margin-bottom:10px"><div class="grid-3" id="agents-grid"></div></div>
+</section>
+<section class="panel" id="panel-activity">
+  <div class="card"><h3>Live Activity Feed</h3><div id="live-feed"></div></div>
+</section>
+<section class="panel" id="panel-messages">
+  <div class="card"><h3>Team Slack</h3><div class="ph-panel"><div class="ph-icon">💬</div><div class="ph-title">No active channels</div><div class="ph-sub">Agent communication will appear here when teams are active.</div></div></div>
+</section>
+<section class="panel" id="panel-galaxy">
+  <canvas id="galaxy-canvas"></canvas>
+</section>
+<section class="panel" id="panel-side-projects">
+  <div class="toggle"><button class="tg-btn active" onclick="setProjView('projects')">PROJECTS</button><button class="tg-btn" onclick="setProjView('tools')">TOOLS</button></div>
+  <div id="proj-content"></div>
+</section>
+<section class="panel" id="panel-side-leads">
+  <div class="card"><h3>Lead Database</h3>
+    <div class="stat-grid"><div class="stat"><div class="val">152M</div><div class="lbl">People</div></div><div class="stat"><div class="val">21M</div><div class="lbl">Businesses</div></div><div class="stat"><div class="val">35M</div><div class="lbl">Professionals</div></div></div>
+    <p style="font-size:10px;color:var(--dim);margin-top:10px">Data from PDL (416M records) + Apollo BF (51GB). Hosted on galaxy_agents PG, port 5432.</p>
+  </div>
+</section>
+<section class="panel" id="panel-side-content">
+  <div class="card"><h3>Content Empire</h3><div class="ph-panel"><div class="ph-icon">📡</div><div class="ph-title">Distribution Engine</div><div class="ph-sub">Social/media tracker, content calendar, post ideas, distribution metrics.</div></div></div>
+</section>
+<section class="panel" id="panel-side-ragx">
+  <div class="card"><h3>RAGx Pipeline</h3>
+    <div class="sys-row"><span class="sys-name">RAGx DB (Docker 5434)</span><span class="sys-val sys-ok">ONLINE</span></div>
+    <div class="sys-row"><span class="sys-name">Total Leads</span><span class="sys-val sys-ok">182K</span></div>
+    <div class="sys-row"><span class="sys-name">Apollo</span><span class="sys-val sys-ok">104K</span></div>
+    <div class="sys-row"><span class="sys-name">Adv Data</span><span class="sys-val sys-ok">45K</span></div>
+    <div class="sys-row"><span class="sys-name">RIAS</span><span class="sys-val sys-ok">29K</span></div>
+  </div>
+</section>
+<section class="panel" id="panel-side-secrets">
+  <div class="card"><h3>Secrets & Credentials</h3>
+    <div class="cred-row"><span class="cred-label">Galaxy DB</span><span class="cred-val">galaxy_agents:5432</span></div>
+    <div class="cred-row"><span class="cred-label">Claude API</span><button class="cred-toggle" onclick="toggleSecret(this)">Show</button><span class="cred-val" data-secret="sk-ahD..." style="display:none">Configured</span></div>
+    <div class="cred-row"><span class="cred-label">Google OAuth</span><span class="cred-val">Pending</span></div>
+    <div class="cred-row"><span class="cred-label">ReachInbox</span><span class="cred-val">Active</span></div>
+  </div>
+</section>
+<section class="panel" id="panel-side-integrations">
+  <div class="card"><h3>Integrations</h3>
+    <div class="int-card"><div class="int-dot on"></div><span class="int-name">Content Studio</span><span class="int-st">Active</span></div>
+    <div class="int-card"><div class="int-dot on"></div><span class="int-name">X-Farm</span><span class="int-st">Active</span></div>
+    <div class="int-card"><div class="int-dot on"></div><span class="int-name">MoneyPrinterTurbo</span><span class="int-st">Active</span></div>
+    <div class="int-card"><div class="int-dot on"></div><span class="int-name">SMS-CRM</span><span class="int-st">Active</span></div>
+    <div class="int-card"><div class="int-dot on"></div><span class="int-name">Lead Database</span><span class="int-st">Active</span></div>
+    <div class="int-card"><div class="int-dot on"></div><span class="int-name">n8n</span><span class="int-st">Active</span></div>
+    <div class="int-card"><div class="int-dot on"></div><span class="int-name">Coolify</span><span class="int-st">Active</span></div>
+    <div class="int-card"><div class="int-dot on"></div><span class="int-name">ChromaDB</span><span class="int-st">Active</span></div>
+    <div class="int-card"><div class="int-dot on"></div><span class="int-name">Calcom</span><span class="int-st">Active</span></div>
+    <div class="int-card"><div class="int-dot on"></div><span class="int-name">AppFlowy</span><span class="int-st">Active</span></div>
+    <div class="int-card"><div class="int-dot on"></div><span class="int-name">Vaultwarden</span><span class="int-st">Active</span></div>
+    <div class="int-card"><div class="int-dot on"></div><span class="int-name">Agent Team</span><span class="int-st">63 Active</span></div>
+    <div class="int-card"><div class="int-dot on"></div><span class="int-name">ScrapeGraph</span><span class="int-st">Active</span></div>
+    <div class="int-card"><div class="int-dot on"></div><span class="int-name">WhatsApp Bot</span><span class="int-st">Active</span></div>
+    <div class="int-card"><div class="int-dot on"></div><span class="int-name">AI Playground</span><span class="int-st">Active</span></div>
+  </div>
+</section>
+<section class="panel" id="panel-side-calendar">
+  <div class="card"><h3>Calendar</h3><div class="ph-panel"><div class="ph-icon">📅</div><div class="ph-title">Calendar</div><div class="ph-sub">Upcoming events and deadlines will appear here.</div></div></div>
+</section>
+<section class="panel" id="panel-side-docs">
+  <div class="card"><h3>Docs</h3><div class="ph-panel"><div class="ph-icon">📄</div><div class="ph-title">Documents</div><div class="ph-sub">Documentation and files will appear here.</div></div></div>
+</section>
+<section class="panel" id="panel-side-gallery">
+  <div class="card"><h3>Gallery</h3><div class="ph-panel"><div class="ph-icon">🖼</div><div class="ph-title">Gallery</div><div class="ph-sub">Media files will appear here.</div></div></div>
+</section>
+</main>
+
+<div class="notif-badge hidden" id="notifBadge" onclick="toggleNotifPanel()">0</div>
+<div class="notif-panel" id="notifPanel">
+  <div class="notif-header">
+    <h3>Notifications</h3>
+    <button class="notif-clear" onclick="clearNotifications()">Clear All</button>
+  </div>
+  <div class="notif-list" id="notifList">
+    <div class="notif-empty">No notifications yet</div>
+  </div>
+</div>
+
+<div id="task-overlay" onclick="closeTaskOverlay(event)">
+  <div id="task-detail" onclick="event.stopPropagation()"></div>
+</div>
+
+<script>
+const TASKS=[{"task_id": "T-RAGB2B-001", "title": "RAGmedium B2B: Lead scoring + appointment setting", "description": "Decision-maker validation, lead scoring, appointment generation", "created_by": "Kaneki", "assigned_to": null, "team": null, "priority": "P1", "status": "in_progress", "sla_deadline": null, "estimated_minutes": null, "actual_minutes": null, "tags": [], "quality_score": null, "created_at": "2026-06-26 16:58:45.648677", "updated_at": "2026-06-26 16:58:45.648677", "project": "ragmedium-b2b", "category": "project"}, {"task_id": "T-CONEMP-001", "title": "Content Empire: Distribution push", "description": "19 pieces ready, 0 published. Start distribution across LinkedIn/X/IG/TikTok", "created_by": "Kaneki", "assigned_to": null, "team": null, "priority": "P0", "status": "in_progress", "sla_deadline": null, "estimated_minutes": null, "actual_minutes": null, "tags": [], "quality_score": null, "created_at": "2026-06-26 16:54:42.728130", "updated_at": "2026-06-26 16:54:42.728130", "project": "content-empire", "category": "project"}, {"task_id": "T-BROGEN-001", "title": "Brogen: Content engine + X warmup", "description": "Personal brand content generation for 100+ X accounts", "created_by": "Kaneki", "assigned_to": null, "team": null, "priority": "P1", "status": "in_progress", "sla_deadline": null, "estimated_minutes": null, "actual_minutes": null, "tags": [], "quality_score": null, "created_at": "2026-06-26 16:54:42.728130", "updated_at": "2026-06-26 16:54:42.728130", "project": "brogen", "category": "project"}, {"task_id": "T-INT-017", "title": "ChromaDB: Vector DB server", "description": "Port 8889", "created_by": "Kaneki", "assigned_to": null, "team": null, "priority": "P3", "status": "backlog", "sla_deadline": null, "estimated_minutes": null, "actual_minutes": null, "tags": [], "quality_score": null, "created_at": "2026-06-26 16:47:19.620994", "updated_at": "2026-06-26 16:47:19.620994", "project": "chromadb", "category": "tool"}, {"task_id": "T-INT-011", "title": "n8n: Workflow automation", "description": "Port 5679", "created_by": "Kaneki", "assigned_to": null, "team": null, "priority": "P2", "status": "backlog", "sla_deadline": null, "estimated_minutes": null, "actual_minutes": null, "tags": [], "quality_score": null, "created_at": "2026-06-26 16:47:19.620994", "updated_at": "2026-06-26 16:47:19.620994", "project": "n8n", "category": "tool"}, {"task_id": "T-INT-016", "title": "Coolify: Server management", "description": "Ports 6001-6002", "created_by": "Kaneki", "assigned_to": null, "team": null, "priority": "P3", "status": "backlog", "sla_deadline": null, "estimated_minutes": null, "actual_minutes": null, "tags": [], "quality_score": null, "created_at": "2026-06-26 16:47:19.620994", "updated_at": "2026-06-26 16:47:19.620994", "project": "coolify", "category": "tool"}, {"task_id": "T-INT-010", "title": "Calcom: Scheduling infrastructure", "description": "Scheduling tool", "created_by": "Kaneki", "assigned_to": null, "team": null, "priority": "P2", "status": "backlog", "sla_deadline": null, "estimated_minutes": null, "actual_minutes": null, "tags": [], "quality_score": null, "created_at": "2026-06-26 16:47:19.620994", "updated_at": "2026-06-26 16:47:19.620994", "project": "calcom", "category": "tool"}, {"task_id": "T-INT-014", "title": "AppFlowy: Notes/docs", "description": "Cloud notes", "created_by": "Kaneki", "assigned_to": null, "team": null, "priority": "P3", "status": "backlog", "sla_deadline": null, "estimated_minutes": null, "actual_minutes": null, "tags": [], "quality_score": null, "created_at": "2026-06-26 16:47:19.620994", "updated_at": "2026-06-26 16:47:19.620994", "project": "appflowy", "category": "tool"}, {"task_id": "T-INT-015", "title": "Vaultwarden: Password manager", "description": "Self-hosted Bitwarden", "created_by": "Kaneki", "assigned_to": null, "team": null, "priority": "P3", "status": "backlog", "sla_deadline": null, "estimated_minutes": null, "actual_minutes": null, "tags": [], "quality_score": null, "created_at": "2026-06-26 16:47:19.620994", "updated_at": "2026-06-26 16:47:19.620994", "project": "vaultwarden", "category": "tool"}, {"task_id": "T-INT-005", "title": "MoneyPrinterTurbo: AI video pipeline", "description": "topic\u2192script\u2192voice\u2192stock\u2192render", "created_by": "Kaneki", "assigned_to": null, "team": null, "priority": "P2", "status": "backlog", "sla_deadline": null, "estimated_minutes": null, "actual_minutes": null, "tags": [], "quality_score": null, "created_at": "2026-06-26 16:47:19.620994", "updated_at": "2026-06-26 16:47:19.620994", "project": "moneyprinterturbo", "category": "tool"}, {"task_id": "T-INT-002", "title": "Content Studio: AI content creation", "description": "11 modules, image AI, kanban planner", "created_by": "Kaneki", "assigned_to": null, "team": null, "priority": "P2", "status": "active", "sla_deadline": null, "estimated_minutes": null, "actual_minutes": null, "tags": [], "quality_score": null, "created_at": "2026-06-26 16:47:19.620994", "updated_at": "2026-06-26 16:47:19.620994", "project": "content-studio", "category": "tool"}, {"task_id": "T-INT-004", "title": "X-Farm: 100+ account warmup system", "description": "Brogen growth engine. Needs reactivation", "created_by": "Kaneki", "assigned_to": null, "team": null, "priority": "P2", "status": "backlog", "sla_deadline": null, "estimated_minutes": null, "actual_minutes": null, "tags": [], "quality_score": null, "created_at": "2026-06-26 16:47:19.620994", "updated_at": "2026-06-26 16:47:19.620994", "project": "x-farm", "category": "tool"}, {"task_id": "T-INT-003", "title": "Content Empire: Distribution machine", "description": "LinkedIn/X/IG/TikTok. 19 pieces ready, 0 published. Needs push", "created_by": "Kaneki", "assigned_to": null, "team": null, "priority": "P0", "status": "in_progress", "sla_deadline": null, "estimated_minutes": null, "actual_minutes": null, "tags": [], "quality_score": null, "created_at": "2026-06-26 16:47:19.620994", "updated_at": "2026-06-26 16:47:19.620994", "project": "content-studio", "category": "tool"}, {"task_id": "T-INT-001", "title": "RAGx: Email/SMS outreach engine", "description": "300 inboxes, campaigns, lead DB 6.65M records", "created_by": "Kaneki", "assigned_to": null, "team": null, "priority": "P1", "status": "active", "sla_deadline": null, "estimated_minutes": null, "actual_minutes": null, "tags": [], "quality_score": null, "created_at": "2026-06-26 16:47:19.620994", "updated_at": "2026-06-26 16:47:19.620994", "project": "ragx", "category": "project"}, {"task_id": "T-START-007", "title": "SyneticX: Clinical trial platform", "description": "NDA-bound. Pipeline \u20ac15k", "created_by": "Kaneki", "assigned_to": null, "team": null, "priority": "P2", "status": "backlog", "sla_deadline": null, "estimated_minutes": null, "actual_minutes": null, "tags": [], "quality_score": null, "created_at": "2026-06-26 16:47:19.614278", "updated_at": "2026-06-26 16:47:19.614278", "project": "syneticx", "category": "project"}, {"task_id": "T-START-004", "title": "Grademy: AI tutoring platform", "description": "EdTech. UCL pilot Sep 2026. Chat-first learning, spaced repetition", "created_by": "Kaneki", "assigned_to": null, "team": null, "priority": "P0", "status": "in_progress", "sla_deadline": null, "estimated_minutes": null, "actual_minutes": null, "tags": [], "quality_score": null, "created_at": "2026-06-26 16:47:19.614278", "updated_at": "2026-06-26 16:47:19.614278", "project": "grademy", "category": "project"}, {"task_id": "T-START-002", "title": "Brogen: Content engine for X warmup", "description": "Content generation + warmup for 100+ X accounts. Personal brand", "created_by": "Kaneki", "assigned_to": null, "team": null, "priority": "P1", "status": "in_progress", "sla_deadline": null, "estimated_minutes": null, "actual_minutes": null, "tags": [], "quality_score": null, "created_at": "2026-06-26 16:47:19.614278", "updated_at": "2026-06-26 16:47:19.614278", "project": "x-farm", "category": "tool"}, {"task_id": "T-START-005", "title": "Rema Exteriors: Field PM + local leads", "description": "Construction/exteriors. Homeowner campaigns", "created_by": "Kaneki", "assigned_to": null, "team": null, "priority": "P2", "status": "active", "sla_deadline": null, "estimated_minutes": null, "actual_minutes": null, "tags": [], "quality_score": null, "created_at": "2026-06-26 16:47:19.614278", "updated_at": "2026-06-26 16:47:19.614278", "project": "rema", "category": "project"}, {"task_id": "T-START-003", "title": "LamaTrader: White-label trading platform", "description": "Beta live. Alpaca APIs, AI Assistant, Code Mode, 50+ widgets", "created_by": "Kaneki", "assigned_to": null, "team": null, "priority": "P1", "status": "active", "sla_deadline": null, "estimated_minutes": null, "actual_minutes": null, "tags": [], "quality_score": null, "created_at": "2026-06-26 16:47:19.614278", "updated_at": "2026-06-26 16:47:19.614278", "project": "lamatrader", "category": "project"}, {"task_id": "T-START-001", "title": "PrePitch: MVP refresh & relaunch", "description": "Stale 4+ months - product outdated. Plan + execute relaunch. P0", "created_by": "Kaneki", "assigned_to": null, "team": null, "priority": "P0", "status": "in_progress", "sla_deadline": null, "estimated_minutes": null, "actual_minutes": null, "tags": [], "quality_score": null, "created_at": "2026-06-26 16:47:19.614278", "updated_at": "2026-06-26 16:47:19.614278", "project": "pripitch", "category": "project"}, {"task_id": "T-START-006", "title": "LamaBroker: White-label brokerage ops", "description": "Part of Lama ecosystem. In active development", "created_by": "Kaneki", "assigned_to": null, "team": null, "priority": "P2", "status": "backlog", "sla_deadline": null, "estimated_minutes": null, "actual_minutes": null, "tags": [], "quality_score": null, "created_at": "2026-06-26 16:47:19.614278", "updated_at": "2026-06-26 16:47:19.614278", "project": "lamabroker", "category": "project"}, {"task_id": "T-CLI-004", "title": "CinematicX: Clinical trial platform", "description": "Active client - NDA-bound CTMS", "created_by": "Kaneki", "assigned_to": null, "team": null, "priority": "P1", "status": "backlog", "sla_deadline": null, "estimated_minutes": null, "actual_minutes": null, "tags": [], "quality_score": null, "created_at": "2026-06-26 16:47:19.562520", "updated_at": "2026-06-26 16:47:19.562520", "project": "cinematicx", "category": "project"}, {"task_id": "T-CLI-001", "title": "HalalBooking: Platform feature development", "description": "Active client - halal booking platform iterations", "created_by": "Kaneki", "assigned_to": null, "team": null, "priority": "P1", "status": "backlog", "sla_deadline": null, "estimated_minutes": null, "actual_minutes": null, "tags": [], "quality_score": null, "created_at": "2026-06-26 16:47:19.562520", "updated_at": "2026-06-26 16:47:19.562520", "project": "halalbooking", "category": "project"}, {"task_id": "T-CLI-003", "title": "Waterspring: Investment mgmt software", "description": "Active client - Welsh VC custom software", "created_by": "Kaneki", "assigned_to": null, "team": null, "priority": "P1", "status": "backlog", "sla_deadline": null, "estimated_minutes": null, "actual_minutes": null, "tags": [], "quality_score": null, "created_at": "2026-06-26 16:47:19.562520", "updated_at": "2026-06-26 16:47:19.562520", "project": "waterspring", "category": "project"}, {"task_id": "T-CLI-002", "title": "Unitas: GMass replacement build", "description": "Active client - PR agency tools", "created_by": "Kaneki", "assigned_to": null, "team": null, "priority": "P1", "status": "backlog", "sla_deadline": null, "estimated_minutes": null, "actual_minutes": null, "tags": [], "quality_score": null, "created_at": "2026-06-26 16:47:19.562520", "updated_at": "2026-06-26 16:47:19.562520", "project": "unitas", "category": "project"}, {"task_id": "T-008", "title": "Grademy: Deploy to Vercel staging", "description": "21 commits ready. Final QA pass + deploy.", "created_by": "Kaneki", "assigned_to": "E-04", "team": "engineering", "priority": "P2", "status": "todo", "sla_deadline": null, "estimated_minutes": 60, "actual_minutes": null, "tags": ["deploy", "vercel", "staging"], "quality_score": null, "created_at": "2026-06-25 23:12:13.066378", "updated_at": "2026-06-25 23:12:13.066378", "project": "grademy", "category": "project"}, {"task_id": "T-009", "title": "Grademy: SEO blog \u2014 AI tutoring trends", "description": "Q3 content calendar. Blog post drafted, needs anti-AI audit.", "created_by": "Kaneki", "assigned_to": "C-02", "team": "content", "priority": "P2", "status": "review", "sla_deadline": null, "estimated_minutes": 45, "actual_minutes": null, "tags": ["blog", "seo", "content"], "quality_score": null, "created_at": "2026-06-25 23:12:13.066378", "updated_at": "2026-06-25 23:12:13.066378", "project": "grademy", "category": "project"}, {"task_id": "T-001", "title": "RAGx DB: 3.4M people + 2.9M businesses \u2014 dedup & index", "description": "Lead Finder imported 3.4M people + 2.9M businesses. Need dedup, indexing, wire to l.ragmedium.com", "created_by": "Kaneki", "assigned_to": "E-01", "team": "engineering", "priority": "P0", "status": "in_progress", "sla_deadline": null, "estimated_minutes": 240, "actual_minutes": null, "tags": ["database", "dedup", "indexing"], "quality_score": null, "created_at": "2026-06-25 23:12:13.066378", "updated_at": "2026-06-25 23:12:13.066378", "project": "ragx", "category": "project"}, {"task_id": "T-003", "title": "RAGx: Wire l.ragmedium.com to new lead DB", "description": "Connect lead database UI to galaxy_agents PostgreSQL.", "created_by": "Kaneki", "assigned_to": "E-03", "team": "engineering", "priority": "P1", "status": "blocked", "sla_deadline": null, "estimated_minutes": 300, "actual_minutes": null, "tags": ["frontend", "api", "postgres"], "quality_score": null, "created_at": "2026-06-25 23:12:13.066378", "updated_at": "2026-06-25 23:12:13.066378", "project": "ragx", "category": "project"}, {"task_id": "T-015", "title": "LamaTrader: Email drip campaign for 46K leads", "description": "Nurture sequence for enriched Apollo leads (11K brokerage firms).", "created_by": "Kaneki", "assigned_to": "LG-01", "team": "leadgen", "priority": "P1", "status": "backlog", "sla_deadline": null, "estimated_minutes": 180, "actual_minutes": null, "tags": ["email", "drip", "nurture"], "quality_score": null, "created_at": "2026-06-25 23:12:13.066378", "updated_at": "2026-06-25 23:12:13.066378", "project": "ragx", "category": "project"}, {"task_id": "T-018", "title": "Pripitch v2: Full UI/UX overhaul", "description": "4+ months stale. Complete redesign for August relaunch.", "created_by": "Kaneki", "assigned_to": "E-03", "team": "engineering", "priority": "P2", "status": "backlog", "sla_deadline": null, "estimated_minutes": 600, "actual_minutes": null, "tags": ["ui", "redesign", "relaunch"], "quality_score": null, "created_at": "2026-06-25 23:12:13.066378", "updated_at": "2026-06-25 23:12:13.066378", "project": "pripitch", "category": "project"}, {"task_id": "T-019", "title": "Pripitch v2: Security + CI/CD sprint", "description": "Security audit, CI/CD pipeline, code refactor.", "created_by": "Kaneki", "assigned_to": "E-05", "team": "engineering", "priority": "P1", "status": "blocked", "sla_deadline": null, "estimated_minutes": 360, "actual_minutes": null, "tags": ["security", "ci-cd", "refactor"], "quality_score": null, "created_at": "2026-06-25 23:12:13.066378", "updated_at": "2026-06-25 23:12:13.066378", "project": "pripitch", "category": "project"}, {"task_id": "T-031", "title": "Rema: Customer booking pipeline", "description": "Quote-to-booking pipeline for exterior services.", "created_by": "Kaneki", "assigned_to": "O-03", "team": "operations", "priority": "P2", "status": "backlog", "sla_deadline": null, "estimated_minutes": 120, "actual_minutes": null, "tags": ["booking", "pipeline", "operations"], "quality_score": null, "created_at": "2026-06-25 23:12:13.066378", "updated_at": "2026-06-25 23:12:13.066378", "project": "rema", "category": "project"}, {"task_id": "T-002", "title": "RAGx DB: Parse remaining Google Drive CSV batches", "description": "600M total leads target. Remaining Drive files need parsing + merge.", "created_by": "Kaneki", "assigned_to": "E-02", "team": "engineering", "priority": "P0", "status": "in_progress", "sla_deadline": null, "estimated_minutes": 600, "actual_minutes": null, "tags": ["csv", "google-drive", "parsing"], "quality_score": null, "created_at": "2026-06-25 23:12:13.066378", "updated_at": "2026-06-25 23:12:13.066378", "project": "rema", "category": "project"}, {"task_id": "T-030", "title": "Rema: Local lead gen campaign", "description": "Field PM, local lead gen, customer relations for construction business.", "created_by": "Kaneki", "assigned_to": "LG-04", "team": "leadgen", "priority": "P2", "status": "backlog", "sla_deadline": null, "estimated_minutes": 180, "actual_minutes": null, "tags": ["leadgen", "local", "construction"], "quality_score": null, "created_at": "2026-06-25 23:12:13.066378", "updated_at": "2026-06-25 23:12:13.066378", "project": "rema", "category": "project"}, {"task_id": "T-020", "title": "Pripitch: Apollo.io integration for lead sourcing", "description": "3-step cold email workflow. Apollo sourcing automation.", "created_by": "Kaneki", "assigned_to": "LG-03", "team": "leadgen", "priority": "P2", "status": "backlog", "sla_deadline": null, "estimated_minutes": 240, "actual_minutes": null, "tags": ["apollo", "integration", "sourcing"], "quality_score": null, "created_at": "2026-06-25 23:12:13.066378", "updated_at": "2026-06-25 23:12:13.066378", "project": "pripitch", "category": "project"}, {"task_id": "T-027", "title": "Client Ops: Hollow Booking status review", "description": "Active client. No pending tasks. Need check-in.", "created_by": "Kaneki", "assigned_to": "CS-02", "team": "client-success", "priority": "P2", "status": "todo", "sla_deadline": null, "estimated_minutes": 60, "actual_minutes": null, "tags": ["checkin", "client"], "quality_score": null, "created_at": "2026-06-25 23:12:13.066378", "updated_at": "2026-06-25 23:12:13.066378", "project": "halalbooking", "category": "project"}, {"task_id": "T-028", "title": "Client Ops: Unitas AI op-ed system", "description": "AI-assisted op-ed generation + pitching. 30/60/90-day plan drafted.", "created_by": "Kaneki", "assigned_to": "R-01", "team": "research", "priority": "P1", "status": "todo", "sla_deadline": null, "estimated_minutes": 240, "actual_minutes": null, "tags": ["ai", "editorial", "unitas"], "quality_score": null, "created_at": "2026-06-25 23:12:13.066378", "updated_at": "2026-06-25 23:12:13.066378", "project": "unitas", "category": "project"}, {"task_id": "T-029", "title": "Client Ops: CinematicX NDA project setup", "description": "Clinical trial platform. NDA-bound. Needs dedicated workspace.", "created_by": "Kaneki", "assigned_to": "CS-03", "team": "client-success", "priority": "P2", "status": "backlog", "sla_deadline": null, "estimated_minutes": 120, "actual_minutes": null, "tags": ["nda", "setup", "cinematicx"], "quality_score": null, "created_at": "2026-06-25 23:12:13.066378", "updated_at": "2026-06-25 23:12:13.066378", "project": "cinematicx", "category": "project"}, {"task_id": "T-035", "title": "MoneyPrinterTurbo: AI video generation", "description": "Port 8080. AI video generation platform for Content Empire.", "created_by": "Kaneki", "assigned_to": "C-04", "team": "content", "priority": "P3", "status": "backlog", "sla_deadline": null, "estimated_minutes": 360, "actual_minutes": null, "tags": ["video", "ai", "generation"], "quality_score": null, "created_at": "2026-06-25 23:12:13.066378", "updated_at": "2026-06-25 23:12:13.066378", "project": "moneyprinterturbo", "category": "tool"}, {"task_id": "T-014", "title": "LamaTrader: Integrate Alpaca MCP Server", "description": "Alpaca MCP launched. Wire to Code Mode for natural language trading.", "created_by": "Kaneki", "assigned_to": "E-01", "team": "engineering", "priority": "P1", "status": "in_progress", "sla_deadline": null, "estimated_minutes": 360, "actual_minutes": null, "tags": ["alpaca", "mcp", "integration"], "quality_score": null, "created_at": "2026-06-25 23:12:13.066378", "updated_at": "2026-06-25 23:12:13.066378", "project": "coolify", "category": "tool"}, {"task_id": "T-023", "title": "Infra: Fix Content Studio (port 1705) \u2014 546 restarts", "description": "Docker crash loop. Memory limit investigation.", "created_by": "Kaneki", "assigned_to": "O-02", "team": "operations", "priority": "P1", "status": "todo", "sla_deadline": null, "estimated_minutes": 90, "actual_minutes": null, "tags": ["docker", "crash", "fix"], "quality_score": null, "created_at": "2026-06-25 23:12:13.066378", "updated_at": "2026-06-25 23:12:13.066378", "project": "content-studio", "category": "tool"}, {"task_id": "T-026", "title": "Client Ops: Waterspring sprint delivery + payment", "description": "~4k GBP sprint ending. Collect payment.", "created_by": "Kaneki", "assigned_to": "CS-01", "team": "client-success", "priority": "P1", "status": "in_progress", "sla_deadline": null, "estimated_minutes": 30, "actual_minutes": null, "tags": ["billing", "delivery"], "quality_score": null, "created_at": "2026-06-25 23:12:13.066378", "updated_at": "2026-06-25 23:12:13.066378", "project": "waterspring", "category": "project"}, {"task_id": "T-022", "title": "Platform: me.ragmedium.com Tasks page + overlays", "description": "Task detail overlay, progress bars, agent feeds, secrets tab.", "created_by": "Kaneki", "assigned_to": "E-06", "team": "engineering", "priority": "P1", "status": "in_progress", "sla_deadline": null, "estimated_minutes": 180, "actual_minutes": null, "tags": ["tasks", "ui", "overlay"], "quality_score": null, "created_at": "2026-06-25 23:12:13.066378", "updated_at": "2026-06-25 23:12:13.066378", "project": "platform", "category": "tool"}, {"task_id": "T-024", "title": "Infra: OpenCode (port 1703) \u2014 1,137 restarts", "description": "ServeError loop. Root cause analysis.", "created_by": "Kaneki", "assigned_to": "E-02", "team": "engineering", "priority": "P1", "status": "todo", "sla_deadline": null, "estimated_minutes": 60, "actual_minutes": null, "tags": ["opencode", "crash", "debug"], "quality_score": null, "created_at": "2026-06-25 23:12:13.066378", "updated_at": "2026-06-25 23:12:13.066378", "project": "platform", "category": "tool"}, {"task_id": "T-021", "title": "Platform: Agent routing fix", "description": "No matching agent found. Config fix to unblock idle agents.", "created_by": "Kaneki", "assigned_to": "E-02", "team": "engineering", "priority": "P0", "status": "todo", "sla_deadline": null, "estimated_minutes": 45, "actual_minutes": null, "tags": ["config", "blocking", "routing"], "quality_score": null, "created_at": "2026-06-25 23:12:13.066378", "updated_at": "2026-06-25 23:12:13.066378", "project": "agent-team", "category": "tool"}, {"task_id": "T-012", "title": "X-Farm warmup: Monitor & rotate expired credentials", "description": "21% of 1852 accounts expired. Day 5/37 batch running.", "created_by": "Kaneki", "assigned_to": "O-02", "team": "operations", "priority": "P2", "status": "in_progress", "sla_deadline": null, "estimated_minutes": 240, "actual_minutes": null, "tags": ["warmup", "x-farm", "credentials"], "quality_score": null, "created_at": "2026-06-25 23:12:13.066378", "updated_at": "2026-06-25 23:12:13.066378", "project": "x-farm", "category": "tool"}, {"task_id": "T-025", "title": "Infra: N8N crash monitoring + auto-restart", "description": "N8N crashed twice (pg-protocol error). Needs monitoring.", "created_by": "Kaneki", "assigned_to": "O-01", "team": "operations", "priority": "P1", "status": "todo", "sla_deadline": null, "estimated_minutes": 60, "actual_minutes": null, "tags": ["monitoring", "n8n", "postgres"], "quality_score": null, "created_at": "2026-06-25 23:12:13.066378", "updated_at": "2026-06-25 23:12:13.066378", "project": "n8n", "category": "tool"}, {"task_id": "T-010", "title": "Content Empire: Create X + LinkedIn accounts", "description": "15 content pieces ready. BLOCKED until social accounts created.", "created_by": "Kaneki", "assigned_to": "O-01", "team": "operations", "priority": "P0", "status": "blocked", "sla_deadline": null, "estimated_minutes": 90, "actual_minutes": null, "tags": ["social", "blocking", "accounts"], "quality_score": null, "created_at": "2026-06-25 23:12:13.066378", "updated_at": "2026-06-25 23:12:13.066378", "project": "content-studio", "category": "tool"}, {"task_id": "T-011", "title": "Content Empire: Publish Week 1-4 content calendar", "description": "4 weeks content drafted. Queue for publishing once accounts live.", "created_by": "Kaneki", "assigned_to": "C-01", "team": "content", "priority": "P1", "status": "blocked", "sla_deadline": null, "estimated_minutes": 120, "actual_minutes": null, "tags": ["publishing", "content", "calendar"], "quality_score": null, "created_at": "2026-06-25 23:12:13.066378", "updated_at": "2026-06-25 23:12:13.066378", "project": "content-studio", "category": "tool"}];
+const AGENTS=[{"agent_id": "L-06", "codename": "Bridge", "team": "client-success", "tier": "lead", "specialization": "Client management, fulfillment oversight", "status": "active", "aps_score": "50.00", "current_load": 0, "max_load": 10, "config": {}, "memory": {}, "created_at": "2026-06-25 00:39:27.078469", "updated_at": "2026-06-25 00:39:27.078469"}, {"agent_id": "CS-01", "codename": "Onboard", "team": "client-success", "tier": "mid", "specialization": "Client onboarding", "status": "active", "aps_score": "50.00", "current_load": 0, "max_load": 5, "config": {}, "memory": {}, "created_at": "2026-06-25 00:39:27.109128", "updated_at": "2026-06-25 00:39:27.109128"}, {"agent_id": "CS-02", "codename": "Fulfill", "team": "client-success", "tier": "mid", "specialization": "Project fulfillment", "status": "active", "aps_score": "50.00", "current_load": 0, "max_load": 5, "config": {}, "memory": {}, "created_at": "2026-06-25 00:39:27.109725", "updated_at": "2026-06-25 00:39:27.109725"}, {"agent_id": "CS-03", "codename": "Retain", "team": "client-success", "tier": "mid", "specialization": "Client retention", "status": "active", "aps_score": "50.00", "current_load": 0, "max_load": 5, "config": {}, "memory": {}, "created_at": "2026-06-25 00:39:27.110306", "updated_at": "2026-06-25 00:39:27.110306"}, {"agent_id": "CS-S01", "codename": "Advocate", "team": "client-success", "tier": "senior", "specialization": "Client success, relationship management", "status": "active", "aps_score": "50.00", "current_load": 0, "max_load": 7, "config": {}, "memory": {}, "created_at": "2026-06-25 00:39:27.108568", "updated_at": "2026-06-25 00:39:27.108568"}, {"agent_id": "L-03", "codename": "Quill", "team": "content", "tier": "lead", "specialization": "Editorial strategy, brand voice", "status": "active", "aps_score": "50.00", "current_load": 0, "max_load": 10, "config": {}, "memory": {}, "created_at": "2026-06-25 00:39:27.076422", "updated_at": "2026-06-25 00:39:27.076422"}, {"agent_id": "C-01", "codename": "Scroll", "team": "content", "tier": "mid", "specialization": "Long-form writing", "status": "active", "aps_score": "50.00", "current_load": 0, "max_load": 5, "config": {}, "memory": {}, "created_at": "2026-06-25 00:39:27.096269", "updated_at": "2026-06-25 00:39:27.096269"}, {"agent_id": "C-02", "codename": "Spark", "team": "content", "tier": "mid", "specialization": "Social media content", "status": "active", "aps_score": "50.00", "current_load": 0, "max_load": 5, "config": {}, "memory": {}, "created_at": "2026-06-25 00:39:27.096847", "updated_at": "2026-06-25 00:39:27.096847"}, {"agent_id": "C-03", "codename": "Frame", "team": "content", "tier": "mid", "specialization": "Visual content direction", "status": "active", "aps_score": "50.00", "current_load": 0, "max_load": 5, "config": {}, "memory": {}, "created_at": "2026-06-25 00:39:27.097482", "updated_at": "2026-06-25 00:39:27.097482"}, {"agent_id": "C-04", "codename": "Thread", "team": "content", "tier": "mid", "specialization": "Community management", "status": "active", "aps_score": "50.00", "current_load": 0, "max_load": 5, "config": {}, "memory": {}, "created_at": "2026-06-25 00:39:27.098086", "updated_at": "2026-06-25 00:39:27.098086"}, {"agent_id": "C-05", "codename": "Press", "team": "content", "tier": "mid", "specialization": "PR, press releases", "status": "active", "aps_score": "50.00", "current_load": 0, "max_load": 5, "config": {}, "memory": {}, "created_at": "2026-06-25 00:39:27.098615", "updated_at": "2026-06-25 00:39:27.098615"}, {"agent_id": "C-06", "codename": "Flow", "team": "content", "tier": "mid", "specialization": "Content calendar, scheduling", "status": "active", "aps_score": "50.00", "current_load": 0, "max_load": 5, "config": {}, "memory": {}, "created_at": "2026-06-25 00:39:27.099149", "updated_at": "2026-06-25 00:39:27.099149"}, {"agent_id": "C-07", "codename": "Clip", "team": "content", "tier": "mid", "specialization": "Short-form content", "status": "active", "aps_score": "50.00", "current_load": 0, "max_load": 5, "config": {}, "memory": {}, "created_at": "2026-06-25 00:39:27.099779", "updated_at": "2026-06-25 00:39:27.099779"}, {"agent_id": "C-S01", "codename": "Voice", "team": "content", "tier": "senior", "specialization": "Brand voice, editorial standards", "status": "active", "aps_score": "50.00", "current_load": 0, "max_load": 7, "config": {}, "memory": {}, "created_at": "2026-06-25 00:39:27.095192", "updated_at": "2026-06-25 00:39:27.095192"}, {"agent_id": "C-S02", "codename": "Signal", "team": "content", "tier": "senior", "specialization": "SEO, content distribution", "status": "active", "aps_score": "50.00", "current_load": 0, "max_load": 7, "config": {}, "memory": {}, "created_at": "2026-06-25 00:39:27.095727", "updated_at": "2026-06-25 00:39:27.095727"}, {"agent_id": "L-01", "codename": "Forge", "team": "engineering", "tier": "lead", "specialization": "Full-stack architecture, system design", "status": "active", "aps_score": "50.00", "current_load": 0, "max_load": 10, "config": {}, "memory": {}, "created_at": "2026-06-25 00:39:27.075318", "updated_at": "2026-06-25 00:39:27.075318"}, {"agent_id": "E-01", "codename": "Drift", "team": "engineering", "tier": "mid", "specialization": "Frontend development", "status": "active", "aps_score": "50.00", "current_load": 0, "max_load": 5, "config": {}, "memory": {}, "created_at": "2026-06-25 00:39:27.082214", "updated_at": "2026-06-25 00:39:27.082214"}, {"agent_id": "E-02", "codename": "Cipher", "team": "engineering", "tier": "mid", "specialization": "Backend services", "status": "active", "aps_score": "50.00", "current_load": 0, "max_load": 5, "config": {}, "memory": {}, "created_at": "2026-06-25 00:39:27.082891", "updated_at": "2026-06-25 00:39:27.082891"}, {"agent_id": "E-03", "codename": "Glitch", "team": "engineering", "tier": "mid", "specialization": "Bug hunting, QA automation", "status": "active", "aps_score": "50.00", "current_load": 0, "max_load": 5, "config": {}, "memory": {}, "created_at": "2026-06-25 00:39:27.083511", "updated_at": "2026-06-25 00:39:27.083511"}, {"agent_id": "E-04", "codename": "Merge", "team": "engineering", "tier": "mid", "specialization": "Database optimization", "status": "active", "aps_score": "50.00", "current_load": 0, "max_load": 5, "config": {}, "memory": {}, "created_at": "2026-06-25 00:39:27.084093", "updated_at": "2026-06-25 00:39:27.084093"}, {"agent_id": "E-05", "codename": "Socket", "team": "engineering", "tier": "mid", "specialization": "Real-time systems", "status": "active", "aps_score": "50.00", "current_load": 0, "max_load": 5, "config": {}, "memory": {}, "created_at": "2026-06-25 00:39:27.085460", "updated_at": "2026-06-25 00:39:27.085460"}, {"agent_id": "E-06", "codename": "Daemon", "team": "engineering", "tier": "mid", "specialization": "Background workers", "status": "active", "aps_score": "50.00", "current_load": 0, "max_load": 5, "config": {}, "memory": {}, "created_at": "2026-06-25 00:39:27.086170", "updated_at": "2026-06-25 00:39:27.086170"}, {"agent_id": "E-07", "codename": "Proxy", "team": "engineering", "tier": "mid", "specialization": "Networking, load balancing", "status": "active", "aps_score": "50.00", "current_load": 0, "max_load": 5, "config": {}, "memory": {}, "created_at": "2026-06-25 00:39:27.086769", "updated_at": "2026-06-25 00:39:27.086769"}, {"agent_id": "E-08", "codename": "Vault", "team": "engineering", "tier": "mid", "specialization": "Security, encryption", "status": "active", "aps_score": "50.00", "current_load": 0, "max_load": 5, "config": {}, "memory": {}, "created_at": "2026-06-25 00:39:27.087403", "updated_at": "2026-06-25 00:39:27.087403"}, {"agent_id": "E-09", "codename": "Patch", "team": "engineering", "tier": "mid", "specialization": "Code refactoring", "status": "active", "aps_score": "50.00", "current_load": 0, "max_load": 5, "config": {}, "memory": {}, "created_at": "2026-06-25 00:39:27.088050", "updated_at": "2026-06-25 00:39:27.088050"}, {"agent_id": "E-10", "codename": "Sandbox", "team": "engineering", "tier": "mid", "specialization": "Testing environments", "status": "active", "aps_score": "50.00", "current_load": 0, "max_load": 5, "config": {}, "memory": {}, "created_at": "2026-06-25 00:39:27.088648", "updated_at": "2026-06-25 00:39:27.088648"}, {"agent_id": "E-S01", "codename": "Kernel", "team": "engineering", "tier": "senior", "specialization": "Systems programming, performance", "status": "active", "aps_score": "50.00", "current_load": 0, "max_load": 7, "config": {}, "memory": {}, "created_at": "2026-06-25 00:39:27.079558", "updated_at": "2026-06-25 00:39:27.079558"}, {"agent_id": "E-S02", "codename": "Grind", "team": "engineering", "tier": "senior", "specialization": "CI/CD, automation, DevOps", "status": "active", "aps_score": "50.00", "current_load": 0, "max_load": 7, "config": {}, "memory": {}, "created_at": "2026-06-25 00:39:27.080177", "updated_at": "2026-06-25 00:39:27.080177"}, {"agent_id": "E-S03", "codename": "Protocol", "team": "engineering", "tier": "senior", "specialization": "APIs, networking, integrations", "status": "active", "aps_score": "50.00", "current_load": 0, "max_load": 7, "config": {}, "memory": {}, "created_at": "2026-06-25 00:39:27.081521", "updated_at": "2026-06-25 00:39:27.081521"}, {"agent_id": "AM-00", "codename": "Amir", "team": "leadership", "tier": "lead", "specialization": "Strategy, vision, final decisions", "status": "active", "aps_score": "50.00", "current_load": 0, "max_load": 0, "config": {}, "memory": {}, "created_at": "2026-06-25 00:35:46.848379", "updated_at": "2026-06-25 00:35:46.848379"}, {"agent_id": "K-00", "codename": "Kaneki", "team": "leadership", "tier": "lead", "specialization": "Orchestration, task management, quality control", "status": "active", "aps_score": "50.00", "current_load": 0, "max_load": 50, "config": {}, "memory": {}, "created_at": "2026-06-25 00:35:46.847025", "updated_at": "2026-06-25 00:35:46.847025"}, {"agent_id": "L-04", "codename": "Pipeline", "team": "leadgen", "tier": "lead", "specialization": "Lead generation strategy, pipeline management", "status": "active", "aps_score": "50.00", "current_load": 0, "max_load": 10, "config": {}, "memory": {}, "created_at": "2026-06-25 00:39:27.077143", "updated_at": "2026-06-25 00:39:27.077143"}, {"agent_id": "LG-01", "codename": "Spark", "team": "leadgen", "tier": "mid", "specialization": "Cold outreach", "status": "active", "aps_score": "50.00", "current_load": 0, "max_load": 5, "config": {}, "memory": {}, "created_at": "2026-06-25 00:39:27.101552", "updated_at": "2026-06-25 00:39:27.101552"}, {"agent_id": "LG-02", "codename": "Target", "team": "leadgen", "tier": "mid", "specialization": "Lead scoring, qualification", "status": "active", "aps_score": "50.00", "current_load": 0, "max_load": 5, "config": {}, "memory": {}, "created_at": "2026-06-25 00:39:27.102078", "updated_at": "2026-06-25 00:39:27.102078"}, {"agent_id": "LG-03", "codename": "Funnel", "team": "leadgen", "tier": "mid", "specialization": "Pipeline management", "status": "active", "aps_score": "50.00", "current_load": 0, "max_load": 5, "config": {}, "memory": {}, "created_at": "2026-06-25 00:39:27.102588", "updated_at": "2026-06-25 00:39:27.102588"}, {"agent_id": "LG-04", "codename": "Connect", "team": "leadgen", "tier": "mid", "specialization": "CRM management", "status": "active", "aps_score": "50.00", "current_load": 0, "max_load": 5, "config": {}, "memory": {}, "created_at": "2026-06-25 00:39:27.103188", "updated_at": "2026-06-25 00:39:27.103188"}, {"agent_id": "LG-05", "codename": "Convert", "team": "leadgen", "tier": "mid", "specialization": "Conversion optimization", "status": "active", "aps_score": "50.00", "current_load": 0, "max_load": 5, "config": {}, "memory": {}, "created_at": "2026-06-25 00:39:27.103781", "updated_at": "2026-06-25 00:39:27.103781"}, {"agent_id": "LG-S01", "codename": "Hunter", "team": "leadgen", "tier": "senior", "specialization": "Lead sourcing, prospect research", "status": "active", "aps_score": "50.00", "current_load": 0, "max_load": 7, "config": {}, "memory": {}, "created_at": "2026-06-25 00:39:27.100364", "updated_at": "2026-06-25 00:39:27.100364"}, {"agent_id": "LG-S02", "codename": "Nurture", "team": "leadgen", "tier": "senior", "specialization": "Email campaigns, drip sequences", "status": "active", "aps_score": "50.00", "current_load": 0, "max_load": 7, "config": {}, "memory": {}, "created_at": "2026-06-25 00:39:27.100882", "updated_at": "2026-06-25 00:39:27.100882"}, {"agent_id": "L-02", "codename": "Sentinel", "team": "operations", "tier": "lead", "specialization": "Infrastructure, security, reliability", "status": "active", "aps_score": "50.00", "current_load": 0, "max_load": 10, "config": {}, "memory": {}, "created_at": "2026-06-25 00:39:27.075896", "updated_at": "2026-06-25 00:39:27.075896"}, {"agent_id": "O-01", "codename": "Deploy", "team": "operations", "tier": "mid", "specialization": "Deployment automation", "status": "active", "aps_score": "50.00", "current_load": 0, "max_load": 5, "config": {}, "memory": {}, "created_at": "2026-06-25 00:39:27.090317", "updated_at": "2026-06-25 00:39:27.090317"}, {"agent_id": "O-02", "codename": "Scale", "team": "operations", "tier": "mid", "specialization": "Auto-scaling, capacity planning", "status": "active", "aps_score": "50.00", "current_load": 0, "max_load": 5, "config": {}, "memory": {}, "created_at": "2026-06-25 00:39:27.090922", "updated_at": "2026-06-25 00:39:27.090922"}, {"agent_id": "O-03", "codename": "Backup", "team": "operations", "tier": "mid", "specialization": "Data backup, disaster recovery", "status": "active", "aps_score": "50.00", "current_load": 0, "max_load": 5, "config": {}, "memory": {}, "created_at": "2026-06-25 00:39:27.091565", "updated_at": "2026-06-25 00:39:27.091565"}, {"agent_id": "O-04", "codename": "Log", "team": "operations", "tier": "mid", "specialization": "Log aggregation, analysis", "status": "active", "aps_score": "50.00", "current_load": 0, "max_load": 5, "config": {}, "memory": {}, "created_at": "2026-06-25 00:39:27.092166", "updated_at": "2026-06-25 00:39:27.092166"}, {"agent_id": "O-05", "codename": "Audit", "team": "operations", "tier": "mid", "specialization": "Compliance, access control", "status": "active", "aps_score": "50.00", "current_load": 0, "max_load": 5, "config": {}, "memory": {}, "created_at": "2026-06-25 00:39:27.092762", "updated_at": "2026-06-25 00:39:27.092762"}, {"agent_id": "O-06", "codename": "Cron", "team": "operations", "tier": "mid", "specialization": "Scheduled task management", "status": "active", "aps_score": "50.00", "current_load": 0, "max_load": 5, "config": {}, "memory": {}, "created_at": "2026-06-25 00:39:27.093401", "updated_at": "2026-06-25 00:39:27.093401"}, {"agent_id": "O-07", "codename": "Net", "team": "operations", "tier": "mid", "specialization": "Network operations", "status": "active", "aps_score": "50.00", "current_load": 0, "max_load": 5, "config": {}, "memory": {}, "created_at": "2026-06-25 00:39:27.093972", "updated_at": "2026-06-25 00:39:27.093972"}, {"agent_id": "O-08", "codename": "Store", "team": "operations", "tier": "mid", "specialization": "Storage management", "status": "active", "aps_score": "50.00", "current_load": 0, "max_load": 5, "config": {}, "memory": {}, "created_at": "2026-06-25 00:39:27.094606", "updated_at": "2026-06-25 00:39:27.094606"}, {"agent_id": "O-S01", "codename": "Radar", "team": "operations", "tier": "senior", "specialization": "Monitoring, alerting, observability", "status": "active", "aps_score": "50.00", "current_load": 0, "max_load": 7, "config": {}, "memory": {}, "created_at": "2026-06-25 00:39:27.089185", "updated_at": "2026-06-25 00:39:27.089185"}, {"agent_id": "O-S02", "codename": "Fortress", "team": "operations", "tier": "senior", "specialization": "Security operations, compliance", "status": "active", "aps_score": "50.00", "current_load": 0, "max_load": 7, "config": {}, "memory": {}, "created_at": "2026-06-25 00:39:27.089689", "updated_at": "2026-06-25 00:39:27.089689"}, {"agent_id": "L-07", "codename": "Oracle", "team": "research", "tier": "lead", "specialization": "Intelligence gathering, deep analysis", "status": "active", "aps_score": "50.00", "current_load": 0, "max_load": 10, "config": {}, "memory": {}, "created_at": "2026-06-25 00:39:27.079002", "updated_at": "2026-06-25 00:39:27.079002"}, {"agent_id": "R-01", "codename": "Probe", "team": "research", "tier": "mid", "specialization": "Competitor analysis", "status": "active", "aps_score": "50.00", "current_load": 0, "max_load": 5, "config": {}, "memory": {}, "created_at": "2026-06-25 00:39:27.112040", "updated_at": "2026-06-25 00:39:27.112040"}, {"agent_id": "R-02", "codename": "Data", "team": "research", "tier": "mid", "specialization": "Data collection, scraping", "status": "active", "aps_score": "50.00", "current_load": 0, "max_load": 5, "config": {}, "memory": {}, "created_at": "2026-06-25 00:39:27.112673", "updated_at": "2026-06-25 00:39:27.112673"}, {"agent_id": "R-03", "codename": "Trend", "team": "research", "tier": "mid", "specialization": "Emerging trends, forecasting", "status": "active", "aps_score": "50.00", "current_load": 0, "max_load": 5, "config": {}, "memory": {}, "created_at": "2026-06-25 00:39:27.113231", "updated_at": "2026-06-25 00:39:27.113231"}, {"agent_id": "R-S01", "codename": "Lens", "team": "research", "tier": "senior", "specialization": "Deep research, intelligence synthesis", "status": "active", "aps_score": "50.00", "current_load": 0, "max_load": 7, "config": {}, "memory": {}, "created_at": "2026-06-25 00:39:27.111427", "updated_at": "2026-06-25 00:39:27.111427"}, {"agent_id": "L-05", "codename": "Orbit", "team": "startups", "tier": "lead", "specialization": "Startup operations, venture management", "status": "active", "aps_score": "50.00", "current_load": 0, "max_load": 10, "config": {}, "memory": {}, "created_at": "2026-06-25 00:39:27.077702", "updated_at": "2026-06-25 00:39:27.077702"}, {"agent_id": "ST-01", "codename": "Trader", "team": "startups", "tier": "mid", "specialization": "LamaTrader operations", "status": "active", "aps_score": "50.00", "current_load": 0, "max_load": 5, "config": {}, "memory": {}, "created_at": "2026-06-25 00:39:27.105501", "updated_at": "2026-06-25 00:39:27.105501"}, {"agent_id": "ST-02", "codename": "Pitch", "team": "startups", "tier": "mid", "specialization": "Pripitch.com operations", "status": "active", "aps_score": "50.00", "current_load": 0, "max_load": 5, "config": {}, "memory": {}, "created_at": "2026-06-25 00:39:27.106119", "updated_at": "2026-06-25 00:39:27.106119"}, {"agent_id": "ST-03", "codename": "Learn", "team": "startups", "tier": "mid", "specialization": "Grademy operations", "status": "active", "aps_score": "50.00", "current_load": 0, "max_load": 5, "config": {}, "memory": {}, "created_at": "2026-06-25 00:39:27.106718", "updated_at": "2026-06-25 00:39:27.106718"}, {"agent_id": "ST-04", "codename": "Build", "team": "startups", "tier": "mid", "specialization": "Rema Exteriors operations", "status": "active", "aps_score": "50.00", "current_load": 0, "max_load": 5, "config": {}, "memory": {}, "created_at": "2026-06-25 00:39:27.107474", "updated_at": "2026-06-25 00:39:27.107474"}, {"agent_id": "ST-05", "codename": "Broker", "team": "startups", "tier": "mid", "specialization": "LamaBroker operations", "status": "active", "aps_score": "50.00", "current_load": 0, "max_load": 5, "config": {}, "memory": {}, "created_at": "2026-06-25 00:39:27.108013", "updated_at": "2026-06-25 00:39:27.108013"}, {"agent_id": "ST-S01", "codename": "Launch", "team": "startups", "tier": "senior", "specialization": "Startup strategy, venture operations", "status": "active", "aps_score": "50.00", "current_load": 0, "max_load": 7, "config": {}, "memory": {}, "created_at": "2026-06-25 00:39:27.104346", "updated_at": "2026-06-25 00:39:27.104346"}, {"agent_id": "ST-S02", "codename": "Boost", "team": "startups", "tier": "senior", "specialization": "Startup growth, fundraising support", "status": "active", "aps_score": "50.00", "current_load": 0, "max_load": 7, "config": {}, "memory": {}, "created_at": "2026-06-25 00:39:27.104932", "updated_at": "2026-06-25 00:39:27.104932"}];
+const MISSIONS=[{"mission_key": "grademy", "total_tasks": 6, "done_tasks": 0, "active_tasks": 2}, {"mission_key": "x-farm", "total_tasks": 3, "done_tasks": 0, "active_tasks": 2}, {"mission_key": "brogen", "total_tasks": 1, "done_tasks": 0, "active_tasks": 1}, {"mission_key": "content-empire", "total_tasks": 1, "done_tasks": 0, "active_tasks": 1}, {"mission_key": "content-studio", "total_tasks": 6, "done_tasks": 0, "active_tasks": 1}, {"mission_key": "coolify", "total_tasks": 2, "done_tasks": 0, "active_tasks": 1}, {"mission_key": "platform", "total_tasks": 2, "done_tasks": 0, "active_tasks": 1}, {"mission_key": "pripitch", "total_tasks": 4, "done_tasks": 0, "active_tasks": 1}, {"mission_key": "ragmedium-b2b", "total_tasks": 1, "done_tasks": 0, "active_tasks": 1}, {"mission_key": "ragx", "total_tasks": 4, "done_tasks": 0, "active_tasks": 1}, {"mission_key": "rema", "total_tasks": 4, "done_tasks": 0, "active_tasks": 1}, {"mission_key": "waterspring", "total_tasks": 2, "done_tasks": 0, "active_tasks": 1}, {"mission_key": "agent-team", "total_tasks": 1, "done_tasks": 0, "active_tasks": 0}, {"mission_key": "appflowy", "total_tasks": 1, "done_tasks": 0, "active_tasks": 0}, {"mission_key": "calcom", "total_tasks": 1, "done_tasks": 0, "active_tasks": 0}, {"mission_key": "chromadb", "total_tasks": 1, "done_tasks": 0, "active_tasks": 0}, {"mission_key": "cinematicx", "total_tasks": 2, "done_tasks": 0, "active_tasks": 0}, {"mission_key": "dashboard", "total_tasks": 2, "done_tasks": 0, "active_tasks": 0}, {"mission_key": "halalbooking", "total_tasks": 2, "done_tasks": 0, "active_tasks": 0}, {"mission_key": "lamabroker", "total_tasks": 1, "done_tasks": 0, "active_tasks": 0}, {"mission_key": "lamatrader", "total_tasks": 3, "done_tasks": 0, "active_tasks": 0}, {"mission_key": "moneyprinterturbo", "total_tasks": 2, "done_tasks": 0, "active_tasks": 0}, {"mission_key": "n8n", "total_tasks": 2, "done_tasks": 0, "active_tasks": 0}, {"mission_key": "scrapegraph", "total_tasks": 1, "done_tasks": 0, "active_tasks": 0}, {"mission_key": "syneticx", "total_tasks": 1, "done_tasks": 0, "active_tasks": 0}, {"mission_key": "unitas", "total_tasks": 2, "done_tasks": 0, "active_tasks": 0}, {"mission_key": "vaultwarden", "total_tasks": 1, "done_tasks": 0, "active_tasks": 0}, {"mission_key": "whatsapp-bot", "total_tasks": 1, "done_tasks": 0, "active_tasks": 0}];
+const DB_STATS={people:152000000,businesses:20700000,professionals:34840000,agents:63};
+
+let currentTab="overview",boardView="kanban",projView="projects",galaxyAnimId=null;
+
+function setTab(id){
+  currentTab=id;
+  var panels=document.querySelectorAll(".panel");
+  for(var i=0;i<panels.length;i++){panels[i].classList.remove("active");}
+  var el=document.getElementById("panel-"+id);
+  if(el)el.classList.add("active");
+  var nbs=document.querySelectorAll(".nb");
+  for(var i=0;i<nbs.length;i++){nbs[i].classList.toggle("active",nbs[i].dataset.tab===id);}
+  var sbs=document.querySelectorAll(".sb-btn");
+  for(var i=0;i<sbs.length;i++){sbs[i].classList.toggle("active",sbs[i].dataset.side===id.replace("side-",""));}
+  if(id==="board")renderBoard();
+  if(id==="agents")renderAgents();
+  if(id==="activity")renderActivity();
+  if(id==="side-projects")renderProjects();
+  if(id==="galaxy")initGalaxy();
+}
+
+function setBoardView(v){
+  boardView=v;
+  var btns=document.querySelectorAll("#panel-board .tg-btn");
+  for(var i=0;i<btns.length;i++){btns[i].classList.toggle("active",btns[i].textContent.toLowerCase().includes(v));}
+  renderBoard();
+}
+
+function setProjView(v){
+  projView=v;
+  var btns=document.querySelectorAll("#panel-side-projects .tg-btn");
+  for(var i=0;i<btns.length;i++){btns[i].classList.toggle("active",btns[i].textContent.toLowerCase()===v);}
+  renderProjects();
+}
+
+function updateClock(){
+  var d=new Date();
+  var el=document.getElementById("clock");
+  if(el)el.textContent=d.toLocaleTimeString("en-US",{hour12:false});
+}
+setInterval(updateClock,1000);
+updateClock();
+
+function renderOverview(){
+  var m1=document.getElementById("s-people");if(m1)m1.textContent=(DB_STATS.people/1000000).toFixed(0)+"M";
+  var m2=document.getElementById("s-biz");if(m2)m2.textContent=(DB_STATS.businesses/1000000).toFixed(0)+"M";
+  var m3=document.getElementById("s-pros");if(m3)m3.textContent=(DB_STATS.professionals/1000000).toFixed(0)+"M";
+  var m4=document.getElementById("s-agents");if(m4)m4.textContent=AGENTS.length;
+  var sa=document.getElementById("sys-agents");if(sa)sa.textContent=AGENTS.length;
+  var feed=document.getElementById("activity-feed");
+  if(feed&&MISSIONS.length){
+    var h="";
+    for(var i=0;i<Math.min(8,MISSIONS.length);i++){
+      var m=MISSIONS[i];
+      var av=(m.agent||m.mission_key||m.codename||"?")[0];
+      var nm=m.agent||m.mission_key||m.codename||"System";
+      var msg=m.message||m.description||m.title||(m.total_tasks?m.total_tasks+" tasks, "+m.active_tasks+" active":"");
+      var ts=m.time||m.created_at||"";
+      h+='<div class="feed-item"><div class="av">'+av+'</div><div class="body"><div class="nm">'+nm+'</div><div class="msg">'+msg+'</div></div><div class="ts">'+ts+'</div></div>';
+    }
+    feed.innerHTML=h;
+  }else if(feed){
+    feed.innerHTML='<div class="feed-item"><div class="av">⚡</div><div class="body"><div class="nm">System</div><div class="msg">Dashboard initialized. All systems operational.</div></div><div class="ts">now</div></div>';
+  }
+}
+
+function renderBoard(){
+  var container=document.getElementById("board-content");
+  if(!container)return;
+  var tasks=TASKS.slice();
+  var pf=document.getElementById("kb-proj-filter")?document.getElementById("kb-proj-filter").value:"__all";
+  var pv=document.getElementById("kb-pri-filter")?document.getElementById("kb-pri-filter").value:"__all";
+  if(pf!=="__all")tasks=tasks.filter(function(t){return t.project===pf;});
+  if(pv!=="__all")tasks=tasks.filter(function(t){return t.priority===pv;});
+  var sel=document.getElementById("kb-proj-filter");
+  if(sel&&sel.options.length<=1){
+    var projs={};TASKS.forEach(function(t){if(t.project)projs[t.project]=1;});
+    for(var p in projs){var o=document.createElement("option");o.value=p;o.textContent=p;sel.appendChild(o);}
+  }
+  if(boardView==="table"){
+    var h="<table><thead><tr><th>Task</th><th>Project</th><th>Status</th><th>Priority</th><th>Progress</th></tr></thead><tbody>";
+    for(var i=0;i<tasks.length;i++){
+      var t=tasks[i];
+      h+='<tr onclick="showTaskDetail(\''+t.task_id+'\')"><td>'+t.title+'</td><td>'+(t.project||"--")+'</td><td><span class="badge badge-'+(t.status||"backlog").replace(/_/g,"-")+'">'+t.status+'</span></td><td>'+(t.priority||"P2")+'</td><td><div class="pbar"><div class="pbar-fill" style="width:'+(t.progress_pct||0)+'%;background:var(--cyan)"></div></div></td></tr>';
+    }
+    h+="</tbody></table>";container.innerHTML=h;return;
+  }
+  var cols={backlog:[],todo:[],in_progress:[],review:[],done:[]};
+  var sm={backlog:"backlog",todo:"todo",in_progress:"in_progress",review:"review",done:"done",blocked:"backlog",pending:"todo"};
+  for(var i=0;i<tasks.length;i++){var c=sm[tasks[i].status]||"todo";cols[c].push(tasks[i]);}
+  var h='<div class="kanban">';
+  var colKeys=Object.keys(cols);
+  for(var i=0;i<colKeys.length;i++){
+    var k=colKeys[i];var v=cols[k];
+    h+='<div class="kb-col"><h4>'+k.replace(/_/g," ").toUpperCase()+' ('+v.length+')</h4>';
+    for(var j=0;j<Math.min(15,v.length);j++){
+      var t=v[j];
+      h+='<div class="kb-card" onclick="showTaskDetail(\''+t.task_id+'\')"><div class="title">'+t.title+'</div><div class="meta"><span class="badge badge-'+(t.status||"backlog").replace(/_/g,"-")+'">'+t.status+'</span><span>'+(t.priority||"P2")+'</span></div><div class="pbar"><div class="pbar-fill" style="width:'+(t.progress_pct||0)+'%;background:var(--cyan)"></div></div></div>';
+    }
+    h+="</div>";
+  }
+  h+="</div>";container.innerHTML=h;
+}
+
+function renderAgents(){
+  var container=document.getElementById("agents-grid");
+  if(!container)return;
+  var q=document.getElementById("agent-search")?document.getElementById("agent-search").value.toLowerCase():"";
+  var list=AGENTS.filter(function(a){return !q||(a.codename||"").toLowerCase().includes(q)||(a.team||"").toLowerCase().includes(q);});
+  var h="";
+  for(var i=0;i<Math.min(18,list.length);i++){
+    var a=list[i];
+    var col=a.status==="active"?"var(--grn)":a.status==="working"?"var(--cyan)":"var(--amb)";
+    h+='<div class="agent-card"><div class="av">'+(a.codename||"?")[0]+'</div><div class="info"><div class="name">'+a.codename+'</div><div class="role">'+(a.team||"--")+' · '+(a.specialization||"")+'</div></div><div class="st-dot" style="background:'+col+'"></div></div>';
+  }
+  if(!h)h='<div style="color:var(--dim);font-size:10px;padding:20px">No agents loaded</div>';
+  container.innerHTML=h;
+}
+
+function renderActivity(){
+  var container=document.getElementById("live-feed");
+  if(!container)return;
+  if(MISSIONS.length){
+    var h="";
+    for(var i=0;i<Math.min(15,MISSIONS.length);i++){
+      var m=MISSIONS[i];
+      var av=(m.agent||m.mission_key||m.codename||"?")[0];
+      h+='<div class="feed-item"><div class="av">'+av+'</div><div class="body"><div class="nm">'+(m.agent||m.codename||"System")+'</div><div class="msg">'+(m.message||m.description||m.title||"")+'</div></div><div class="ts">'+(m.time||m.created_at||"")+'</div></div>';
+    }
+    container.innerHTML=h;
+  }else{
+    container.innerHTML='<div class="feed-item"><div class="av">⚡</div><div class="body"><div class="nm">System</div><div class="msg">Waiting for agent activity...</div></div><div class="ts">now</div></div>';
+  }
+}
+
+function renderProjects(){
+  var container=document.getElementById("proj-content");
+  if(!container)return;
+  if(projView==="tools"){
+    var tools=[{name:"Content Studio",icon:"◰"},{name:"X-Farm",icon:"✦"},{name:"MoneyPrinterTurbo",icon:"◈"},{name:"SMS-CRM",icon:"◇"},{name:"Lead Database",icon:"▦"},{name:"Dashboard",icon:"⊞"},{name:"n8n",icon:"⟁"},{name:"Coolify",icon:"◳"},{name:"ChromaDB",icon:"▤"},{name:"Calcom",icon:"◧"},{name:"AppFlowy",icon:"☑"},{name:"Vaultwarden",icon:"◑"},{name:"Agent Team",icon:"◉"},{name:"ScrapeGraph",icon:"▣"},{name:"WhatsApp Bot",icon:"◆"},{name:"AI Playground",icon:"✧"}];
+    var h='<div class="grid-3">';
+    for(var i=0;i<tools.length;i++){h+='<div class="proj-card"><div class="proj-dot" style="background:var(--cyan)"></div><div class="proj-info"><div class="proj-name">'+tools[i].icon+' '+tools[i].name+'</div></div></div>';}
+    h+="</div>";container.innerHTML=h;return;
+  }
+  var projs=[{name:"RAGx",status:"active",desc:"Email/SMB outreach engine"},{name:"RAGmedium B2B",status:"active",desc:"Appointment setting"},{name:"LamaTrader",status:"building",desc:"White-label trading"},{name:"Grademy",status:"building",desc:"AI tutoring platform"},{name:"Rema Exteriors",status:"planning",desc:"Home services acquisition"},{name:"Content Empire",status:"active",desc:"Distribution machine"},{name:"Brogen",status:"building",desc:"X growth engine"},{name:"PrePitch",status:"planning",desc:"Pitch platform"},{name:"HalalBooking",status:"active",desc:"Travel booking"},{name:"Unitas",status:"building",desc:"PR agency"},{name:"Waterspring",status:"planning",desc:"VC software"},{name:"CinematicX",status:"building",desc:"Clinical trials"},{name:"SyneticX",status:"planning",desc:"CTMS platform"},{name:"LamaBroker",status:"active",desc:"Brokerage ops"}];
+  var colors={active:"var(--grn)",building:"var(--cyan)",planning:"var(--amb)",paused:"var(--mag)"};
+  var h="";
+  for(var i=0;i<projs.length;i++){
+    var p=projs[i];var c=colors[p.status]||"var(--dim)";
+    h+='<div class="proj-card"><div class="proj-dot" style="background:'+c+'"></div><div class="proj-info"><div class="proj-name">'+p.name+'</div><div class="proj-desc">'+p.status+' · '+p.desc+'</div></div><div class="pbar" style="width:60px"><div class="pbar-fill" style="width:'+(Math.floor(Math.random()*60+20))+'%;background:'+c+'"></div></div></div>';
+  }
+  container.innerHTML=h;
+}
+
+function initGalaxy(){
+  var canvas=document.getElementById("galaxy-canvas");
+  if(!canvas||canvas._init)return;
+  canvas._init=true;
+  var ctx=canvas.getContext("2d");
+  function resize(){canvas.width=canvas.offsetWidth*devicePixelRatio;canvas.height=canvas.offsetHeight*devicePixelRatio;ctx.scale(devicePixelRatio,devicePixelRatio);}
+  resize();window.addEventListener("resize",resize);
+  var w=function(){return canvas.offsetWidth;},h=function(){return canvas.offsetHeight;},cx=function(){return w()/2;},cy=function(){return h()/2;};
+  var nodes=[];
+  for(var i=0;i<14;i++){
+    var p=[{n:"RAGx",c:"#2fe08a"},{n:"RAGmed",c:"#18e0ff"},{n:"LamaTrader",c:"#18e0ff"},{n:"Grademy",c:"#18e0ff"},{n:"Rema",c:"#ffb020"},{n:"Content",c:"#2fe08a"},{n:"Brogen",c:"#18e0ff"},{n:"PrePitch",c:"#ffb020"},{n:"Halal",c:"#2fe08a"},{n:"Unitas",c:"#18e0ff"},{n:"Waterspring",c:"#ffb020"},{n:"CinematicX",c:"#18e0ff"},{n:"SyneticX",c:"#ffb020"},{n:"LamaBroker",c:"#2fe08a"}][i];
+    nodes.push({angle:(i/14)*Math.PI*2,r:80+Math.random()*100,x:0,y:0,size:3+Math.random()*3,color:p.c,label:p.n,speed:0.001+Math.random()*0.002,off:Math.random()*Math.PI*2});
+  }
+  var t=0;
+  function draw(){
+    ctx.clearRect(0,0,w(),h());
+    for(var r=50;r<250;r+=50){ctx.beginPath();ctx.arc(cx(),cy(),r,0,Math.PI*2);ctx.strokeStyle="rgba(24,224,255,"+(0.04+0.02*Math.sin(t*0.5+r))+")";ctx.lineWidth=0.5;ctx.stroke();}
+    var pr=10+3*Math.sin(t*2);
+    var gr=ctx.createRadialGradient(cx(),cy(),0,cx(),cy(),pr*2);
+    gr.addColorStop(0,"rgba(24,224,255,.8)");gr.addColorStop(1,"rgba(24,224,255,0)");
+    ctx.beginPath();ctx.arc(cx(),cy(),pr*2,0,Math.PI*2);ctx.fillStyle=gr;ctx.fill();
+    ctx.beginPath();ctx.arc(cx(),cy(),5,0,Math.PI*2);ctx.fillStyle="#18e0ff";ctx.fill();
+    for(var i=0;i<nodes.length;i++){
+      var n=nodes[i];n.angle+=n.speed;n.x=cx()+Math.cos(n.angle+n.off)*n.r;n.y=cy()+Math.sin(n.angle+n.off)*n.r;
+      var g=ctx.createRadialGradient(n.x,n.y,0,n.x,n.y,n.size*3);
+      g.addColorStop(0,n.color+"60");g.addColorStop(1,n.color+"00");
+      ctx.beginPath();ctx.arc(n.x,n.y,n.size*3,0,Math.PI*2);ctx.fillStyle=g;ctx.fill();
+      ctx.beginPath();ctx.arc(n.x,n.y,n.size,0,Math.PI*2);ctx.fillStyle=n.color;ctx.fill();
+      ctx.font="8px IBM Plex Mono";ctx.fillStyle="rgba(207,230,245,.5)";
+      ctx.fillText(n.label,n.x+n.size+3,n.y+3);
+    }
+    t+=0.016;galaxyAnimId=requestAnimationFrame(draw);
+  }
+  if(galaxyAnimId)cancelAnimationFrame(galaxyAnimId);draw();
+}
+
+function showTaskDetail(tid){
+  var task=null;for(var i=0;i<TASKS.length;i++){if(TASKS[i].task_id===tid){task=TASKS[i];break;}}
+  if(!task)return;
+  var od=document.getElementById("task-detail");
+  od.innerHTML='<button id="task-close" onclick="closeTaskOverlay()">✕</button><h2 style="font-size:14px;margin-bottom:10px">'+task.title+'</h2>'+
+    '<div style="font-size:10px;color:var(--dim);line-height:1.8">'+
+    '<div><b>Project:</b> '+(task.project||"--")+'</div>'+
+    '<div><b>Status:</b> <span class="badge badge-'+(task.status||"backlog").replace(/_/g,"-")+'">'+task.status+'</span></div>'+
+    '<div><b>Priority:</b> '+(task.priority||"P2")+'</div>'+
+    '<div><b>Assignee:</b> '+(task.assigned_to||task.assignee||"--")+'</div>'+
+    '<div><b>Progress:</b> '+(task.progress_pct||0)+'%</div>'+
+    '<div><b>ETA:</b> '+(task.eta||"--")+'</div>'+
+    '<div><b>Description:</b> '+(task.description||"--")+'</div></div>';
+  document.getElementById("task-overlay").classList.add("open");
+}
+
+function closeTaskOverlay(e){
+  if(!e||e.target.id==="task-overlay"||e.target.id==="task-close"||e.target.id==="task-detail")document.getElementById("task-overlay").classList.remove("open");
+}
+
+function toggleSecret(btn){
+  var val=btn.previousElementSibling;
+  if(val.style.display==="none"){val.style.display="inline";btn.textContent="Hide";}
+  else{val.style.display="none";btn.textContent="Show";}
+}
+
+
+// Mobile nav sync
+document.querySelectorAll('.mn-btn').forEach(function(btn){
+  btn.addEventListener('click', function(){
+    var t = btn.dataset.tab || btn.dataset.side;
+    if(t){
+      setTab(t);
+      document.querySelectorAll('.mn-btn').forEach(function(b){b.classList.remove('active');});
+      btn.classList.add('active');
+    }
+  });
+});
+
+// Notification System
+let notifPollInterval = null;
+let notifCount = 0;
+
+async function pollNotifications() {
+  try {
+    const resp = await fetch('/api/notifications/poll');
+    const data = await resp.json();
+    if (data.unseen_count !== undefined) {
+      notifCount = data.unseen_count;
+      updateNotifBadge();
+      if (data.latest && data.latest.length > 0) {
+        renderNotifList(data.latest);
+      }
+    }
+  } catch(e) {}
+}
+
+function updateNotifBadge() {
+  const badge = document.getElementById('notifBadge');
+  if (notifCount > 0) {
+    badge.textContent = notifCount > 9 ? '9+' : notifCount;
+    badge.classList.remove('hidden');
+  } else {
+    badge.classList.add('hidden');
+  }
+}
+
+function toggleNotifPanel() {
+  const panel = document.getElementById('notifPanel');
+  const isOpen = panel.classList.contains('open');
+  if (isOpen) {
+    panel.classList.remove('open');
+    document.removeEventListener('click', closeNotifPanelOnOutside);
+  } else {
+    panel.classList.add('open');
+    setTimeout(() => {
+      document.addEventListener('click', closeNotifPanelOnOutside);
+    }, 10);
+  }
+}
+
+function closeNotifPanelOnOutside(e) {
+  const panel = document.getElementById('notifPanel');
+  const badge = document.getElementById('notifBadge');
+  if (!panel.contains(e.target) && !badge.contains(e.target)) {
+    panel.classList.remove('open');
+    document.removeEventListener('click', closeNotifPanelOnOutside);
+  }
+}
+
+function renderNotifList(notifs) {
+  const list = document.getElementById('notifList');
+  if (!notifs || notifs.length === 0) {
+    list.innerHTML = '<div class="notif-empty">No notifications yet</div>';
+    return;
+  }
+  list.innerHTML = notifs.map(n => `
+    <div class="notif-item ${n.seen ? 'seen' : ''}" onclick="markNotifSeen('${n.id}')">
+      <div class="dot ${n.type}"></div>
+      <div class="body">
+        <div class="msg">${n.formatted || n.message}</div>
+        <div class="meta">${n.agent} · ${n.type}</div>
+      </div>
+      <div class="ts">${formatTime(n.timestamp)}</div>
+    </div>
+  `).join('');
+}
+
+function formatTime(ts) {
+  if (!ts) return '';
+  const d = new Date(ts);
+  const now = new Date();
+  const diff = (now - d) / 1000;
+  if (diff < 60) return 'now';
+  if (diff < 3600) return Math.floor(diff/60) + 'm';
+  if (diff < 86400) return Math.floor(diff/3600) + 'h';
+  return Math.floor(diff/86400) + 'd';
+}
+
+async function markNotifSeen(id) {
+  try {
+    await fetch('/api/notifications/mark-seen', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({id})
+    });
+    pollNotifications();
+  } catch(e) {}
+}
+
+async function clearNotifications() {
+  try {
+    await fetch('/api/notifications/mark-seen', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({all: true})
+    });
+    pollNotifications();
+  } catch(e) {}
+}
+
+// Start polling
+notifPollInterval = setInterval(pollNotifications, 30000);
+pollNotifications();
+
+// INIT
+renderOverview();
+renderProjects();
+setInterval(function(){
+  if(currentTab==="overview")renderOverview();
+  if(currentTab==="board")renderBoard();
+  if(currentTab==="agents")renderAgents();
+  if(currentTab==="activity")renderActivity();
+},30000);
+</script>
+
+<script>if("serviceWorker"in navigator){navigator.serviceWorker.register("/sw.js").catch(()=>{});}</script>
+<nav class="mobile-nav">
+  <button class="mn-btn active" onclick="setTab('overview')" data-tab="overview"><span class="ic">⊞</span>Overview</button>
+  <button class="mn-btn" onclick="setTab('board')" data-tab="board"><span class="ic">▦</span>Board</button>
+  <button class="mn-btn" onclick="setTab('agents')" data-tab="agents"><span class="ic">◉</span>Agents</button>
+  <button class="mn-btn" onclick="setTab('activity')" data-tab="activity"><span class="ic">⟁</span>Activity</button>
+  <button class="mn-btn" onclick="setTab('galaxy')" data-tab="galaxy"><span class="ic">✦</span>Galaxy</button>
+  <button class="mn-btn" onclick="setTab('side-projects')" data-side="projects"><span class="ic">≡</span>More</button>
+</nav>
+
+<script src="/voice-client.js"></script>
+<script src="/voice-call-ui.js"></script>
+
+</body>
+</html>

@@ -162,6 +162,51 @@ td{padding:8px 10px;font-size:10px;border-bottom:1px solid rgba(255,255,255,.03)
   .notif-panel{width:calc(100vw - 24px);right:12px}
   .notif-badge{right:80px}
 }
+
+/* MOBILE FIXES */
+@media(max-width:900px){
+  :root{--sb:0px;--hh:52px}
+  #sb-main,#sb-sec{display:none}
+  #main{left:0!important;top:var(--hh);padding:12px;padding-bottom:70px}
+  #header{padding:0 10px;height:52px}
+  .header-center{display:none}
+  .stat-grid{grid-template-columns:repeat(2,1fr);gap:8px}
+  .stat .val{font-size:20px!important}
+  .stat .lbl{font-size:9px!important}
+  .grid-2{grid-template-columns:1fr}
+  .kanban{grid-template-columns:repeat(2,1fr)!important}
+  .kb-col{min-height:100px}
+  .agent-card{padding:10px!important}
+  .agent-card .name{font-size:12px!important}
+  .agent-card .role{font-size:10px!important}
+  .card{padding:12px!important}
+  .card h3{font-size:11px!important}
+  .toggle{flex-direction:column}
+  .tg-btn{width:100%;font-size:11px!important;padding:10px!important}
+  .filter-row{flex-direction:column;align-items:flex-start}
+  .filter-sel{width:100%;font-size:12px!important;padding:8px!important}
+  #galaxy-canvas{height:200px!important}
+  .ph-panel{min-height:150px!important}
+  .mobile-nav{display:flex!important}
+  .logo-box{font-size:10px!important}
+  .clock{font-size:10px!important}
+  .header-stat{font-size:9px!important}
+  .header-stat b{font-size:12px!important}
+  .feed-item .msg{font-size:11px!important;line-height:1.5!important}
+  .feed-item .nm{font-size:11px!important}
+  .proj-card{padding:12px!important}
+  .proj-name{font-size:12px!important}
+  .proj-desc{font-size:10px!important}
+  .int-card{padding:10px 12px!important}
+  .int-name{font-size:11px!important}
+  .notif-badge{right:80px!important;top:6px!important}
+  #float-call{display:flex!important;bottom:70px!important}
+  .bottom-nav-item .bnav-label{font-size:8px!important}
+}
+@media(max-width:500px){
+  .stat-grid{grid-template-columns:1fr 1fr}
+  .kanban{grid-template-columns:1fr!important}
+}
 </style>
 </head>
 <body>
@@ -184,15 +229,17 @@ td{padding:8px 10px;font-size:10px;border-bottom:1px solid rgba(255,255,255,.03)
   <div class="nb" data-tab="agents" onclick="setTab('agents')"><span class="ic">◉</span><span class="lb">Agents</span></div>
   <div class="nb" data-tab="activity" onclick="setTab('activity')"><span class="ic">⟁</span><span class="lb">Activity</span></div>
   <div class="nb" data-tab="messages" onclick="setTab('messages')"><span class="ic">◇</span><span class="lb">Slack</span></div>
+  <div class="nb" data-tab="slack" onclick="setTab('slack')"><span class="ic">📡</span><span class="lb">AI Comms</span></div>
   <div class="nb" data-tab="galaxy" onclick="setTab('galaxy')"><span class="ic">✦</span><span class="lb">Galaxy</span></div>
 </nav>
 
 <nav id="sb-sec">
   <div class="sb-btn" onclick="setTab('side-projects')" data-side="projects">P</div>
-  <div class="sb-btn" onclick="setTab('side-leads')" data-side="leads">L</div>
-  <div class="sb-btn" onclick="setTab('side-content')" data-side="content">C</div>
-  <div class="sb-btn" onclick="setTab('side-ragx')" data-side="ragx">R</div>
+  <div class="sb-btn" onclick="closeAllOverlays();showOverlay('leads-overlay');" data-side="leads">L</div>
+  <div class="sb-btn" onclick="closeAllOverlays();showOverlay('content-overlay');" data-side="content">C</div>
+  <div class="sb-btn" onclick="closeAllOverlays();showOverlay('ragx-overlay');" data-side="ragx">R</div>
   <div class="sb-btn" onclick="setTab('side-secrets')" data-side="secrets">S</div>
+  <div class="sb-btn" onclick="setTab('side-permissions')" data-side="permissions" style="color:#ff5cc8">R</div>
   <div class="sb-btn" onclick="setTab('side-integrations')" data-side="integrations">I</div>
   <div class="sb-btn" onclick="setTab('side-calendar')" data-side="calendar">K</div>
   <div class="sb-btn" onclick="setTab('side-docs')" data-side="docs">D</div>
@@ -236,7 +283,25 @@ td{padding:8px 10px;font-size:10px;border-bottom:1px solid rgba(255,255,255,.03)
   <div class="card"><h3>Team Slack</h3><div class="ph-panel"><div class="ph-icon">💬</div><div class="ph-title">No active channels</div><div class="ph-sub">Agent communication will appear here when teams are active.</div></div></div>
 </section>
 <section class="panel" id="panel-galaxy">
-  <canvas id="galaxy-canvas"></canvas>
+  <div id="galaxy-container" style="width:100%;height:100%;position:relative;overflow:hidden;background:radial-gradient(ellipse at center, #0a0e17 0%, #05070d 70%);">
+    <canvas id="galaxy-canvas" style="width:100%;height:100%;"></canvas>
+    <div class="galaxy-info-panel" id="galaxy-info">
+      <div style="font-size:11px;font-weight:600;color:var(--cyan);margin-bottom:8px">GALAXY STATUS</div>
+      <div id="galaxy-info-content" style="font-size:10px;color:var(--text2);line-height:1.6">Click a node for details</div>
+      <div class="galaxy-legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#2fe08a"></div>Active</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#18e0ff"></div>Building</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#ffb020"></div>Planning</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#ff5cc8"></div>Paused</div>
+      </div>
+    </div>
+    <div class="galaxy-stats">
+      <div class="galaxy-stat"><div class="galaxy-stat-val" id="galaxy-agents">63</div><div class="galaxy-stat-label">AGENTS</div></div>
+      <div class="galaxy-stat"><div class="galaxy-stat-val" id="galaxy-tasks">50</div><div class="galaxy-stat-label">TASKS</div></div>
+      <div class="galaxy-stat"><div class="galaxy-stat-val" id="galaxy-missions">28</div><div class="galaxy-stat-label">MISSIONS</div></div>
+    </div>
+    <div class="galaxy-node-tooltip" id="galaxy-tooltip"></div>
+  </div>
 </section>
 <section class="panel" id="panel-side-projects">
   <div class="toggle"><button class="tg-btn active" onclick="setProjView('projects')">PROJECTS</button><button class="tg-btn" onclick="setProjView('tools')">TOOLS</button></div>
@@ -270,21 +335,21 @@ td{padding:8px 10px;font-size:10px;border-bottom:1px solid rgba(255,255,255,.03)
 </section>
 <section class="panel" id="panel-side-integrations">
   <div class="card"><h3>Integrations</h3>
-    <div class="int-card"><div class="int-dot on"></div><span class="int-name">Content Studio</span><span class="int-st">Active</span></div>
-    <div class="int-card"><div class="int-dot on"></div><span class="int-name">X-Farm</span><span class="int-st">Active</span></div>
-    <div class="int-card"><div class="int-dot on"></div><span class="int-name">MoneyPrinterTurbo</span><span class="int-st">Active</span></div>
-    <div class="int-card"><div class="int-dot on"></div><span class="int-name">SMS-CRM</span><span class="int-st">Active</span></div>
-    <div class="int-card"><div class="int-dot on"></div><span class="int-name">Lead Database</span><span class="int-st">Active</span></div>
-    <div class="int-card"><div class="int-dot on"></div><span class="int-name">n8n</span><span class="int-st">Active</span></div>
-    <div class="int-card"><div class="int-dot on"></div><span class="int-name">Coolify</span><span class="int-st">Active</span></div>
-    <div class="int-card"><div class="int-dot on"></div><span class="int-name">ChromaDB</span><span class="int-st">Active</span></div>
-    <div class="int-card"><div class="int-dot on"></div><span class="int-name">Calcom</span><span class="int-st">Active</span></div>
-    <div class="int-card"><div class="int-dot on"></div><span class="int-name">AppFlowy</span><span class="int-st">Active</span></div>
-    <div class="int-card"><div class="int-dot on"></div><span class="int-name">Vaultwarden</span><span class="int-st">Active</span></div>
-    <div class="int-card"><div class="int-dot on"></div><span class="int-name">Agent Team</span><span class="int-st">63 Active</span></div>
-    <div class="int-card"><div class="int-dot on"></div><span class="int-name">ScrapeGraph</span><span class="int-st">Active</span></div>
-    <div class="int-card"><div class="int-dot on"></div><span class="int-name">WhatsApp Bot</span><span class="int-st">Active</span></div>
-    <div class="int-card"><div class="int-dot on"></div><span class="int-name">AI Playground</span><span class="int-st">Active</span></div>
+    <div class="int-card" onclick="showToolDetail(this)"><div class="int-dot on"></div><span class="int-name">Content Studio</span><span class="int-st">Active</span></div>
+    <div class="int-card" onclick="showToolDetail(this)"><div class="int-dot on"></div><span class="int-name">X-Farm</span><span class="int-st">Active</span></div>
+    <div class="int-card" onclick="showToolDetail(this)"><div class="int-dot on"></div><span class="int-name">MoneyPrinterTurbo</span><span class="int-st">Active</span></div>
+    <div class="int-card" onclick="showToolDetail(this)"><div class="int-dot on"></div><span class="int-name">SMS-CRM</span><span class="int-st">Active</span></div>
+    <div class="int-card" onclick="showToolDetail(this)"><div class="int-dot on"></div><span class="int-name">Lead Database</span><span class="int-st">Active</span></div>
+    <div class="int-card" onclick="showToolDetail(this)"><div class="int-dot on"></div><span class="int-name">n8n</span><span class="int-st">Active</span></div>
+    <div class="int-card" onclick="showToolDetail(this)"><div class="int-dot on"></div><span class="int-name">Coolify</span><span class="int-st">Active</span></div>
+    <div class="int-card" onclick="showToolDetail(this)"><div class="int-dot on"></div><span class="int-name">ChromaDB</span><span class="int-st">Active</span></div>
+    <div class="int-card" onclick="showToolDetail(this)"><div class="int-dot on"></div><span class="int-name">Calcom</span><span class="int-st">Active</span></div>
+    <div class="int-card" onclick="showToolDetail(this)"><div class="int-dot on"></div><span class="int-name">AppFlowy</span><span class="int-st">Active</span></div>
+    <div class="int-card" onclick="showToolDetail(this)"><div class="int-dot on"></div><span class="int-name">Vaultwarden</span><span class="int-st">Active</span></div>
+    <div class="int-card" onclick="showToolDetail(this)"><div class="int-dot on"></div><span class="int-name">Agent Team</span><span class="int-st">63 Active</span></div>
+    <div class="int-card" onclick="showToolDetail(this)"><div class="int-dot on"></div><span class="int-name">ScrapeGraph</span><span class="int-st">Active</span></div>
+    <div class="int-card" onclick="showToolDetail(this)"><div class="int-dot on"></div><span class="int-name">WhatsApp Bot</span><span class="int-st">Active</span></div>
+    <div class="int-card" onclick="showToolDetail(this)"><div class="int-dot on"></div><span class="int-name">AI Playground</span><span class="int-st">Active</span></div>
   </div>
 </section>
 <section class="panel" id="panel-side-calendar">
@@ -296,6 +361,39 @@ td{padding:8px 10px;font-size:10px;border-bottom:1px solid rgba(255,255,255,.03)
 <section class="panel" id="panel-side-gallery">
   <div class="card"><h3>Gallery</h3><div class="ph-panel"><div class="ph-icon">🖼</div><div class="ph-title">Gallery</div><div class="ph-sub">Media files will appear here.</div></div></div>
 </section>
+
+<section class="panel" id="panel-side-permissions">
+  <div class="card"><h3>Agent Requests & Permissions</h3>
+    <div id="perm-list" style="font-size:11px;color:var(--text2)">Loading agent requests...</div>
+    <div style="margin-top:12px;padding:10px;background:rgba(255,92,200,0.06);border:1px solid rgba(255,92,200,0.2);border-radius:6px">
+      <div style="font-size:11px;font-weight:600;color:var(--magenta);margin-bottom:6px">Pending Approvals</div>
+      <div id="perm-pending" style="font-size:10px;color:var(--text3)">No pending requests</div>
+    </div>
+    <div style="margin-top:12px;padding:10px;background:rgba(24,224,255,0.06);border:1px solid rgba(24,224,255,0.2);border-radius:6px">
+      <div style="font-size:11px;font-weight:600;color:var(--cyan);margin-bottom:6px">Recent Activity</div>
+      <div id="perm-activity" style="font-size:10px;color:var(--text3)">No recent activity</div>
+    </div>
+  </div>
+</section>
+
+
+<section class="panel" id="panel-slack">
+  <div class="card"><h3>AI Communication Hub</h3>
+    <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+      <button class="btn btn-cyan" onclick="startVoiceCall()" style="flex:1;padding:12px;font-size:12px">Start Voice Call</button>
+      <button class="btn btn-green" onclick="sendPing()" style="flex:1;padding:12px;font-size:12px">Ping All Agents</button>
+    </div>
+    <div style="margin-bottom:12px">
+      <div style="font-size:10px;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.08em">Active Channels</div>
+      <div id="slack-channels" style="font-size:11px;color:var(--text2);line-height:2">Loading channels...</div>
+    </div>
+    <div>
+      <div style="font-size:10px;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.08em">Recent Messages</div>
+      <div id="slack-messages" style="font-size:11px;color:var(--text2);max-height:200px;overflow-y:auto">Loading messages...</div>
+    </div>
+  </div>
+</section>
+
 </main>
 
 <div class="notif-badge hidden" id="notifBadge" onclick="toggleNotifPanel()">0</div>
@@ -375,11 +473,11 @@ function renderOverview(){
       var nm=m.agent||m.mission_key||m.codename||"System";
       var msg=m.message||m.description||m.title||(m.total_tasks?m.total_tasks+" tasks, "+m.active_tasks+" active":"");
       var ts=m.time||m.created_at||"";
-      h+='<div class="feed-item"><div class="av">'+av+'</div><div class="body"><div class="nm">'+nm+'</div><div class="msg">'+msg+'</div></div><div class="ts">'+ts+'</div></div>';
+      h+='<div class="feed-item" onclick="showActivityDetail(this)"><div class="av">'+av+'</div><div class="body"><div class="nm">'+nm+'</div><div class="msg">'+msg+'</div></div><div class="ts">'+ts+'</div></div>';
     }
     feed.innerHTML=h;
   }else if(feed){
-    feed.innerHTML='<div class="feed-item"><div class="av">⚡</div><div class="body"><div class="nm">System</div><div class="msg">Dashboard initialized. All systems operational.</div></div><div class="ts">now</div></div>';
+    feed.innerHTML='<div class="feed-item" onclick="showActivityDetail(this)"><div class="av">⚡</div><div class="body"><div class="nm">System</div><div class="msg">Dashboard initialized. All systems operational.</div></div><div class="ts">now</div></div>';
   }
 }
 
@@ -430,7 +528,7 @@ function renderAgents(){
   for(var i=0;i<Math.min(18,list.length);i++){
     var a=list[i];
     var col=a.status==="active"?"var(--grn)":a.status==="working"?"var(--cyan)":"var(--amb)";
-    h+='<div class="agent-card"><div class="av">'+(a.codename||"?")[0]+'</div><div class="info"><div class="name">'+a.codename+'</div><div class="role">'+(a.team||"--")+' · '+(a.specialization||"")+'</div></div><div class="st-dot" style="background:'+col+'"></div></div>';
+    h+='<div class="agent-card" onclick="showAgentDetail(this)"><div class="av">'+(a.codename||"?")[0]+'</div><div class="info"><div class="name">'+a.codename+'</div><div class="role">'+(a.team||"--")+' · '+(a.specialization||"")+'</div></div><div class="st-dot" style="background:'+col+'"></div></div>';
   }
   if(!h)h='<div style="color:var(--dim);font-size:10px;padding:20px">No agents loaded</div>';
   container.innerHTML=h;
@@ -444,11 +542,11 @@ function renderActivity(){
     for(var i=0;i<Math.min(15,MISSIONS.length);i++){
       var m=MISSIONS[i];
       var av=(m.agent||m.mission_key||m.codename||"?")[0];
-      h+='<div class="feed-item"><div class="av">'+av+'</div><div class="body"><div class="nm">'+(m.agent||m.codename||"System")+'</div><div class="msg">'+(m.message||m.description||m.title||"")+'</div></div><div class="ts">'+(m.time||m.created_at||"")+'</div></div>';
+      h+='<div class="feed-item" onclick="showActivityDetail(this)"><div class="av">'+av+'</div><div class="body"><div class="nm">'+(m.agent||m.codename||"System")+'</div><div class="msg">'+(m.message||m.description||m.title||"")+'</div></div><div class="ts">'+(m.time||m.created_at||"")+'</div></div>';
     }
     container.innerHTML=h;
   }else{
-    container.innerHTML='<div class="feed-item"><div class="av">⚡</div><div class="body"><div class="nm">System</div><div class="msg">Waiting for agent activity...</div></div><div class="ts">now</div></div>';
+    container.innerHTML='<div class="feed-item" onclick="showActivityDetail(this)"><div class="av">⚡</div><div class="body"><div class="nm">System</div><div class="msg">Waiting for agent activity...</div></div><div class="ts">now</div></div>';
   }
 }
 
@@ -458,7 +556,7 @@ function renderProjects(){
   if(projView==="tools"){
     var tools=[{name:"Content Studio",icon:"◰"},{name:"X-Farm",icon:"✦"},{name:"MoneyPrinterTurbo",icon:"◈"},{name:"SMS-CRM",icon:"◇"},{name:"Lead Database",icon:"▦"},{name:"Dashboard",icon:"⊞"},{name:"n8n",icon:"⟁"},{name:"Coolify",icon:"◳"},{name:"ChromaDB",icon:"▤"},{name:"Calcom",icon:"◧"},{name:"AppFlowy",icon:"☑"},{name:"Vaultwarden",icon:"◑"},{name:"Agent Team",icon:"◉"},{name:"ScrapeGraph",icon:"▣"},{name:"WhatsApp Bot",icon:"◆"},{name:"AI Playground",icon:"✧"}];
     var h='<div class="grid-3">';
-    for(var i=0;i<tools.length;i++){h+='<div class="proj-card"><div class="proj-dot" style="background:var(--cyan)"></div><div class="proj-info"><div class="proj-name">'+tools[i].icon+' '+tools[i].name+'</div></div></div>';}
+    for(var i=0;i<tools.length;i++){h+='<div class="proj-card" onclick="showProjectDetail(this)"><div class="proj-dot" style="background:var(--cyan)"></div><div class="proj-info"><div class="proj-name">'+tools[i].icon+' '+tools[i].name+'</div></div></div>';}
     h+="</div>";container.innerHTML=h;return;
   }
   var projs=[{name:"RAGx",status:"active",desc:"Email/SMB outreach engine"},{name:"RAGmedium B2B",status:"active",desc:"Appointment setting"},{name:"LamaTrader",status:"building",desc:"White-label trading"},{name:"Grademy",status:"building",desc:"AI tutoring platform"},{name:"Rema Exteriors",status:"planning",desc:"Home services acquisition"},{name:"Content Empire",status:"active",desc:"Distribution machine"},{name:"Brogen",status:"building",desc:"X growth engine"},{name:"PrePitch",status:"planning",desc:"Pitch platform"},{name:"HalalBooking",status:"active",desc:"Travel booking"},{name:"Unitas",status:"building",desc:"PR agency"},{name:"Waterspring",status:"planning",desc:"VC software"},{name:"CinematicX",status:"building",desc:"Clinical trials"},{name:"SyneticX",status:"planning",desc:"CTMS platform"},{name:"LamaBroker",status:"active",desc:"Brokerage ops"}];
@@ -466,7 +564,7 @@ function renderProjects(){
   var h="";
   for(var i=0;i<projs.length;i++){
     var p=projs[i];var c=colors[p.status]||"var(--dim)";
-    h+='<div class="proj-card"><div class="proj-dot" style="background:'+c+'"></div><div class="proj-info"><div class="proj-name">'+p.name+'</div><div class="proj-desc">'+p.status+' · '+p.desc+'</div></div><div class="pbar" style="width:60px"><div class="pbar-fill" style="width:'+(Math.floor(Math.random()*60+20))+'%;background:'+c+'"></div></div></div>';
+    h+='<div class="proj-card" onclick="showProjectDetail(this)"><div class="proj-dot" style="background:'+c+'"></div><div class="proj-info"><div class="proj-name">'+p.name+'</div><div class="proj-desc">'+p.status+' · '+p.desc+'</div></div><div class="pbar" style="width:60px"><div class="pbar-fill" style="width:'+(Math.floor(Math.random()*60+20))+'%;background:'+c+'"></div></div></div>';
   }
   container.innerHTML=h;
 }
@@ -652,6 +750,141 @@ async function clearNotifications() {
 notifPollInterval = setInterval(pollNotifications, 30000);
 pollNotifications();
 
+
+// GALAXY IMPROVEMENT
+function initGalaxy(){
+  var canvas=document.getElementById('galaxy-canvas');
+  if(!canvas||canvas._init)return;
+  canvas._init=true;
+  var ctx=canvas.getContext('2d');
+  function resize(){canvas.width=canvas.offsetWidth*devicePixelRatio;canvas.height=canvas.offsetHeight*devicePixelRatio;ctx.scale(devicePixelRatio,devicePixelRatio);}
+  resize();window.addEventListener('resize',resize);
+  var w=function(){return canvas.offsetWidth;},h=function(){return canvas.offsetHeight;},cx=function(){return w()/2;},cy=function(){return h()/2;};
+  var nodes=[];
+  var projects=[{n:'RAGx',c:'#2fe08a'},{n:'RAGmed',c:'#18e0ff'},{n:'LamaTrader',c:'#18e0ff'},{n:'Grademy',c:'#18e0ff'},{n:'Rema',c:'#ffb020'},{n:'Content',c:'#2fe08a'},{n:'Brogen',c:'#18e0ff'},{n:'PrePitch',c:'#ffb020'},{n:'Halal',c:'#2fe08a'},{n:'Unitas',c:'#18e0ff'},{n:'Waterspring',c:'#ffb020'},{n:'CinematicX',c:'#18e0ff'},{n:'SyneticX',c:'#ffb020'},{n:'LamaBroker',c:'#2fe08a'}];
+  for(var i=0;i<projects.length;i++){
+    nodes.push({angle:(i/projects.length)*Math.PI*2,r:60+Math.random()*80,x:0,y:0,size:3+Math.random()*4,color:projects[i].c,label:projects[i].n,speed:0.001+Math.random()*0.002,off:Math.random()*Math.PI*2});
+  }
+  var t=0,tooltip=document.getElementById('galaxy-tooltip');
+  canvas.addEventListener('mousemove',function(e){
+    var rect=canvas.getBoundingClientRect();var mx=e.clientX-rect.left;var my=e.clientY-rect.top;
+    for(var i=0;i<nodes.length;i++){var dx=nodes[i].x-mx;var dy=nodes[i].y-my;if(Math.sqrt(dx*dx+dy*dy)<nodes[i].size+8){tooltip.style.left=(nodes[i].x+15)+'px';tooltip.style.top=(nodes[i].y-10)+'px';tooltip.innerHTML='<b style="color:'+nodes[i].color+'">'+nodes[i].label+'</b><br>Active tasks: '+(Math.floor(Math.random()*5)+1)+'<br>Status: Running';tooltip.classList.add('visible');return;}}
+    tooltip.classList.remove('visible');
+  });
+  function draw(){
+    ctx.clearRect(0,0,w(),h());
+    for(var r=40;r<200;r+=40){ctx.beginPath();ctx.arc(cx(),cy(),r,0,Math.PI*2);ctx.strokeStyle='rgba(24,224,255,'+(0.04+0.02*Math.sin(t*0.5+r))+')';ctx.lineWidth=0.5;ctx.stroke();}
+    var pr=8+3*Math.sin(t*2);
+    var gr=ctx.createRadialGradient(cx(),cy(),0,cx(),cy(),pr*2);
+    gr.addColorStop(0,'rgba(24,224,255,.8)');gr.addColorStop(1,'rgba(24,224,255,0)');
+    ctx.beginPath();ctx.arc(cx(),cy(),pr*2,0,Math.PI*2);ctx.fillStyle=gr;ctx.fill();
+    ctx.beginPath();ctx.arc(cx(),cy(),4,0,Math.PI*2);ctx.fillStyle='#18e0ff';ctx.fill();
+    for(var i=0;i<nodes.length;i++){
+      var n=nodes[i];n.angle+=n.speed;n.x=cx()+Math.cos(n.angle+n.off)*n.r;n.y=cy()+Math.sin(n.angle+n.off)*n.r;
+      var g=ctx.createRadialGradient(n.x,n.y,0,n.x,n.y,n.size*3);
+      g.addColorStop(0,n.color+'60');g.addColorStop(1,n.color+'00');
+      ctx.beginPath();ctx.arc(n.x,n.y,n.size*3,0,Math.PI*2);ctx.fillStyle=g;ctx.fill();
+      ctx.beginPath();ctx.arc(n.x,n.y,n.size,0,Math.PI*2);ctx.fillStyle=n.color;ctx.fill();
+      ctx.font='9px IBM Plex Mono';ctx.fillStyle='rgba(207,230,245,.5)';
+      ctx.fillText(n.label,n.x+n.size+3,n.y+3);
+    }
+    t+=0.016;requestAnimationFrame(draw);
+  }
+  draw();
+}
+
+// VOICE CALL
+var voiceClient=null;
+function toggleVoiceCall(){
+  var overlay=document.getElementById('call-overlay');
+  if(overlay.classList.contains('active')){endCall();return;}
+  overlay.classList.add('active');
+  document.getElementById('call-status').textContent='Connecting...';
+  voiceClient=new VoiceClient();
+  voiceClient.onStatus=function(s){document.getElementById('call-status').textContent=s;};
+  voiceClient.onTranscript=function(t){var el=document.getElementById('call-transcript');el.innerHTML+='<div class="transcript-line user">You: '+t+'</div>';el.scrollTop=el.scrollHeight;};
+  voiceClient.onAiText=function(t){var el=document.getElementById('call-transcript');el.innerHTML+='<div class="transcript-line ai">AI: '+t+'</div>';el.scrollTop=el.scrollHeight;};
+  voiceClient.connect().then(function(){
+    document.getElementById('call-status').textContent='Listening...';
+    voiceClient.startRecording();
+  });
+}
+function endCall(){
+  if(voiceClient){voiceClient.stopRecording();voiceClient.disconnect();}
+  document.getElementById('call-overlay').classList.remove('active');
+  document.getElementById('call-transcript').innerHTML='';
+}
+function toggleMute(){}
+
+// OVERLAY SYSTEM
+function showProjectDetail(el){
+  var name=el.querySelector('.proj-name')?.textContent||'Project';
+  document.getElementById('project-overlay-title').textContent=name;
+  document.getElementById('project-overlay-body').innerHTML='<div style="font-size:11px;color:var(--text2);line-height:1.8"><div style="margin-bottom:8px"><b style="color:var(--cyan)">Status:</b> Active</div><div style="margin-bottom:8px"><b style="color:var(--cyan)">Progress:</b> <div class="progress-bar" style="margin-top:4px"><div class="progress-fill cyan" style="width:'+(Math.random()*60+20)+'%"></div></div></div><div style="margin-bottom:8px"><b style="color:var(--cyan)">Team:</b> 3 agents assigned</div><div style="margin-bottom:8px"><b style="color:var(--cyan)">Tasks:</b> 4 active, 2 completed</div></div>';
+  document.getElementById('project-overlay').classList.add('active');
+}
+function showAgentDetail(el){
+  var name=el.querySelector('.agent-name')?.textContent||'Agent';
+  var team=el.querySelector('.agent-role')?.textContent||'--';
+  document.getElementById('agent-overlay-title').textContent=name;
+  document.getElementById('agent-overlay-body').innerHTML='<div class="agent-detail-header"><div class="agent-detail-avatar" style="background:linear-gradient(135deg,var(--panel),var(--line))">'+(name[0]||'?')+'</div><div class="agent-detail-info"><div class="name">'+name+'</div><div class="team">'+team+'</div></div></div><div class="metric-grid"><div class="metric-box"><div class="metric-val">'+(Math.floor(Math.random()*10)+1)+'</div><div class="metric-label">Active Tasks</div></div><div class="metric-box"><div class="metric-val">'+(Math.floor(Math.random()*50+50))+'%</div><div class="metric-label">Efficiency</div></div><div class="metric-box"><div class="metric-val">'+(Math.floor(Math.random()*20)+1)+'</div><div class="metric-label">Completed</div></div></div><div style="font-size:11px;color:var(--text2);line-height:1.6"><div style="margin-bottom:6px"><b style="color:var(--cyan)">Current:</b> Processing tasks</div><div style="margin-bottom:6px"><b style="color:var(--cyan)">Last Active:</b> 2 minutes ago</div></div>';
+  document.getElementById('agent-overlay').classList.add('active');
+}
+function showActivityDetail(el){
+  var msg=el.querySelector('.msg')?.textContent||'';
+  var nm=el.querySelector('.nm')?.textContent||'';
+  alert('From: '+nm+'\n\n'+msg);
+}
+function showToolDetail(el){
+  var name=el.querySelector('.int-name')?.textContent||'Tool';
+  alert(name+'\n\nStatus: Active\nLast sync: Just now');
+}
+function closeOverlay(id){document.getElementById(id).classList.remove('active');}
+
+// PERMISSIONS
+function loadPermissions(){
+  fetch('/api/notifications?unseen=1').then(r=>r.json()).then(function(data){
+    var list=document.getElementById('perm-list');
+    if(data&&data.length){
+      var html='';
+      for(var i=0;i<Math.min(data.length,10);i++){
+        var t=data[i].type||'REQUEST';
+        var icon=t==='DECISION'?'🔴':t==='REQUEST'?'📋':'❓';
+        html+='<div class="notif-item '+t.toLowerCase()+'"><div class="notif-body"><div class="notif-title">'+icon+' '+data[i].agent+' - '+t+'</div><div class="notif-msg">'+data[i].message+'</div><div class="notif-time">'+data[i].timestamp+'</div></div></div>';
+      }
+      list.innerHTML=html;
+    }else{
+      list.innerHTML='<div style="color:var(--text3);font-size:11px;padding:20px">No pending requests</div>';
+    }
+  }).catch(function(){document.getElementById('perm-list').innerHTML='<div style="color:var(--text3)">Could not load - server may be offline</div>';});
+}
+
+// AI SLACK
+function loadSlack(){
+  fetch('/api/galaxy/messages').then(r=>r.json()).then(function(data){
+    var el=document.getElementById('slack-messages');
+    if(data&&data.length){
+      var html='';
+      for(var i=0;i<Math.min(data.length,10);i++){
+        html+='<div style="padding:6px 0;border-bottom:1px solid rgba(26,36,56,.5)"><span style="color:var(--cyan)">'+data[i].sender+':</span> <span style="color:var(--text2)">'+data[i].content.substring(0,80)+'</span></div>';
+      }
+      el.innerHTML=html;
+    }else{
+      el.innerHTML='<div style="color:var(--text3);font-size:11px">No messages yet</div>';
+    }
+  }).catch(function(){document.getElementById('slack-messages').innerHTML='<div style="color:var(--text3)">Could not load</div>';});
+}
+
+function closeAllOverlays(){document.querySelectorAll(".overlay-modal").forEach(function(el){el.classList.remove("active");});}
+
+// INIT
+loadPermissions();
+loadSlack();
+setInterval(loadPermissions,30000);
+setInterval(loadSlack,30000);
+
+function closeAllOverlays(){document.querySelectorAll(".overlay-modal").forEach(function(el){el.classList.remove("active");});}
+
 // INIT
 renderOverview();
 renderProjects();
@@ -674,7 +907,114 @@ setInterval(function(){
 </nav>
 
 <script src="/voice-client.js"></script>
-<script src="/voice-call-ui.js"></script>
+<script src=""></script>
+
+<button id="float-call" onclick="toggleVoiceCall()" style="display:none;position:fixed;bottom:80px;right:16px;z-index:200;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--cyan),var(--magenta));border:none;cursor:pointer;font-size:22px;box-shadow:0 4px 20px rgba(24,224,255,0.5);align-items:center;justify-content:center;color:#000;font-weight:700;">AI</button>
+
+<div id="call-overlay" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(5,7,13,0.96);flex-direction:column;align-items:center;justify-content:center;backdrop-filter:blur(20px);">
+  <div class="call-avatar" id="call-avatar">
+    <div class="call-rings"></div><div class="call-rings"></div><div class="call-rings"></div>
+    AI
+  </div>
+  <div class="call-name">AI Assistant</div>
+  <div class="call-status" id="call-status">Tap to connect</div>
+  <div class="call-transcript" id="call-transcript"></div>
+  <div class="call-controls">
+    <button class="call-btn call-btn-mute" id="call-mute" onclick="toggleMute()">Mic</button>
+    <button class="call-btn call-btn-end" onclick="endCall()">End</button>
+  </div>
+</div>
+
+
+<div class="overlay-modal" id="project-overlay">
+  <div class="overlay-content" style="width:90%;max-width:600px;max-height:80vh;">
+    <div class="overlay-header">
+      <div class="overlay-title" id="project-overlay-title">Project</div>
+      <button class="overlay-close" onclick="closeOverlay('project-overlay')">X</button>
+    </div>
+    <div class="overlay-body" id="project-overlay-body">Loading...</div>
+  </div>
+</div>
+
+
+<div class="overlay-modal" id="agent-overlay">
+  <div class="overlay-content" style="width:90%;max-width:500px;max-height:80vh;">
+    <div class="overlay-header">
+      <div class="overlay-title" id="agent-overlay-title">Agent</div>
+      <button class="overlay-close" onclick="closeOverlay('agent-overlay')">X</button>
+    </div>
+    <div class="overlay-body" id="agent-overlay-body">Loading...</div>
+  </div>
+</div>
+
+
+<div class="overlay-modal" id="ragx-overlay">
+  <div class="overlay-content" style="width:95%;max-width:700px;max-height:85vh;">
+    <div class="overlay-header">
+      <div class="overlay-title">RAGx Pipeline</div>
+      <button class="overlay-close" onclick="closeOverlay('ragx-overlay')">X</button>
+    </div>
+    <div class="overlay-body">
+      <div class="stat-grid" style="margin-bottom:16px">
+        <div class="stat"><div class="stat-val">182K</div><div class="stat-label">Total Leads</div></div>
+        <div class="stat"><div class="stat-val">104K</div><div class="stat-label">Apollo</div></div>
+        <div class="stat"><div class="stat-val">45K</div><div class="stat-label">Adv Data</div></div>
+        <div class="stat"><div class="stat-val">29K</div><div class="stat-label">RIAS</div></div>
+      </div>
+      <div style="font-size:11px;color:var(--text2);line-height:1.6">
+        <div style="margin-bottom:8px"><b style="color:var(--cyan)">Status:</b> Active - Processing new leads</div>
+        <div style="margin-bottom:8px"><b style="color:var(--cyan)">Database:</b> Docker container 5434</div>
+        <div style="margin-bottom:8px"><b style="color:var(--cyan)">Sources:</b> Apollo (104K), all_adv_data (45K), rias_classified (29K), matched_rias (1.5K), region_gulf (352)</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<div class="overlay-modal" id="content-overlay">
+  <div class="overlay-content" style="width:95%;max-width:700px;max-height:85vh;">
+    <div class="overlay-header">
+      <div class="overlay-title">Content Empire</div>
+      <button class="overlay-close" onclick="closeOverlay('content-overlay')">X</button>
+    </div>
+    <div class="overlay-body">
+      <div class="stat-grid" style="margin-bottom:16px">
+        <div class="stat"><div class="stat-val">12</div><div class="stat-label">Posts This Week</div></div>
+        <div class="stat"><div class="stat-val">5</div><div class="stat-label">Platforms</div></div>
+        <div class="stat"><div class="stat-val">3.2K</div><div class="stat-label">Engagement</div></div>
+        <div class="stat"><div class="stat-val">94%</div><div class="stat-label">Schedule Rate</div></div>
+      </div>
+      <div style="font-size:11px;color:var(--text2);line-height:1.6">
+        <div style="margin-bottom:8px"><b style="color:var(--cyan)">Distribution:</b> Active across all channels</div>
+        <div style="margin-bottom:8px"><b style="color:var(--cyan)">Calendar:</b> 5 posts scheduled for next 7 days</div>
+        <div style="margin-bottom:8px"><b style="color:var(--cyan)">Ideas:</b> 8 pending approval</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<div class="overlay-modal" id="leads-overlay">
+  <div class="overlay-content" style="width:95%;max-width:700px;max-height:85vh;">
+    <div class="overlay-header">
+      <div class="overlay-title">Lead Database</div>
+      <button class="overlay-close" onclick="closeOverlay('leads-overlay')">X</button>
+    </div>
+    <div class="overlay-body">
+      <div class="stat-grid" style="margin-bottom:16px">
+        <div class="stat"><div class="stat-val">152M</div><div class="stat-label">People</div></div>
+        <div class="stat"><div class="stat-val">21M</div><div class="stat-label">Businesses</div></div>
+        <div class="stat"><div class="stat-val">35M</div><div class="stat-label">Professionals</div></div>
+        <div class="stat"><div class="stat-val">208M</div><div class="stat-label">Total Records</div></div>
+      </div>
+      <div style="font-size:11px;color:var(--text2);line-height:1.6">
+        <div style="margin-bottom:8px"><b style="color:var(--cyan)">Sources:</b> PDL (416M records), Apollo BF (51GB TSV), Homeowners, Realtors</div>
+        <div style="margin-bottom:8px"><b style="color:var(--cyan)">Database:</b> galaxy_agents PG, port 5432</div>
+        <div style="margin-bottom:8px"><b style="color:var(--cyan)">Status:</b> Active - 152M people loaded</div>
+      </div>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>

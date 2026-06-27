@@ -1,7 +1,6 @@
 {
   "name": "productivity-dashboard",
   "version": "1.0.0",
-  "description": "",
   "main": "kasm-proxy.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -12,10 +11,22 @@
   "license": "ISC",
   "dependencies": {
     "@antv/g6": "^5.1.1",
+    "@capacitor/android": "^6.2.1",
+    "@capacitor/cli": "^6.2.1",
+    "@capacitor/core": "^6.2.1",
     "@novnc/novnc": "^1.7.0",
     "puppeteer": "^25.1.0",
     "three": "^0.170.0",
     "web-push": "^3.6.7",
     "ws": "^8.21.0"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://amirguliyevai@github.com/amirguliyevai/me-ragmedium.git"
+  },
+  "bugs": {
+    "url": "https://github.com/amirguliyevai/me-ragmedium/issues"
+  },
+  "homepage": "https://github.com/amirguliyevai/me-ragmedium#readme",
+  "description": ""
 }
