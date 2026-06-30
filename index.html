@@ -352,20 +352,20 @@ input:focus,select:focus,textarea:focus{border-color:var(--cyan);box-shadow:0 0 
 <script>
 // ─── Mobile overlay nav ───
 function openOverlayNav(){
-  $('sideRailOverlay').classList.add('open');
-  $('navOverlayBackdrop').classList.add('open');
+  document.getElementById('sideRailOverlay').classList.add('open');
+  document.getElementById('navOverlayBackdrop').classList.add('open');
   document.body.style.overflow = 'hidden';
 }
 function closeOverlayNav(){
-  $('sideRailOverlay').classList.remove('open');
-  $('navOverlayBackdrop').classList.remove('open');
+  document.getElementById('sideRailOverlay').classList.remove('open');
+  document.getElementById('navOverlayBackdrop').classList.remove('open');
   document.body.style.overflow = '';
 }
 
 // ─── Push Notification subscribe (works on PWA + desktop) ───
 async function subscribePush(evt){
   evt?.preventDefault(); evt?.stopPropagation();
-  const btn = evt?.currentTarget || $('pushSubWrap')?.querySelector('button');
+  const btn = evt?.currentTarget || document.getElementById('pushSubWrap')?.querySelector('button');
   if (!('serviceWorker' in navigator)) return alert('Service worker not supported');
   if (!('PushManager' in window))    return alert('Push not supported on this browser');
   if (Notification.permission === 'denied') return alert('Notification permission denied');
@@ -378,10 +378,11 @@ async function subscribePush(evt){
     }
     const vapidResp = await fetch('/api/notifications/vapid-key');
     const vapidData = await vapidResp.json();
-    if (!vapidData.vapidKey) return alert('No VAPID key from server');
+    const vapidKey = vapidData.vapidKey || vapidData.publicKey;
+    if (!vapidKey) return alert('No VAPID key from server (response: ' + JSON.stringify(vapidData) + ')');
     const sub = await reg.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: urlB64ToUint8Array(vapidData.vapidKey),
+      applicationServerKey: urlB64ToUint8Array(vapidKey),
     });
     const save = await fetch('/api/notifications/subscribe', {
       method: 'POST',
@@ -413,7 +414,7 @@ function urlB64ToUint8Array(b64){
 }
 
 async function updatePushSubButton(){
-  const wrap = $('pushSubWrap');
+  const wrap = document.getElementById('pushSubWrap');
   if (!wrap) return;
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
     wrap.innerHTML = `<button class="push-sub unsupported" title="Not supported" style="cursor:help"><span class="dot"></span><span style="flex:1">Push unsupported</span></button>`;
@@ -699,9 +700,9 @@ function nav(page){
 function switchRail(rail){
   currentRail = rail;
   document.querySelectorAll('.rail-tab').forEach(t => t.classList.toggle('active', t.dataset.rail === rail));
-  $('railSlack').style.display = rail==='slack'?'flex':'none';
-  $('railNotif').style.display = rail==='notif'?'block':'none';
-  $('railAgents').style.display = rail==='agents'?'block':'none';
+  document.getElementById('railSlack').style.display = rail==='slack'?'flex':'none';
+  document.getElementById('railNotif').style.display = rail==='notif'?'block':'none';
+  document.getElementById('railAgents').style.display = rail==='agents'?'block':'none';
   if(rail==='slack') renderRailSlack();
   if(rail==='notif') renderRailNotif();
   if(rail==='agents') renderRailAgents();
@@ -719,8 +720,8 @@ function renderPage(page){
 
 // ═══ RESIZER ═══
 (function(){
-  const resizer = $('railResizer');
-  const app = $('app');
+  const resizer = document.getElementById('railResizer');
+  const app = document.getElementById('app');
   let dragging = false;
   resizer.addEventListener('mousedown', () => { dragging = true; resizer.classList.add('dragging'); document.body.style.cursor='col-resize'; });
   window.addEventListener('mouseup', () => { dragging = false; resizer.classList.remove('dragging'); document.body.style.cursor=''; });
@@ -734,7 +735,7 @@ function renderPage(page){
 
 // ═══ OVERVIEW (with progress bars + mini calendar + mini inbox) ═══
 async function renderOverview(){
-  const body = $('overviewBody');
+  const body = document.getElementById('overviewBody');
   const onlineAgents = AGENTS.filter(a => a.status === 'active' || a.status === 'online' || a.is_active).length;
   const inProgress = TASKS.filter(t => t.status === 'in_progress').length;
   const blocked = TASKS.filter(t => t.status === 'blocked').length;
@@ -913,7 +914,7 @@ function renderMiniInbox(){
 
 // ═══ BOARD ═══
 function renderBoard(){
-  const body = $('boardBody');
+  const body = document.getElementById('boardBody');
   const cols = {
     'backlog':{label:'Backlog',color:'#6b7a90'},
     'todo':{label:'To Do',color:'#9b7bff'},
@@ -954,7 +955,7 @@ function renderBoard(){
 // ═══ AGENTS PAGE (with team filter) ═══
 let agentsViewFilter = 'all';
 function renderAgents(){
-  const body = $('agentsBody');
+  const body = document.getElementById('agentsBody');
   const teams = {};
   AGENTS.forEach(a => { const t = a.team || 'other'; if(!teams[t]) teams[t] = []; teams[t].push(a); });
   const teamEntries = Object.entries(teams).sort();
@@ -1021,7 +1022,7 @@ function agentCard(a){
 
 // ═══ ORG TREE (separate view) ═══
 function renderOrg(){
-  const body = $('orgBody');
+  const body = document.getElementById('orgBody');
   if(!orgStructure) buildOrgStructure();
   body.innerHTML = `<div class="org-tree">${renderOrgNode(orgStructure,0)}</div>`;
 }
@@ -1066,7 +1067,7 @@ function showTeamAgents(team){
 
 // ═══ ACTIVITY (with questions + permissions highlighted) ═══
 function renderActivity(){
-  const body = $('activityBody');
+  const body = document.getElementById('activityBody');
   const items = buildActivity();
   body.innerHTML = `
     <div style="font-family:'Audiowide';font-size:18px;letter-spacing:.08em;text-transform:uppercase;color:var(--text);margin-bottom:14px">
@@ -1166,7 +1167,7 @@ function timeAgo(iso){
 
 // ═══ SLACK (full page + rail) ═══
 function renderSlack(){
-  $('slackBody').innerHTML = `
+  document.getElementById('slackBody').innerHTML = `
     <div class="slack-wrap" style="height:100%">
       <div class="slack-channels" id="slackChannelListFull"></div>
       <div class="slack-main">
@@ -1200,8 +1201,8 @@ function renderSlackChannelsFull(){
     ${allDMs.map(a => `<div class="slack-item" onclick="switchChannelFull('@${esc((a.codename||'').toLowerCase())}')"><span style="color:${TEAM_COLORS[a.team]||'#6b7a90'};font-weight:700;width:14px">${(a.codename||'?')[0]}</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">${esc(a.codename)}</span><div class="status-dot ${a.status||'idle'}" style="margin-left:auto"></div></div>`).join('')}
   `;
   // Write to BOTH the full-page channel list (only exists after nav('slack')) AND the rail
-  const full = $('slackChannelListFull');
-  const rail = $('slackChannelList');
+  const full = document.getElementById('slackChannelListFull');
+  const rail = document.getElementById('slackChannelList');
   if(full) full.innerHTML = html;
   if(rail) rail.innerHTML = html;
   return html;
@@ -1212,20 +1213,20 @@ function switchChannelFull(ch){
   renderSlackChannelsFull();
   renderChannelMessagesFull(ch);
   if(ch.startsWith('@')){
-    $('slackTitleFull').textContent = ch;
+    document.getElementById('slackTitleFull').textContent = ch;
     const agent = AGENTS.find(a => (a.codename||'').toLowerCase() === ch.slice(1));
-    $('slackTopicFull').textContent = agent ? agent.specialization : 'Direct message';
+    document.getElementById('slackTopicFull').textContent = agent ? agent.specialization : 'Direct message';
   } else {
     const c = SLACK_CHANNELS.find(x=>x.id===ch);
-    if(c){ $('slackTitleFull').textContent = c.id; $('slackTopicFull').textContent = c.topic; }
+    if(c){ document.getElementById('slackTitleFull').textContent = c.id; document.getElementById('slackTopicFull').textContent = c.topic; }
   }
-  $('slackTitle').textContent = ch;
-  $('slackTopic').textContent = ch.startsWith('@') ? 'Direct message' : (SLACK_CHANNELS.find(x=>x.id===ch)||{}).topic||'';
+  document.getElementById('slackTitle').textContent = ch;
+  document.getElementById('slackTopic').textContent = ch.startsWith('@') ? 'Direct message' : (SLACK_CHANNELS.find(x=>x.id===ch)||{}).topic||'';
   renderChannelMessages(ch);
 }
 
 function renderChannelMessagesFull(ch){
-  const el = $('slackMessagesFull');
+  const el = document.getElementById('slackMessagesFull');
   if(!el) return;
   const msgs = buildRealSlackMessages(ch, 30);
   if(!msgs.length){
@@ -1245,11 +1246,11 @@ function renderChannelMessagesFull(ch){
 }
 
 function sendSlackMsgFull(){
-  const input = $('slackInputFull');
+  const input = document.getElementById('slackInputFull');
   if(!input || !input.value.trim()) return;
   const txt = input.value.trim();
   // Optimistic append
-  const msgs = $('slackMessagesFull');
+  const msgs = document.getElementById('slackMessagesFull');
   const html = `<div class="slack-msg">
     <div class="avatar" style="background:var(--amber)">A</div>
     <div class="bubble">
@@ -1299,7 +1300,7 @@ function sendSlackMsgFull(){
 
 // Rail uses same logic
 function sendSlackMsg(){
-  const input = $('slackInput');
+  const input = document.getElementById('slackInput');
   if(!input || !input.value.trim()) return;
   sendSlackMsgFull();
   input.value = '';
@@ -1309,7 +1310,7 @@ function renderRailSlack(){
   // Build the channel HTML fresh and write to rail (the full-page list is only created when nav('slack') runs)
   renderSlackChannelsFull();
   // Render messages — REAL data from /api/team/messages/Amir
-  const msgEl = $('slackMessages');
+  const msgEl = document.getElementById('slackMessages');
   if(msgEl){
     const msgs = buildRealSlackMessages(currentSlackChannel, 30);
     if(!msgs.length){
@@ -1328,8 +1329,8 @@ function renderRailSlack(){
     }
   }
   // Update header
-  const title = $('slackTitle');
-  const topic = $('slackTopic');
+  const title = document.getElementById('slackTitle');
+  const topic = document.getElementById('slackTopic');
   if(title) title.textContent = currentSlackChannel;
   if(topic){
     if(currentSlackChannel.startsWith('@')){
@@ -1342,7 +1343,7 @@ function renderRailSlack(){
   }
 }
 function renderChannelMessages(ch){
-  const el = $('slackMessages');
+  const el = document.getElementById('slackMessages');
   if(!el) return;
   const msgs = buildRealSlackMessages(ch, 30);
   if(!msgs.length){
@@ -1473,7 +1474,7 @@ document.addEventListener("click", e => {
 
 
 async function renderInitiatives(){
-  const body = $('initiativesBody');
+  const body = document.getElementById('initiativesBody');
   if(!body) return;
   body.innerHTML = '<div style="color:var(--dim);font-size:11px;padding:20px;text-align:center">Loading initiatives...</div>';
   try {
@@ -1499,7 +1500,7 @@ async function openInitiative(id){
 }
 
 async function sendInitChat(initiativeId){
-  const input = $('initChatInput');
+  const input = document.getElementById('initChatInput');
   if(!input || !input.value.trim()) return;
   const msg = input.value.trim();
   try {
@@ -1510,7 +1511,7 @@ async function sendInitChat(initiativeId){
 }
 
 async function renderRunning(){
-  const body = $('runningBody');
+  const body = document.getElementById('runningBody');
   if(!body) return;
   body.innerHTML = '<div style="color:var(--dim);padding:20px;text-align:center">Loading running tasks...</div>';
   try {
@@ -1553,7 +1554,7 @@ async function renderRunning(){
 
 // ═══ PROJECTS TAB (real, clickable) ═══
 function renderProjects(){
-  const body = $('projectsBody');
+  const body = document.getElementById('projectsBody');
   const projMap = {};
   TASKS.forEach(t => { const p = t.project||'team'; if(!projMap[p]) projMap[p] = {key:p,total:0,statuses:{},tasks:[]}; projMap[p].total++; projMap[p].statuses[t.status]=(projMap[p].statuses[t.status]||0)+1; projMap[p].tasks.push(t); });
   PROJECTS = Object.values(projMap).sort((a,b)=>b.total-a.total);
@@ -1771,7 +1772,7 @@ function dmAgent(name){ switchChannelFull('@'+(name||'').toLowerCase()); nav('sl
 
 // ═══ KB (real graphene + chunks) ═══
 function renderKB(){
-  const body = $('kbBody');
+  const body = document.getElementById('kbBody');
   body.innerHTML = `
     <div style="font-family:'Audiowide';font-size:18px;letter-spacing:.08em;text-transform:uppercase;color:var(--text);margin-bottom:14px">
       <span style="color:var(--purple)">K</span> KNOWLEDGE BASE
@@ -1809,14 +1810,14 @@ function renderKBGraph(){
 }
 
 async function searchKB(){
-  const q = $('kbSearchInput')?.value || '';
+  const q = document.getElementById('kbSearchInput')?.value || '';
   if(!q) return;
-  $('kbResults').innerHTML = '<div style="padding:10px;color:var(--muted);font-size:12px">Searching…</div>';
+  document.getElementById('kbResults').innerHTML = '<div style="padding:10px;color:var(--muted);font-size:12px">Searching…</div>';
   try{
     const r = await fetch('/api/search?q='+encodeURIComponent(q));
     const d = await r.json();
     const results = d.results || [];
-    $('kbResults').innerHTML = `<div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">${results.length} results for "${esc(q)}"</div>` + (results.length ? results.slice(0,15).map(x => `
+    document.getElementById('kbResults').innerHTML = `<div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">${results.length} results for "${esc(q)}"</div>` + (results.length ? results.slice(0,15).map(x => `
       <div style="padding:10px;background:var(--bg2);border:1px solid var(--line);border-radius:6px;margin-bottom:6px">
         <div style="font-size:12px;font-weight:600;color:var(--text)">${esc(x.title||x.topic||x.filename||'Result')}</div>
         <div style="font-size:11px;color:var(--text3);margin-top:4px;line-height:1.4">${esc((x.text||x.content||x.chunk||'').substring(0,240))}${(x.text||x.content||'').length>240?'…':''}</div>
@@ -1824,25 +1825,25 @@ async function searchKB(){
       </div>
     `).join('') : '<div style="padding:10px;color:var(--dim);font-size:11px">No results.</div>');
   }catch(e){
-    $('kbResults').innerHTML = '<div style="padding:10px;color:var(--red);font-size:11px">Error: '+esc(e.message)+'</div>';
+    document.getElementById('kbResults').innerHTML = '<div style="padding:10px;color:var(--red);font-size:11px">Error: '+esc(e.message)+'</div>';
   }
 }
 
 async function searchTopic(name){
-  $('kbSearchInput').value = name;
-  $('kbResults').innerHTML = '<div style="padding:10px;color:var(--muted);font-size:12px">Loading chunks for '+esc(name)+'…</div>';
+  document.getElementById('kbSearchInput').value = name;
+  document.getElementById('kbResults').innerHTML = '<div style="padding:10px;color:var(--muted);font-size:12px">Loading chunks for '+esc(name)+'…</div>';
   try{
     const r = await fetch('/api/training/topic/'+encodeURIComponent(name));
     const d = await r.json();
     const chunks = d.chunks || [];
-    $('kbResults').innerHTML = `<div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">${chunks.length} chunks in "${esc(name)}"</div>` + (chunks.length ? chunks.slice(0,12).map(c => `
+    document.getElementById('kbResults').innerHTML = `<div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">${chunks.length} chunks in "${esc(name)}"</div>` + (chunks.length ? chunks.slice(0,12).map(c => `
       <div style="padding:10px;background:var(--bg2);border:1px solid var(--line);border-radius:6px;margin-bottom:6px">
         <div style="font-size:11px;color:var(--text);line-height:1.5;white-space:pre-wrap">${esc((c.text||c.content||'').substring(0,400))}${(c.text||'').length>400?'…':''}</div>
         ${c.source?`<div style="font-size:9px;color:var(--muted);font-family:'Audiowide';margin-top:4px">→ ${esc(c.source)}</div>`:''}
       </div>
     `).join('') : '<div style="padding:10px;color:var(--dim);font-size:11px">No chunks yet for this topic.</div>');
   }catch(e){
-    $('kbResults').innerHTML = '<div style="padding:10px;color:var(--red);font-size:11px">Error: '+esc(e.message)+'</div>';
+    document.getElementById('kbResults').innerHTML = '<div style="padding:10px;color:var(--red);font-size:11px">Error: '+esc(e.message)+'</div>';
   }
 }
 
@@ -1860,7 +1861,7 @@ function renderTodo(){
       </div>
     </div>
   `).join('') : '<div class="empty"><div class="ico">📋</div>No open tasks</div>';
-  $('todoBody').innerHTML = `
+  document.getElementById('todoBody').innerHTML = `
     <div style="font-family:'Audiowide';font-size:18px;letter-spacing:.08em;text-transform:uppercase;color:var(--text);margin-bottom:14px">
       <span style="color:var(--cyan)">T</span> TODO · ${tasks.length} open
     </div>
@@ -1869,7 +1870,7 @@ function renderTodo(){
 }
 
 function renderCalendar(){
-  const body = $('calendarBody');
+  const body = document.getElementById('calendarBody');
   if(!CALENDAR_EVENTS.length){
     const calErr = (window._stateBrain && window._stateBrain.calendar_error) || '';
     body.innerHTML = `
@@ -1907,7 +1908,7 @@ function renderCalendar(){
 }
 
 function renderInbox(){
-  const body = $('inboxBody');
+  const body = document.getElementById('inboxBody');
   if(!INBOX.length){
     body.innerHTML = `
       <div style="font-family:'Audiowide';font-size:18px;letter-spacing:.08em;text-transform:uppercase;color:var(--text);margin-bottom:14px">
@@ -1953,7 +1954,7 @@ function renderInbox(){
 }
 
 function renderDocs(){
-  const body = $('docsBody');
+  const body = document.getElementById('docsBody');
   const folders = ['all','docs','inbound','outbound','browser'];
   const counts = {
     all: DOCS.length,
@@ -2066,9 +2067,9 @@ function openDoc(name, folder, ext){
   showModal(esc(name), html);
   if(isTxt){
     fetch(f.url).then(r=>r.text()).then(t=>{
-      const tv = $('docTextViewer');
+      const tv = document.getElementById('docTextViewer');
       if(tv) tv.textContent = t.length > 50000 ? t.substring(0,50000)+'\n\n…[truncated]' : t;
-    }).catch(e=>{const tv = $('docTextViewer'); if(tv) tv.textContent = 'Error: '+e.message;});
+    }).catch(e=>{const tv = document.getElementById('docTextViewer'); if(tv) tv.textContent = 'Error: '+e.message;});
   }
 }
 
@@ -2083,7 +2084,7 @@ async function deleteDoc(name, folder){
 }
 
 function renderGallery(){
-  const body = $('galleryBody');
+  const body = document.getElementById('galleryBody');
   const imgs = GALLERY_IMAGES;
   body.innerHTML = `
     <div style="font-family:'Audiowide';font-size:18px;letter-spacing:.08em;text-transform:uppercase;color:var(--text);margin-bottom:14px;display:flex;justify-content:space-between;align-items:center">
@@ -2179,7 +2180,7 @@ async function handleGalleryUpload(files){
 
 function renderSkills(){
   const skills = SKILLS.length ? SKILLS : SKILL_DATA;
-  $('skillsBody').innerHTML = `
+  document.getElementById('skillsBody').innerHTML = `
     <div style="font-family:'Audiowide';font-size:18px;letter-spacing:.08em;text-transform:uppercase;color:var(--text);margin-bottom:14px">
       <span style="color:var(--cyan)">S</span> SKILLS · ${skills.length} loaded
     </div>
@@ -2211,7 +2212,7 @@ function renderRailNotif(){
     tab.textContent = blocked ? `🔔 ${blocked}` : '🔔';
     tab.style.color = blocked ? 'var(--red)' : '';
   }
-  $('railNotif').innerHTML = `
+  document.getElementById('railNotif').innerHTML = `
     <div style="padding:12px">
       <div style="font-family:'Audiowide';font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
         <span>🔔 NOTIFICATIONS · ${notifCount}</span>
@@ -2301,16 +2302,16 @@ function renderRailAgents(){
   // Build team pills
   const teams = {};
   AGENTS.forEach(a => { const t = a.team||'other'; if(!teams[t]) teams[t]=[]; teams[t].push(a); });
-  $('railTeamPills').innerHTML = `<button class="filter-pill${RAIL_AGENT_FILTER==='all'?' active':''}" onclick="setRailAgentFilter('all')">All ${AGENTS.length}</button>` + Object.keys(teams).sort().map(t => `<button class="filter-pill${RAIL_AGENT_FILTER===t?' active':''}" onclick="setRailAgentFilter('${t}')">${TEAM_EMOJI[t]||'🤖'} ${t.replace(/-/g,' ')} ${teams[t].length}</button>`).join('');
+  document.getElementById('railTeamPills').innerHTML = `<button class="filter-pill${RAIL_AGENT_FILTER==='all'?' active':''}" onclick="setRailAgentFilter('all')">All ${AGENTS.length}</button>` + Object.keys(teams).sort().map(t => `<button class="filter-pill${RAIL_AGENT_FILTER===t?' active':''}" onclick="setRailAgentFilter('${t}')">${TEAM_EMOJI[t]||'🤖'} ${t.replace(/-/g,' ')} ${teams[t].length}</button>`).join('');
   filterRailAgents();
 }
 function setRailAgentFilter(t){ RAIL_AGENT_FILTER = t; renderRailAgents(); }
 function filterRailAgents(){
-  RAIL_AGENT_SEARCH = ($('agentFilter')?.value||'').toLowerCase();
+  RAIL_AGENT_SEARCH = (document.getElementById('agentFilter')?.value||'').toLowerCase();
   let list = AGENTS;
   if(RAIL_AGENT_FILTER!=='all') list = list.filter(a => a.team === RAIL_AGENT_FILTER);
   if(RAIL_AGENT_SEARCH) list = list.filter(a => (a.codename||'').toLowerCase().includes(RAIL_AGENT_SEARCH) || (a.specialization||'').toLowerCase().includes(RAIL_AGENT_SEARCH) || (a.team||'').toLowerCase().includes(RAIL_AGENT_SEARCH));
-  $('railAgentList').innerHTML = list.length ? list.map(a => agentCard(a)).join('') : '<div class="empty" style="grid-column:1/-1;padding:20px;font-size:11px">No agents match</div>';
+  document.getElementById('railAgentList').innerHTML = list.length ? list.map(a => agentCard(a)).join('') : '<div class="empty" style="grid-column:1/-1;padding:20px;font-size:11px">No agents match</div>';
 }
 
 // ═══ CALL ═══
@@ -2334,11 +2335,11 @@ function openCallDialog(name){
 
 // ═══ MODAL ═══
 function showModal(title, body){
-  $('modalTitle').textContent = title;
-  $('modalBody').innerHTML = body;
-  $('modalOverlay').classList.add('open');
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalBody').innerHTML = body;
+  document.getElementById('modalOverlay').classList.add('open');
 }
-function closeModal(){ $('modalOverlay').classList.remove('open'); }
+function closeModal(){ document.getElementById('modalOverlay').classList.remove('open'); }
 
 function openAgentChat(name){
   if(!name) return;
@@ -2353,14 +2354,14 @@ function openAgentChat(name){
   `);
   // Load existing thread
   fetch('/api/messages?agent=' + encodeURIComponent(name)).then(r=>r.json()).then(msgs=>{
-    const box = $('agentChatBox');
+    const box = document.getElementById('agentChatBox');
     if(!msgs.length) { box.innerHTML = '<div style="color:var(--dim);padding:20px;text-align:center">No prior messages with this agent.</div>'; return; }
     box.innerHTML = msgs.map(m => '<div style="margin-bottom:6px;padding:4px 0;border-bottom:1px solid var(--bg)"><span style="color:var(--' + (m.is_from_amir?'amber':'cyan') + ')">' + esc(m.from_agent||'agent') + ':</span> ' + esc((m.message||'').substring(0,500)) + ' <span style="color:var(--dim);font-size:9px">[' + esc((m.created_at||'').substring(11,19)) + ']</span></div>').join('');
     box.scrollTop = box.scrollHeight;
   });
 }
 function sendAgentMsg(name){
-  const input = $('agentChatInput');
+  const input = document.getElementById('agentChatInput');
   if(!input || !input.value.trim()) return;
   if(!name) name = input.placeholder;
   const msg = input.value.trim();
@@ -2370,12 +2371,12 @@ function sendAgentMsg(name){
     headers: {'content-type':'application/json'},
     body: JSON.stringify({to_agent: name, from_agent: 'Amir', is_from_amir: true, message: msg})
   }).then(r=>r.json()).then(()=>{
-    const box = $('agentChatBox');
+    const box = document.getElementById('agentChatBox');
     box.innerHTML += '<div style="margin-bottom:6px;padding:4px 0;border-bottom:1px solid var(--bg)"><span style="color:var(--amber)">You:</span> ' + esc(msg) + ' <span style="color:var(--dim);font-size:9px">[just now]</span></div>';
     box.scrollTop = box.scrollHeight;
   });
 }
-$('modalOverlay').addEventListener('click', closeModal);
+document.getElementById('modalOverlay').addEventListener('click', closeModal);
 
 // ═══ DATA FETCHERS ═══
 // API base — dashboard's own server at 1702 (most things) + agent-team proxied via /api/team/ → :1707
@@ -2504,7 +2505,7 @@ async function fetchDocs(){
 
 // ═══ INIT ═══
 async function init(){
-  setInterval(() => { $('clock').textContent = new Date().toLocaleTimeString(); }, 1000);
+  setInterval(() => { document.getElementById('clock').textContent = new Date().toLocaleTimeString(); }, 1000);
 
   // Parallel fetch from REAL endpoints (port 1707 proxied through /api/team/*)
   const [agentsRes, tasksRes, skillsRes, messagesRes, statsRes] = await Promise.all([
@@ -2529,9 +2530,9 @@ async function init(){
   MESSAGES = messagesRes || [];
   if(statsRes){
     // Update topbar with real counts
-    $('topbarStatus').textContent = `${statsRes.agents?.total||AGENTS.length} agents · ${statsRes.agents?.active||'?'} active · ${statsRes.tasks?.total||TASKS.length} tasks · ${MESSAGES.length} msgs`;
+    document.getElementById('topbarStatus').textContent = `${statsRes.agents?.total||AGENTS.length} agents · ${statsRes.agents?.active||'?'} active · ${statsRes.tasks?.total||TASKS.length} tasks · ${MESSAGES.length} msgs`;
   } else {
-    $('topbarStatus').textContent = `${AGENTS.length} agents · ${TASKS.length} tasks · ${MESSAGES.length} messages`;
+    document.getElementById('topbarStatus').textContent = `${AGENTS.length} agents · ${TASKS.length} tasks · ${MESSAGES.length} messages`;
   }
 
   // Background fetches
@@ -2564,7 +2565,7 @@ async function init(){
       AGENTS = rawA.map(normalizeAgent);
       TASKS = rawT.map(normalizeTask);
       MESSAGES = m;
-      $('topbarStatus').textContent = `${AGENTS.length} agents · ${TASKS.length} tasks · ${MESSAGES.length} msgs`;
+      document.getElementById('topbarStatus').textContent = `${AGENTS.length} agents · ${TASKS.length} tasks · ${MESSAGES.length} msgs`;
       // Rebuild project list
       const pm = {};
       TASKS.forEach(tt => { const p = tt.project || 'team'; if(!pm[p]) pm[p] = {key:p,count:0,ships:0}; pm[p].count++; if(tt.status==='in_progress') pm[p].ships++; });
