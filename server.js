@@ -1233,6 +1233,82 @@ async function route(req,res){
     writeState(s);
     return send(res, 200, {ok:true, file:fname, url:'/media/'+fname, size:buf.length, mime});
   }
+  // === FILE MANAGEMENT ===
+  if(u.pathname==='/api/files'&&req.method==='GET'){
+    // List all files in media/docs, inbound, outbound
+    const baseDir = '/home/admin/.openclaw/media';
+    const folders = ['docs','inbound','outbound','browser'];
+    const result = {ok:true, files:[]};
+    const folder = (u.searchParams.get('folder')||'').toLowerCase();
+    const search = (u.searchParams.get('q')||'').toLowerCase();
+    for(const f of folders){
+      if(folder && folder !== f) continue;
+      const dir = path.join(baseDir, f);
+      if(!fs.existsSync(dir)) continue;
+      try{
+        const entries = fs.readdirSync(dir);
+        for(const name of entries){
+          if(search && !name.toLowerCase().includes(search)) continue;
+          try{
+            const stat = fs.statSync(path.join(dir, name));
+            const ext = (name.split('.').pop()||'').toLowerCase();
+            const mimeMap = {
+              'txt':'text/plain','md':'text/markdown','json':'application/json',
+              'jpg':'image/jpeg','jpeg':'image/jpeg','png':'image/png','gif':'image/gif','webp':'image/webp',
+              'mp4':'video/mp4','webm':'video/webm','mov':'video/quicktime','mkv':'video/x-matroska',
+              'mp3':'audio/mpeg','wav':'audio/wav','ogg':'audio/ogg','m4a':'audio/mp4',
+              'pdf':'application/pdf','doc':'application/msword',
+              'docx':'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+              'xls':'application/vnd.ms-excel','xlsx':'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+              'zip':'application/zip'
+            };
+            result.files.push({
+              id: name, name, folder: f, ext,
+              size: stat.size,
+              mime: mimeMap[ext] || 'application/octet-stream',
+              modified: stat.mtimeMs,
+              url: '/media/'+f+'/'+name,
+              isImage: ['jpg','jpeg','png','gif','webp','svg'].includes(ext),
+              isVideo: ['mp4','webm','mov','mkv','avi'].includes(ext),
+              isAudio: ['mp3','wav','ogg','m4a','flac'].includes(ext),
+              isText: ['txt','md','json','log','csv','yaml','yml'].includes(ext),
+              isDoc: ['pdf','doc','docx','xls','xlsx','ppt','pptx'].includes(ext)
+            });
+          }catch{}
+        }
+      }catch{}
+    }
+    result.files.sort((a,b) => b.modified - a.modified);
+    result.count = result.files.length;
+    return send(res, 200, result);
+  }
+  if(u.pathname==='/api/files/delete'&&req.method==='POST'){
+    const b = await body(req);
+    const fp = path.join('/home/admin/.openclaw/media', b.folder||'docs', b.name||'');
+    if(!fs.existsSync(fp)) return send(res, 404, {ok:false, error:'not_found'});
+    try{ fs.unlinkSync(fp); return send(res, 200, {ok:true}); }catch(e){ return send(res, 500, {ok:false, error:e.message}); }
+  }
+  // Serve media files
+  if(u.pathname.startsWith('/media/')){
+    const sub = u.pathname.replace('/media/','');
+    const [folder, ...rest] = sub.split('/');
+    const fp = path.join('/home/admin/.openclaw/media', folder, rest.join('/'));
+    if(!fs.existsSync(fp)) return send(res, 404, {error:'file_not_found'});
+    const stat = fs.statSync(fp);
+    const ext = (fp.split('.').pop()||'').toLowerCase();
+    const mimeTypes = {
+      'txt':'text/plain','md':'text/markdown','json':'application/json',
+      'jpg':'image/jpeg','jpeg':'image/jpeg','png':'image/png','gif':'image/gif','webp':'image/webp','svg':'image/svg+xml',
+      'mp4':'video/mp4','webm':'video/webm','mov':'video/quicktime',
+      'mp3':'audio/mpeg','wav':'audio/wav','ogg':'audio/ogg',
+      'pdf':'application/pdf'
+    };
+    res.setHeader('Content-Type', mimeTypes[ext] || 'application/octet-stream');
+    res.setHeader('Content-Length', stat.size);
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+    fs.createReadStream(fp).pipe(res);
+    return;
+  }
   if(u.pathname==='/api/vault'&&req.method==='GET'){ const idx=path.join(ROOT,'..','obsidian','rag-index','search-index.json'); if(fs.existsSync(idx)) return send(res,200,JSON.parse(fs.readFileSync(idx,'utf8'))); return send(res,200,{error:'vault_index_not_found',files:[]}); }
   // === SSE endpoint: real-time session trace streaming ===
   if(u.pathname==='/api/trace-stream'&&req.method==='GET'){

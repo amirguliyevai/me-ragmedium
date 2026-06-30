@@ -1178,27 +1178,114 @@ function projectDetail(key){
   const projTasks = TASKS.filter(t => t.project === key);
   const statuses = {};
   projTasks.forEach(t => statuses[t.status] = (statuses[t.status]||0)+1);
-  const taskHtml = projTasks.length ? projTasks.map(t => `
-    <div style="padding:10px;background:var(--bg);border:1px solid var(--line);border-radius:6px;border-left:3px solid ${PROJECT_COLORS[key]||'var(--cyan)'};margin-bottom:6px">
-      <div style="display:flex;justify-content:space-between;gap:8px">
-        <div style="font-size:12px;font-weight:600;color:var(--text);flex:1;min-width:0">${esc(t.title)}</div>
-        <span class="pri ${t.priority||'P3'}" style="font-size:9px;padding:1px 5px;border-radius:3px;font-weight:700;background:rgba(24,224,255,0.15);color:var(--cyan);white-space:nowrap">${t.priority||'P3'}</span>
-      </div>
-      <div style="display:flex;gap:8px;margin-top:4px;font-size:9px;color:var(--muted);font-family:'Audiowide'">
-        <span>${esc(t.status)}</span>
-        ${t.assigned_to?`<span>@${esc(t.assigned_to)}</span>`:''}
-        ${t.created_by?`<span>by ${esc(t.created_by)}</span>`:''}
-        ${t.team?`<span style="color:${TEAM_COLORS[t.team]||'var(--muted)'}">${esc(t.team)}</span>`:''}
+  // Distinct agents working this project
+  const workingAgents = [...new Set(projTasks.filter(t => t.assigned_to).map(t => t.assigned_to))];
+  const agentHtml = workingAgents.length ? `
+    <div style="margin-bottom:12px;padding:10px;background:rgba(155,123,255,0.08);border:1px solid var(--purple);border-radius:6px">
+      <div style="font-size:9px;color:var(--purple);text-transform:uppercase;margin-bottom:6px">👥 Agents Working This Project (${workingAgents.length})</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        ${workingAgents.map(name => {
+          const a = AGENTS.find(x => (x.codename||'').toLowerCase() === (name||'').toLowerCase());
+          if(!a) return `<span style="font-size:11px;padding:3px 8px;background:var(--bg2);border-radius:4px;border:1px solid var(--line)">@${esc(name)}</span>`;
+          return `<span onclick="event.stopPropagation();dmAgent('${esc(a.codename)}');closeModal()" style="cursor:pointer;font-size:11px;padding:3px 8px;background:rgba(24,224,255,0.1);border:1px solid var(--cyan);border-radius:4px;color:var(--cyan)">${TEAM_EMOJI[a.team]||'🤖'} @${esc(a.codename)}</span>`;
+        }).join('')}
       </div>
     </div>
-  `).join('') : '<div style="color:var(--dim);font-size:11px;padding:20px;text-align:center">No tasks for this project yet</div>';
+  ` : '';
+  // Status color helper
+  const statusColor = (s) => ({
+    'in_progress':'var(--cyan)','active':'var(--cyan)','review':'var(--pink)','done':'var(--green)',
+    'blocked':'var(--red)','failed':'var(--red)','todo':'var(--purple)','backlog':'var(--dim)'
+  }[s] || 'var(--muted)');
+  const statusBg = (s) => ({
+    'in_progress':'rgba(24,224,255,0.08)','active':'rgba(24,224,255,0.08)','review':'rgba(255,92,200,0.08)',
+    'done':'rgba(47,224,138,0.06)','blocked':'rgba(255,77,94,0.12)','failed':'rgba(255,77,94,0.12)',
+    'todo':'rgba(155,123,255,0.06)','backlog':'rgba(255,255,255,0.02)'
+  }[s] || 'var(--bg)');
+  const taskHtml = projTasks.length ? projTasks.map(t => {
+    const sColor = statusColor(t.status);
+    const sBg = statusBg(t.status);
+    const a = t.assigned_to ? AGENTS.find(x => (x.codename||'').toLowerCase() === (t.assigned_to||'').toLowerCase()) : null;
+    const isBlocked = t.status === 'blocked' || t.status === 'failed';
+    const isDone = t.status === 'done';
+    return `<div onclick="taskDetail('${esc(t.task_id||t.title)}')" style="cursor:pointer;padding:10px;background:${sBg};border:1px solid ${isBlocked?'var(--red)':isDone?'var(--line)':sColor};border-left:3px solid ${sColor};border-radius:6px;margin-bottom:6px;${isDone?'opacity:0.6':''}">
+      <div style="display:flex;justify-content:space-between;gap:8px;align-items:start">
+        <div style="font-size:12px;font-weight:600;color:${isBlocked?'var(--red)':'var(--text)'};flex:1;min-width:0;${isDone?'text-decoration:line-through':''}">${isBlocked?'🚫 ':''}${isDone?'✅ ':''}${esc(t.title)}</div>
+        <span style="font-size:9px;padding:1px 5px;border-radius:3px;font-weight:700;background:rgba(255,255,255,0.06);color:${sColor};white-space:nowrap;text-transform:uppercase">${esc(t.status||'todo')}</span>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:4px;font-size:9px;color:var(--muted);font-family:'Audiowide';flex-wrap:wrap;align-items:center">
+        <span style="color:${sColor};font-weight:600">${esc(t.priority||'P3')}</span>
+        ${a?`<span onclick="event.stopPropagation();dmAgent('${esc(a.codename)}');closeModal()" style="cursor:pointer;padding:1px 6px;background:rgba(24,224,255,0.15);border:1px solid var(--cyan);border-radius:3px;color:var(--cyan)">${TEAM_EMOJI[a.team]||'🤖'} @${esc(a.codename)}</div>`:''}
+        ${t.created_by?`<span style="color:var(--dim)">by ${esc(t.created_by)}</span>`:''}
+        ${t.team?`<span style="color:${TEAM_COLORS[t.team]||'var(--muted)'}">${esc(t.team)}</span>`:''}
+        ${t.sla_deadline?`<span style="color:var(--amber)">⏱ ${esc(t.sla_deadline.substring(0,10))}</span>`:''}
+      </div>
+    </div>`;
+  }).join('') : '<div style="color:var(--dim);font-size:11px;padding:20px;text-align:center">No tasks for this project yet</div>';
   showModal('Project · '+key, `
+    ${agentHtml}
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;font-size:10px;font-family:'Audiowide'">
-      ${Object.entries(statuses).map(([s,n]) => `<span style="background:rgba(255,255,255,0.05);padding:3px 8px;border-radius:4px;color:${s==='in_progress'?'var(--cyan)':s==='done'?'var(--green)':s==='blocked'?'var(--red)':'var(--muted)'}">${s}: ${n}</span>`).join('')}
+      ${Object.entries(statuses).map(([s,n]) => `<span style="background:rgba(255,255,255,0.05);padding:3px 8px;border-radius:4px;color:${statusColor(s)};border:1px solid ${statusColor(s)}">${s}: ${n}</span>`).join('')}
     </div>
     <div style="font-size:9px;color:var(--muted);text-transform:uppercase;margin-bottom:6px">Tasks (${projTasks.length})</div>
     <div style="display:flex;flex-direction:column;gap:4px;max-height:50vh;overflow-y:auto">${taskHtml}</div>
   `);
+}
+
+// Task detail — open modal showing the task + which agent is working on it + live feed link
+function taskDetail(taskId){
+  const t = TASKS.find(x => (x.task_id||x.title) === taskId);
+  if(!t){
+    // Fallback: show generic
+    showModal('Task not found', `<div style="color:var(--dim);padding:20px">No data for ${esc(taskId)}</div>`);
+    return;
+  }
+  const a = t.assigned_to ? AGENTS.find(x => (x.codename||'').toLowerCase() === (t.assigned_to||'').toLowerCase()) : null;
+  const statusColor = ({
+    'in_progress':'var(--cyan)','active':'var(--cyan)','review':'var(--pink)','done':'var(--green)',
+    'blocked':'var(--red)','failed':'var(--red)','todo':'var(--purple)','backlog':'var(--dim)'
+  }[t.status] || 'var(--muted)');
+  showModal('Task · '+(t.task_id||''), `
+    <div style="margin-bottom:14px">
+      <div style="font-size:14px;font-weight:700;color:var(--text);line-height:1.4;margin-bottom:8px">${esc(t.title)}</div>
+      ${t.description?`<div style="font-size:12px;color:var(--text2);line-height:1.5;padding:8px;background:var(--bg);border-left:2px solid var(--line);border-radius:4px">${esc(t.description)}</div>`:''}
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+      <div><div style="font-size:9px;color:var(--muted);text-transform:uppercase">Status</div><div style="color:${statusColor};font-weight:700;text-transform:uppercase">${t.status==='blocked'?'🚫 ':''}${esc(t.status||'todo')}</div></div>
+      <div><div style="font-size:9px;color:var(--muted);text-transform:uppercase">Priority</div><div style="color:var(--text)">${esc(t.priority||'P3')}</div></div>
+      <div><div style="font-size:9px;color:var(--muted);text-transform:uppercase">Project</div><div style="color:var(--cyan)">${esc(t.project||'team')}</div></div>
+      <div><div style="font-size:9px;color:var(--muted);text-transform:uppercase">Team</div><div style="color:${TEAM_COLORS[t.team]||'var(--text)'}">${esc(t.team||'')}</div></div>
+      <div><div style="font-size:9px;color:var(--muted);text-transform:uppercase">Created by</div><div style="color:var(--text)">${esc(t.created_by||'—')}</div></div>
+      <div><div style="font-size:9px;color:var(--muted);text-transform:uppercase">SLA</div><div style="color:${t.sla_deadline?'var(--amber)':'var(--muted)'}">${esc(t.sla_deadline?t.sla_deadline.substring(0,10):'none')}</div></div>
+    </div>
+    ${a ? `
+      <div onclick="dmAgent('${esc(a.codename)}');closeModal()" style="cursor:pointer;margin-bottom:14px;padding:12px;background:rgba(24,224,255,0.08);border:1px solid var(--cyan);border-radius:6px;display:flex;align-items:center;gap:10px">
+        <div class="agent-avatar" style="background:${TEAM_COLORS[a.team]||'#6b7a90'};width:36px;height:36px;font-size:14px">${(a.codename||'?')[0]}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:11px;color:var(--cyan);text-transform:uppercase;letter-spacing:.04em">${TEAM_EMOJI[a.team]||'🤖'} Working Agent</div>
+          <div style="font-size:14px;font-weight:700;color:var(--text)">@${esc(a.codename)}</div>
+          <div style="font-size:10px;color:var(--text3)">${esc((a.specialization||'').substring(0,50))}</div>
+        </div>
+        <div style="font-size:10px;color:var(--cyan);font-family:'Audiowide'">→ LIVE FEED</div>
+      </div>
+    ` : `
+      <div style="margin-bottom:14px;padding:10px;background:rgba(255,176,32,0.08);border:1px solid var(--amber);border-radius:6px;font-size:11px;color:var(--amber)">
+        ⚠ Unassigned — needs an agent. <a onclick="claimTask('${esc(t.task_id||'')}')" style="color:var(--cyan);cursor:pointer;text-decoration:underline">Claim it</a>
+      </div>
+    `}
+    <div style="display:flex;gap:8px;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)">
+      <button class="btn" onclick="closeModal()" style="flex:1">Close</button>
+      ${a?`<button class="btn" onclick="closeModal();startVoiceCall('${esc(a.codename)}')" style="flex:1">📞 Call ${esc(a.codename)}</button>`:''}
+    </div>
+  `);
+}
+
+function claimTask(taskId){
+  // Mark task as assigned to the current user (Amir) — for now
+  const t = TASKS.find(x => x.task_id === taskId);
+  if(t){ t.assigned_to = 'Amir'; t.status = 'in_progress'; }
+  closeModal();
+  if(currentPage==='projects') renderProjects();
 }
 
 // ═══ AGENT DETAIL (current tasks + recent work + permissions) ═══
@@ -1454,56 +1541,228 @@ function renderInbox(){
 
 function renderDocs(){
   const body = $('docsBody');
+  const folders = ['all','docs','inbound','outbound','browser'];
+  const counts = {
+    all: DOCS.length,
+    docs: DOCS.filter(f=>f.folder==='docs').length,
+    inbound: DOCS.filter(f=>f.folder==='inbound').length,
+    outbound: DOCS.filter(f=>f.folder==='outbound').length,
+    browser: DOCS.filter(f=>f.folder==='browser').length
+  };
+  let folder = window._docsFolder || 'all';
+  let q = window._docsSearch || '';
+  let list = DOCS;
+  if(folder !== 'all') list = list.filter(f => f.folder === folder);
+  if(q) list = list.filter(f => (f.name||'').toLowerCase().includes(q.toLowerCase()));
   body.innerHTML = `
-    <div style="font-family:'Audiowide';font-size:18px;letter-spacing:.08em;text-transform:uppercase;color:var(--text);margin-bottom:14px">
-      <span style="color:var(--blue)">D</span> DOCS · ${DOCS.length} files
+    <div style="font-family:'Audiowide';font-size:18px;letter-spacing:.08em;text-transform:uppercase;color:var(--text);margin-bottom:14px;display:flex;justify-content:space-between;align-items:center">
+      <span><span style="color:var(--blue)">D</span> DOCS · ${list.length} of ${DOCS.length} files</span>
+      <button class="btn" onclick="docsUpload()">⬆ Upload</button>
     </div>
-    <div style="margin-bottom:14px;display:flex;gap:8px">
-      <input type="text" id="docsSearch" placeholder="Search docs…" oninput="filterDocs()" style="flex:1">
-      <button class="btn" onclick="uploadDoc()">⬆ Upload</button>
+    <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+      <input type="text" id="docsSearch" placeholder="Search files by name…" value="${esc(q)}" oninput="window._docsSearch=this.value;renderDocs()" style="flex:1;min-width:200px">
+    </div>
+    <div class="filter-pills">
+      ${folders.map(f => `<button class="filter-pill${folder===f?' active':''}" onclick="window._docsFolder='${f}';renderDocs()">${f==='all'?'📁 All':f==='docs'?'📄 Docs':f==='inbound'?'📥 Inbound':f==='outbound'?'📤 Outbound':'🌐 Browser'} <span class="count">${counts[f]||0}</span></button>`).join('')}
     </div>
     <div id="docsList" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px">
-      ${DOCS.length ? DOCS.map(d => `
-        <div class="agent-card" onclick="openDoc('${esc(d.id||d.name)}')">
-          <div class="head">
-            <div class="agent-avatar" style="background:var(--blue);font-size:11px">${esc((d.ext||'📄').toUpperCase().substring(0,3))}</div>
+      ${list.length ? list.slice(0,100).map(d => {
+        const icon = d.isImage ? '🖼️' : d.isVideo ? '🎬' : d.isAudio ? '🎵' : d.isDoc ? '📄' : d.isText ? '📃' : '📎';
+        const sizeStr = d.size < 1024 ? d.size+'b' : d.size < 1024*1024 ? (d.size/1024).toFixed(1)+'KB' : (d.size/1024/1024).toFixed(2)+'MB';
+        const dateStr = d.modified ? new Date(d.modified).toLocaleString() : '';
+        return `<div style="background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px;cursor:pointer;transition:all .15s;position:relative;clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,0 100%)" onclick="openDoc('${esc(d.name)}','${esc(d.folder)}','${esc(d.ext||'')}')" onmouseover="this.style.borderColor='var(--cyan)'" onmouseout="this.style.borderColor='var(--line)'">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+            <div style="font-size:24px">${icon}</div>
             <div style="flex:1;min-width:0">
-              <div class="name" style="overflow:hidden;text-overflow:ellipsis">${esc(d.name||d.filename||d.title||'Untitled')}</div>
-              <div class="role">${esc(d.size||'')} · ${esc((d.modified||d.date||'').substring(0,10))}</div>
+              <div style="font-size:12px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(d.name)}">${esc(d.name)}</div>
+              <div style="font-size:9px;color:var(--muted);font-family:'Audiowide'">${esc(d.folder)} · ${esc((d.ext||'?').toUpperCase())} · ${sizeStr}</div>
             </div>
           </div>
-        </div>
-      `).join('') : '<div class="empty"><div class="ico">📄</div>No docs. Upload to get started.</div>'}
+          <div style="font-size:9px;color:var(--dim);font-family:'Audiowide'">${dateStr}</div>
+        </div>`;
+      }).join('') : '<div class="empty"><div class="ico">📄</div>No files. Upload to get started.</div>'}
     </div>
   `;
 }
-function filterDocs(){
-  const q = ($('docsSearch')?.value||'').toLowerCase();
-  document.querySelectorAll('#docsList .agent-card').forEach(c => {
-    c.style.display = c.textContent.toLowerCase().includes(q) ? '' : 'none';
-  });
+
+function docsUpload(){
+  showModal('Upload File', `
+    <div style="text-align:center;padding:30px">
+      <div style="font-size:48px;margin-bottom:14px">⬆</div>
+      <div style="font-size:14px;color:var(--text);margin-bottom:6px">Upload to /media/docs/</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:14px">Any file type — docs, images, videos, audio</div>
+      <input type="file" id="docsFileInput" style="display:none" onchange="handleDocsUpload(this.files)">
+      <button class="btn" onclick="document.getElementById('docsFileInput').click()">Choose File</button>
+    </div>
+  `);
 }
-function uploadDoc(){ alert('Upload flow — connect S3 / Drive picker in next iteration.'); }
-function openDoc(id){ showModal('Doc: '+id, `<div style="color:var(--dim);font-size:12px">Doc viewer. Connect file storage API.</div>`); }
+
+async function handleDocsUpload(files){
+  if(!files || !files.length) return;
+  for(const f of files){
+    try{
+      const buf = await f.arrayBuffer();
+      const b64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
+      const dataUrl = `data:${f.type||'application/octet-stream'};base64,${b64}`;
+      const r = await fetch('/api/upload', {
+        method:'POST', headers:{'content-type':'application/json'},
+        body: JSON.stringify({data: dataUrl, folder: 'docs', filename: f.name})
+      });
+      if(r.ok){
+        const res = await r.json();
+        DOCS.unshift({id:res.file, name:res.file, folder:'docs', ext:f.name.split('.').pop(), size:f.size, modified:Date.now(), mime:f.type, url:res.url});
+      }
+    }catch(e){ console.warn('upload failed', e); }
+  }
+  closeModal();
+  renderDocs();
+}
+
+function openDoc(name, folder, ext){
+  // folder may be undefined for old data
+  if(!folder) folder = 'docs';
+  const f = DOCS.find(x => x.name === name && (x.folder||'docs') === folder) || {name, folder, ext, url: `/media/${folder}/${name}`};
+  const isImg = (ext||'').match(/jpg|jpeg|png|gif|webp|svg/i);
+  const isVid = (ext||'').match(/mp4|webm|mov|mkv|avi/i);
+  const isAud = (ext||'').match(/mp3|wav|ogg|m4a|flac/i);
+  const isTxt = (ext||'').match(/txt|md|json|log|csv|yaml|yml/i);
+  const isDoc = (ext||'').match(/pdf|doc|docx|xls|xlsx|ppt|pptx/i);
+  let viewer = '';
+  if(isImg) viewer = `<div style="background:#000;border-radius:6px;overflow:hidden;margin-bottom:14px;max-height:65vh;display:flex;align-items:center;justify-content:center"><img src="${f.url}" style="max-width:100%;max-height:65vh" onerror="this.parentNode.innerHTML='<div style=color:#888;padding:40px>Image not found</div>'"></div>`;
+  else if(isVid) viewer = `<div style="background:#000;border-radius:6px;overflow:hidden;margin-bottom:14px"><video src="${f.url}" controls style="width:100%;max-height:65vh;display:block" onerror="this.parentNode.innerHTML='<div style=color:#888;padding:40px>Video not playable</div>'"></video></div>`;
+  else if(isAud) viewer = `<div style="text-align:center;padding:30px;background:var(--bg);border-radius:6px;margin-bottom:14px"><div style="font-size:48px;margin-bottom:14px">🎵</div><audio src="${f.url}" controls style="width:100%"></audio></div>`;
+  else if(isTxt) viewer = `<div id="docTextViewer" style="background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:12px;margin-bottom:14px;max-height:50vh;overflow:auto;font-family:'Audiowide';font-size:11px;color:var(--text2);white-space:pre-wrap">Loading…</div>`;
+  else if(isDoc) viewer = `<div style="text-align:center;padding:30px;background:var(--bg);border-radius:6px;margin-bottom:14px"><div style="font-size:48px;margin-bottom:14px">📄</div><div style="font-size:13px;color:var(--text);margin-bottom:8px">${esc(name)}</div><div style="font-size:11px;color:var(--muted)">Click Download to view this document</div></div>`;
+  else viewer = `<div style="text-align:center;padding:30px;background:var(--bg);border-radius:6px;margin-bottom:14px"><div style="font-size:48px;margin-bottom:14px">📎</div><div style="font-size:13px;color:var(--text)">${esc(ext||'file').toUpperCase()} file</div></div>`;
+
+  const sizeStr = f.size ? (f.size < 1024*1024 ? (f.size/1024).toFixed(1)+' KB' : (f.size/1024/1024).toFixed(2)+' MB') : '—';
+  const dateStr = f.modified ? new Date(f.modified).toLocaleString() : '—';
+  const html = `
+    ${viewer}
+    <div style="font-size:11px;color:var(--text3);font-family:'Audiowide';display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px">
+      <div><span style="color:var(--muted)">FOLDER</span><br>${esc(folder)}</div>
+      <div><span style="color:var(--muted)">SIZE</span><br>${sizeStr}</div>
+      <div><span style="color:var(--muted)">DATE</span><br>${dateStr}</div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <a href="${f.url}" download="${esc(name)}" class="btn" style="flex:1;text-decoration:none;text-align:center">⬇ Download</a>
+      <button class="btn alt" onclick="navigator.clipboard.writeText('${f.url}').then(()=>{event.target.textContent='✓ Copied';setTimeout(()=>event.target.textContent='📋 Copy URL',1500)})" style="flex:1">📋 Copy URL</button>
+      <button class="btn red" onclick="deleteDoc('${esc(name)}','${esc(folder)}')" style="flex:1">🗑️ Delete</button>
+    </div>
+  `;
+  showModal(esc(name), html);
+  if(isTxt){
+    fetch(f.url).then(r=>r.text()).then(t=>{
+      const tv = $('docTextViewer');
+      if(tv) tv.textContent = t.length > 50000 ? t.substring(0,50000)+'\n\n…[truncated]' : t;
+    }).catch(e=>{const tv = $('docTextViewer'); if(tv) tv.textContent = 'Error: '+e.message;});
+  }
+}
+
+async function deleteDoc(name, folder){
+  if(!confirm(`Delete ${name}?`)) return;
+  try{
+    await fetch('/api/files/delete',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({name,folder})});
+    DOCS = DOCS.filter(f => !(f.name===name && (f.folder||'docs')===folder));
+    closeModal();
+    renderDocs();
+  }catch(e){ alert('Delete failed: '+e.message); }
+}
 
 function renderGallery(){
   const body = $('galleryBody');
   const imgs = GALLERY_IMAGES;
   body.innerHTML = `
-    <div style="font-family:'Audiowide';font-size:18px;letter-spacing:.08em;text-transform:uppercase;color:var(--text);margin-bottom:14px">
-      <span style="color:var(--pink)">G</span> GALLERY · ${imgs.length} images
+    <div style="font-family:'Audiowide';font-size:18px;letter-spacing:.08em;text-transform:uppercase;color:var(--text);margin-bottom:14px;display:flex;justify-content:space-between;align-items:center">
+      <span><span style="color:var(--pink)">G</span> GALLERY · ${imgs.length} images</span>
+      <div style="display:flex;gap:6px">
+        <button class="btn sm" onclick="galleryFilter='all';renderGallery()">All</button>
+        <button class="btn sm" onclick="galleryFilter='image';renderGallery()">📷 Images</button>
+        <button class="btn sm" onclick="galleryFilter='video';renderGallery()">🎬 Videos</button>
+        <button class="btn" onclick="galleryUpload()">⬆ Upload</button>
+      </div>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px">
-      ${imgs.length ? imgs.slice(0,60).map(img => `
-        <div style="aspect-ratio:1;background:var(--bg2);border:1px solid var(--line);border-radius:6px;overflow:hidden;cursor:pointer;position:relative" onclick="showImage('${esc(img.id||img.file)}')">
-          <img src="/api/gallery/file/${esc(img.id||img.file)}" style="width:100%;height:100%;object-fit:cover" loading="lazy" onerror="this.style.display='none'">
-          <div style="position:absolute;bottom:0;left:0;right:0;padding:4px;background:linear-gradient(0deg,rgba(0,0,0,0.8),transparent);font-size:9px;color:var(--text2);font-family:'Audiowide'">${esc((img.file||img.id||'').substring(0,20))}</div>
-        </div>
-      `).join('') : '<div class="empty"><div class="ico">🖼️</div>Gallery empty</div>'}
+    <div id="galleryGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px">
+      ${imgs.length ? imgs.slice(0,80).map(img => {
+        const isVideo = (img.ext||img.mime||'').match(/mp4|webm|mov|mkv|avi/i);
+        const url = isVideo ? `/api/gallery/file/${img.id||img.file}` : `/api/gallery/file/${img.id||img.file}`;
+        return `
+        <div onclick="showGalleryItem('${esc(img.id||img.file)}','${esc(img.ext||'')}')" style="aspect-ratio:1;background:var(--bg2);border:1px solid var(--line);border-radius:6px;overflow:hidden;cursor:pointer;position:relative" title="Click to view">
+          ${isVideo
+            ? `<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,rgba(155,123,255,0.2),rgba(24,224,255,0.2))"><div style="font-size:36px;color:rgba(255,255,255,0.8)">▶</div></div>`
+            : `<img src="${url}" style="width:100%;height:100%;object-fit:cover" loading="lazy" onerror="this.style.display='none'">`
+          }
+          <div style="position:absolute;bottom:0;left:0;right:0;padding:5px 6px;background:linear-gradient(0deg,rgba(0,0,0,0.9),transparent);font-size:9px;color:var(--text2);font-family:'Audiowide';display:flex;justify-content:space-between;align-items:end">
+            <span>${esc((img.file||img.id||'').substring(0,18))}</span>
+            <span style="color:var(--cyan)">${isVideo?'🎬':'📷'}</span>
+          </div>
+        </div>`;
+      }).join('') : '<div class="empty"><div class="ico">🖼️</div>No media yet</div>'}
     </div>
   `;
 }
-function showImage(id){ showModal('Image: '+id, `<img src="/api/gallery/file/${esc(id)}" style="max-width:100%;max-height:70vh;border-radius:6px" onerror="this.parentNode.innerHTML='<div style=color:var(--dim)>File not found</div>'">`); }
+
+let galleryFilter = 'all';
+let _lightboxIndex = 0;
+let _lightboxList = [];
+
+function showGalleryItem(id, ext){
+  // Find the index
+  _lightboxList = GALLERY_IMAGES.filter(i => (i.ext||'').match(/mp4|webm|mov|mkv|avi/i));
+  const isVideo = (ext||'').match(/mp4|webm|mov|mkv|avi/i);
+  const isAudio = (ext||'').match(/mp3|wav|ogg|m4a/i);
+  const isImage = !isVideo && !isAudio;
+  const url = `/api/gallery/file/${id}`;
+  const meta = GALLERY_IMAGES.find(i => (i.id||i.file) === id) || {};
+  const fileSize = meta.size ? (meta.size < 1024*1024 ? (meta.size/1024).toFixed(1)+' KB' : (meta.size/1024/1024).toFixed(2)+' MB') : '—';
+  const fileDate = meta.date ? new Date(meta.date).toLocaleString() : '—';
+  const html = `
+    <div style="background:#000;border-radius:6px;overflow:hidden;margin-bottom:14px;max-height:65vh;display:flex;align-items:center;justify-content:center">
+      ${isVideo ? `<video src="${url}" controls autoplay style="max-width:100%;max-height:65vh;display:block" onerror="this.parentNode.innerHTML='<div style=color:#888;padding:40px>Video not playable</div>'"></video>`
+        : isAudio ? `<div style="padding:30px;text-align:center"><div style="font-size:48px;margin-bottom:14px">🎵</div><audio src="${url}" controls autoplay style="width:100%;max-width:400px"></audio></div>`
+        : `<img src="${url}" style="max-width:100%;max-height:65vh;display:block" onerror="this.parentNode.innerHTML='<div style=color:#888;padding:40px>Image not found</div>'">`}
+    </div>
+    <div style="font-size:11px;color:var(--text3);font-family:'Audiowide';display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+      <div><span style="color:var(--muted)">FILE</span><br>${esc(id)}</div>
+      <div><span style="color:var(--muted)">SIZE</span><br>${fileSize}</div>
+      <div><span style="color:var(--muted)">DATE</span><br>${fileDate}</div>
+    </div>
+    <div style="margin-top:14px;display:flex;gap:8px">
+      <a href="${url}" download="${esc(id)}" class="btn" style="flex:1;text-decoration:none;text-align:center">⬇ Download</a>
+      <button class="btn alt" onclick="navigator.clipboard.writeText('${url}').then(()=>{event.target.textContent='✓ Copied';setTimeout(()=>event.target.textContent='📋 Copy URL',1500)})" style="flex:1">📋 Copy URL</button>
+    </div>
+  `;
+  showModal(isVideo ? '🎬 Video' : isAudio ? '🎵 Audio' : '📷 Image', html);
+}
+
+function galleryUpload(){
+  showModal('Upload Media', `
+    <div style="text-align:center;padding:30px">
+      <div style="font-size:48px;margin-bottom:14px">⬆</div>
+      <div style="font-size:14px;color:var(--text);margin-bottom:6px">Drag & drop or click to upload</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:14px">Images, videos, audio — all formats</div>
+      <input type="file" id="galleryFileInput" multiple accept="image/*,video/*,audio/*" style="display:none" onchange="handleGalleryUpload(this.files)">
+      <button class="btn" onclick="document.getElementById('galleryFileInput').click()">Choose Files</button>
+      <div style="font-size:10px;color:var(--dim);margin-top:14px">Uploads via the file management system</div>
+    </div>
+  `);
+}
+
+async function handleGalleryUpload(files){
+  if(!files || !files.length) return;
+  for(const f of files){
+    const fd = new FormData();
+    fd.append('file', f);
+    try{
+      const r = await fetch('/api/gallery', {method:'POST', body:fd});
+      if(r.ok){
+        GALLERY_IMAGES.unshift({id: f.name, file: f.name, ext: f.name.split('.').pop(), size: f.size, date: Date.now(), mime: f.type});
+      }
+    }catch(e){ console.warn('upload failed',e); }
+  }
+  closeModal();
+  renderGallery();
+}
 
 function renderSkills(){
   const skills = SKILLS.length ? SKILLS : SKILL_DATA;
@@ -1634,7 +1893,10 @@ async function fetchGallery(){
   try{ const d = await api('/api/gallery'); if(d?.images) GALLERY_IMAGES = d.images; }catch{}
 }
 async function fetchDocs(){
-  try{ const d = await api('/api/docs'); if(d?.docs) DOCS = d.docs; if(d?.files) DOCS = d.files; if(Array.isArray(d)) DOCS = d; }catch{}
+  try{
+    const d = await api('/api/files');
+    if(d?.files) DOCS = d.files;
+  }catch{}
 }
 
 // ═══ INIT ═══
