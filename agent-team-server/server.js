@@ -12,8 +12,36 @@ try {
   webpush = require('web-push');
 } catch(e) { webpush = null; }
 
-// ─── Push notification subscriptions (in-memory) ───
-const _pushSubscriptions = [];
+// ─── Push notification subscriptions (PG-backed for persistence across restarts) ───
+let _pushSubscriptions = [];
+async function loadPushSubs() {
+  try {
+    const r = await q('SELECT endpoint, keys FROM team.push_subscriptions WHERE user_id = $1 ORDER BY created_at DESC', ['amir']);
+    _pushSubscriptions = r.map(row => ({
+      endpoint: row.endpoint,
+      keys: row.keys || {}
+    }));
+    return _pushSubscriptions.length;
+  } catch (e) {
+    console.error('loadPushSubs error:', e.message);
+    return 0;
+  }
+}
+async function savePushSub(sub) {
+  try {
+    await q(
+      'INSERT INTO team.push_subscriptions (user_id, endpoint, keys, user_agent, last_active) VALUES ($1, $2, $3, $4, NOW()) ON CONFLICT (endpoint) DO UPDATE SET last_active = NOW()',
+      ['amir', sub.endpoint, JSON.stringify(sub.keys || {}), sub.userAgent || 'unknown']
+    );
+  } catch (e) {
+    console.error('savePushSub error:', e.message);
+  }
+}
+async function removePushSub(endpoint) {
+  try {
+    await q('DELETE FROM team.push_subscriptions WHERE endpoint = $1', [endpoint]);
+  } catch (e) { console.error('removePushSub error:', e.message); }
+}
 
 // ─── VAPID Keys for Web Push ───
 const VAPID_PUBLIC_KEY = 'BLy9SgseEX5gH1W3wrAoQgVdVP9BYVZdCSZwMdaXQLRH2sfv-ZQeWnspz8lzeXsI_qgAcSJCt2qNCDQ9AO5yD6A';
@@ -954,14 +982,18 @@ async function handleAPI(req, res, parts, body) {
   // POST /api/notifications/subscribe - Register for push notifications
   if (resource === 'notifications' && id === 'subscribe' && req.method === 'POST') {
     if (!body || !body.endpoint) return error(res, 'subscription object with endpoint required');
-    const existing = _pushSubscriptions.findIndex(s => s.endpoint === body.endpoint);
-    if (existing >= 0) {
-      _pushSubscriptions[existing] = body;
-    } else {
-      _pushSubscriptions.push(body);
-    }
-    console.log(`Push subscription added (${_pushSubscriptions.length} total)`);
+    const sub = { endpoint: body.endpoint, keys: body.keys || {}, userAgent: req.headers['user-agent'] || '' };
+    await savePushSub(sub);
+    // Also keep in-memory mirror for fast access in notify loop
+    const existing = _pushSubscriptions.findIndex(s => s.endpoint === sub.endpoint);
+    if (existing >= 0) _pushSubscriptions[existing] = sub;
+    else _pushSubscriptions.push(sub);
+    console.log(`Push subscription persisted + cached (${_pushSubscriptions.length} total)`);
     return json(res, { ok: true, count: _pushSubscriptions.length });
+  }
+  // 2026-06-30: inspect subs (returns count for sanity check)
+  if (resource === 'notifications' && id === 'list' && req.method === 'GET') {
+    return json(res, { ok: true, count: _pushSubscriptions.length, subs: _pushSubscriptions.map(s => s.endpoint.slice(0,80)) });
   }
 
   // POST /api/notifications/unsubscribe - Unregister from push notifications
@@ -1212,8 +1244,15 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-server.listen(PORT, '0.0.0.0', () => {
+server.listen(PORT, '0.0.0.0', async () => {
   console.log(`Agent Team System running on http://0.0.0.0:${PORT}`);
   console.log(`Dashboard: http://localhost:${PORT}/`);
   console.log(`API: http://localhost:${PORT}/api/stats`);
+  // 2026-06-30: persist push subscriptions in PG so they survive restarts
+  try {
+    const n = await loadPushSubs();
+    console.log(`[push] loaded ${n} persisted push subscriptions from PG`);
+  } catch (e) {
+    console.error('[push-load] err:', e.message);
+  }
 });
