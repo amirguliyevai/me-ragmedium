@@ -1181,7 +1181,7 @@ function renderChannelMessagesFull(ch){
     el.innerHTML = `<div style="padding:20px;text-align:center;color:var(--dim);font-size:11px">No messages yet in ${esc(ch)}.<br><span style="font-size:9px">Agents will post here as they work.</span></div>`;
     return;
   }
-  el.innerHTML = msgs.map(m => `
+  const _capped = msgs.length > 60 ? msgs.slice(-60) : msgs; el.innerHTML = _capped.map(m => `
     <div class="slack-msg" onclick="openAgentChat(\'${(m.name||'').replace(/'/g, "\\'")}\')" style="cursor:pointer" title="Open ${m.name||'agent'} thread">
       <div class="avatar" style="background:${TEAM_COLORS[m.team]||'#6b7a90'}">${(m.name||'?')[0]}</div>
       <div class="bubble">
@@ -1298,7 +1298,7 @@ function renderChannelMessages(ch){
     el.innerHTML = `<div style="padding:20px;text-align:center;color:var(--dim);font-size:11px">No messages in ${esc(ch)}.</div>`;
     return;
   }
-  el.innerHTML = msgs.map(m => `
+  const _capped = msgs.length > 60 ? msgs.slice(-60) : msgs; el.innerHTML = _capped.map(m => `
     <div class="slack-msg">
       <div class="avatar" style="background:${TEAM_COLORS[m.team]||'#6b7a90'}">${(m.name||'?')[0]}</div>
       <div class="bubble">
@@ -2301,7 +2301,7 @@ function openAgentChat(name){
     </div>
   `);
   // Load existing thread
-  fetch('/api/messages?agent=' + encodeURIComponent(name)).then(r=>r.json()).then(msgs=>{
+  fetch('/api/messages?agent=' + encodeURIComponent(name) + '&limit=30')).then(r=>r.json()).then(msgs=>{
     const box = document.getElementById('agentChatBox');
     if(!msgs.length) { box.innerHTML = '<div style="color:var(--dim);padding:20px;text-align:center">No prior messages with this agent.</div>'; return; }
     box.innerHTML = msgs.map(m => '<div style="margin-bottom:6px;padding:4px 0;border-bottom:1px solid var(--bg)"><span style="color:var(--' + (m.is_from_amir?'amber':'cyan') + ')">' + esc(m.from_agent||'agent') + ':</span> ' + esc((m.message||'').substring(0,500)) + ' <span style="color:var(--dim);font-size:9px">[' + esc((m.created_at||'').substring(11,19)) + ']</span></div>').join('');
@@ -2321,6 +2321,8 @@ function sendAgentMsg(name){
   }).then(r=>r.json()).then(()=>{
     const box = document.getElementById('agentChatBox');
     box.innerHTML += '<div style="margin-bottom:6px;padding:4px 0;border-bottom:1px solid var(--bg)"><span style="color:var(--amber)">You:</span> ' + esc(msg) + ' <span style="color:var(--dim);font-size:9px">[just now]</span></div>';
+    // Cap DOM at 200 messages — keep the chat responsive even after long sessions
+    while (box.children.length > 200) box.removeChild(box.firstChild);
     box.scrollTop = box.scrollHeight;
   });
 }
