@@ -260,7 +260,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--cyan);box-shadow:0 0 
 .org-children::before{content:'';position:absolute;top:0;left:50%;width:1px;height:14px;background:var(--line)}
 
 /* ═══ FAB (call) ═══ */
-.fab-call{position:fixed;bottom:24px;right:calc(var(--rail-w) + 24px);width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--cyan),var(--pink));border:0;color:#fff;font-size:22px;cursor:pointer;z-index:80;box-shadow:0 0 24px rgba(24,224,255,0.5),0 4px 16px rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;transition:all .2s}
+.fab-call{position:fixed;bottom:24px;left:24px;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--cyan),var(--pink));border:0;color:#fff;font-size:22px;cursor:pointer;z-index:50;box-shadow:0 0 24px rgba(24,224,255,0.5),0 4px 16px rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;transition:all .2s}
 .fab-call:hover{transform:scale(1.08);box-shadow:0 0 32px rgba(24,224,255,0.7),0 4px 20px rgba(0,0,0,0.5)}
 .fab-call::before{content:'';position:absolute;inset:0;border-radius:50%;background:linear-gradient(135deg,var(--cyan),var(--pink));opacity:0.4;animation:acPulse 1.8s infinite}
 
@@ -372,65 +372,77 @@ function closeOverlayNav(){
 async function subscribePush(evt){
   evt?.preventDefault(); evt?.stopPropagation();
   const btn = evt?.currentTarget || document.getElementById('pushSubWrap')?.querySelector('button');
-  if (!('serviceWorker' in navigator)) return alert('Service worker not supported');
-  if (!('PushManager' in window))    return alert('Push not supported');
+  if (!('serviceWorker' in navigator)) return alert('Service worker not supported on this browser. Use Chrome / Edge.');
+  if (!('PushManager' in window))    return alert('Push not supported on this browser.');
+  const setBtn = (txt) => { if (btn) btn.innerHTML = `<span class="dot"></span><span style="flex:1">${txt}</span>`; };
+  const fail = (msg) => { try { setBtn('Retry Push'); alert('Push failed: ' + msg); console.warn('[push]', msg); } catch(e) {} };
+  const success = () => { try { btn && btn.classList.add('subscribed'); updatePushSubButton(); setTimeout(() => alert('✅ Push ENABLED!\\n\\nYou will now receive agent updates on this device.'), 50); } catch(e) {} };
 
-  // Step 0 — ensure SW is registered before anything else
-  let reg = null;
   try {
-    let existing = await navigator.serviceWorker.getRegistration('/');
-    if (!existing) existing = await navigator.serviceWorker.register('/sw.js');
-    reg = await navigator.serviceWorker.ready;
-    console.log('SW ready:', reg.scope);
-  } catch(e) {
-    console.error('SW fail:', e);
-    return alert('Service worker failed: ' + e.message);
-  }
-
-  // Step 1 — permission gate
-  if (Notification.permission === 'denied') {
-    return alert('Notifications blocked. In Chrome address bar click lock icon → allow Notifications.');
-  }
-  if (Notification.permission === 'default') {
-    btn && (btn.innerHTML = '<span class="dot"></span><span style="flex:1">Asking permission…</span>');
-    const perm = await Notification.requestPermission();
-    if (perm !== 'granted') {
-      updatePushSubButton();
-      return alert('Permission denied. You can re-enable in browser settings.');
+    // ── Step 1: register the SW (do NOT wait indefinitely for .ready) ──
+    setBtn('Registering SW…');
+    let reg = await navigator.serviceWorker.getRegistration('/');
+    if (!reg) reg = await navigator.serviceWorker.register('/sw.js');
+    // Race: use either the existing reg OR the registered one
+    // (no await for .ready — that promise can hang forever if SW is controlled elsewhere)
+    if (!reg.active) {
+      // Give it 4s to come alive, then proceed anyway
+      await Promise.race([
+        navigator.serviceWorker.ready,
+        new Promise(r => setTimeout(r, 4000))
+      ]);
     }
-  }
-  btn && (btn.innerHTML = '<span class="dot"></span><span style="flex:1">Subscribing…</span>');
+    // Re-grab the registration after potential activation
+    reg = await navigator.serviceWorker.getRegistration('/') || reg;
+    console.log('[push] SW reg:', reg && reg.scope, 'active:', reg && reg.active && reg.active.state);
 
-  // Step 2 — VAPID
-  try {
-    const resp = await fetch('/api/notifications/vapid-key');
-    const data = await resp.json();
-    const vapidKey = data.vapidKey || data.publicKey;
-    if (!vapidKey) throw new Error('No vapidKey in ' + JSON.stringify(data));
+    // ── Step 2: permission ──
+    if (Notification.permission === 'denied') {
+      return fail('Notifications blocked. In Chrome address bar → click lock icon → allow notifications for this site.');
+    }
+    if (Notification.permission === 'default') {
+      setBtn('Asking permission…');
+      const perm = await Notification.requestPermission();
+      if (perm !== 'granted') {
+        updatePushSubButton();
+        return alert('Permission denied. Enable notifications in site settings to subscribe.');
+      }
+    }
+    setBtn('Subscribing…');
 
-    // Step 3 — subscribe
-    const sub = await reg.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlB64ToUint8Array(vapidKey),
-    });
+    // ── Step 3: VAPID ──
+    const vapidResp = await Promise.race([
+      fetch('/api/notifications/vapid-key'),
+      new Promise((_, r) => setTimeout(() => r(new Error('VAPID fetch timeout')), 8000))
+    ]);
+    const vapidData = await vapidResp.json();
+    const vapidKey = vapidData.vapidKey || vapidData.publicKey;
+    if (!vapidKey) throw new Error('VAPID key missing in ' + JSON.stringify(vapidData));
 
-    // Step 4 — register with server (saved to PG)
+    // ── Step 4: PushManager subscribe ──
+    // Use the reg.active worker if available, else fall back to reg (modern Chrome accepts this)
+    const sub = await Promise.race([
+      reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlB64ToUint8Array(vapidKey),
+      }),
+      new Promise((_, r) => setTimeout(() => r(new Error('pushManager.subscribe timeout (SW not active)')), 12000))
+    ]);
+
+    // ── Step 5: register on server (PG) ──
     const save = await fetch('/api/notifications/subscribe', {
       method: 'POST',
       headers: {'content-type':'application/json'},
       body: JSON.stringify(sub),
     });
     const saveJson = await save.json();
-    console.log('subscribed server response:', save.status, saveJson);
-
-    btn && btn.classList.add('subscribed');
-    updatePushSubButton();
-    setTimeout(() => alert('✅ Push ENABLED!\n\nYou will now receive agent updates on this device.'), 50);
+    console.log('[push] server saved:', save.status, saveJson);
+    success();
     return true;
   } catch (e) {
-    console.error('subscribePush err:', e);
-    updatePushSubButton();
-    return alert('Subscribe failed: ' + (e.message || JSON.stringify(e)));
+    console.error('[push] err:', e);
+    fail(e.message || String(e));
+    return false;
   }
 }
 
