@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RAG Mission Control</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; background: #06080d; color: #e6f0ff; font-family: 'Inter', system-ui, sans-serif; overflow-y: auto; }
+body { padding: 20px; }
+
+header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;
+         padding-bottom: 16px; border-bottom: 1px solid rgba(96, 165, 250, 0.2); }
+header h1 { font-size: 22px; color: #60a5fa; }
+header .sub { font-size: 12px; color: #94a3b8; margin-top: 2px; }
+header .actions { display: flex; gap: 8px; }
+header button { padding: 8px 14px; background: rgba(96, 165, 250, 0.15); color: #60a5fa;
+                border: 1px solid rgba(96, 165, 250, 0.3); border-radius: 8px;
+                font-size: 12px; cursor: pointer; font-family: inherit; }
+header button:hover { background: rgba(96, 165, 250, 0.25); }
+header button.primary { background: #60a5fa; color: #06080d; font-weight: 700; }
+
+.grid { display: grid; gap: 16px; grid-template-columns: 1fr 1fr; }
+.tile { background: rgba(10, 14, 26, 0.7); border: 1px solid rgba(96, 165, 250, 0.2);
+        border-radius: 14px; padding: 18px; }
+.tile h2 { font-size: 14px; color: #fbbf24; margin-bottom: 12px;
+           text-transform: uppercase; letter-spacing: 0.5px; }
+.tile .stat-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.tile .stat { background: rgba(255, 255, 255, 0.04); padding: 8px 12px; border-radius: 6px;
+              flex: 1; min-width: 80px; }
+.tile .stat .l { font-size: 10px; color: #64748b; text-transform: uppercase; }
+.tile .stat .v { font-size: 18px; font-weight: 700; color: #60a5fa; margin-top: 2px; }
+.tile .stat .v.warn { color: #f59e0b; }
+.tile .stat .v.danger { color: #ef4444; }
+
+.list { display: flex; flex-direction: column; gap: 6px; max-height: 400px; overflow-y: auto; }
+.list .row { display: flex; align-items: center; gap: 8px; padding: 8px 10px;
+            background: rgba(255, 255, 255, 0.03); border-radius: 6px;
+            cursor: pointer; transition: all 0.15s; }
+.list .row:hover { background: rgba(96, 165, 250, 0.15); }
+.list .row .icon { font-size: 14px; }
+.list .row .name { font-weight: 600; font-size: 13px; }
+.list .row .sub { font-size: 11px; color: #94a3b8; flex: 1; }
+.list .row .badge { font-size: 10px; padding: 2px 8px; border-radius: 4px;
+                   background: rgba(96, 165, 250, 0.15); color: #60a5fa; font-weight: 600; }
+.list .row .badge.warn { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+.list .row .badge.success { background: rgba(34, 197, 94, 0.15); color: #22c55e; }
+.list .row .badge.danger { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+
+.email-list { display: flex; flex-direction: column; gap: 5px; max-height: 500px; overflow-y: auto; }
+.email-row { padding: 10px; background: rgba(255, 255, 255, 0.03); border-radius: 6px;
+             cursor: pointer; border-left: 3px solid transparent; }
+.email-row:hover { background: rgba(96, 165, 250, 0.10); }
+.email-row.meeting { border-left-color: #22c55e; }
+.email-row.direct { border-left-color: #60a5fa; }
+.email-row.billing { border-left-color: #f59e0b; }
+.email-row.platform { border-left-color: #6b7280; }
+.email-row .sender { font-size: 12px; font-weight: 600; color: #cbd5e1; }
+.email-row .subject { font-size: 13px; margin-top: 2px; }
+.email-row .meta { font-size: 10px; color: #64748b; margin-top: 4px; display: flex; gap: 8px; }
+.email-row .meta .cat { padding: 2px 6px; border-radius: 3px; background: rgba(255, 255, 255, 0.05); }
+.email-row .meta .linked { padding: 2px 6px; border-radius: 3px; background: rgba(96, 165, 250, 0.15); color: #60a5fa; }
+
+.tabs { display: flex; gap: 8px; margin-bottom: 14px; }
+.tab { padding: 6px 12px; font-size: 12px; color: #94a3b8;
+       background: rgba(255, 255, 255, 0.04); border-radius: 6px; cursor: pointer; }
+.tab.active { background: rgba(96, 165, 250, 0.2); color: #60a5fa; font-weight: 600; }
+
+.full-width { grid-column: 1 / -1; }
+.section-title { display: flex; align-items: center; justify-content: space-between;
+                  margin-bottom: 10px; }
+.section-title h2 { font-size: 14px; color: #fbbf24; text-transform: uppercase; letter-spacing: 0.5px; }
+.section-title .count { font-size: 11px; color: #64748b; }
+
+@media (max-width: 800px) { .grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>🧠 RAG Mission Control</h1>
+    <div class="sub">Knowledge brain + projects + inbox — real-time</div>
+  </div>
+  <div class="actions">
+    <button onclick="window.open('/proxy/kb/graphene', '_blank')">🧬 Graphene</button>
+    <button class="primary" onclick="syncInbox()">↻ Sync Inbox</button>
+  </div>
+</header>
+
+<div class="grid">
+  <!-- TOP STATS -->
+  <div class="tile full-width">
+    <h2>📊 Live Status</h2>
+    <div class="stat-row" id="top-stats"></div>
+  </div>
+
+  <!-- PROJECTS NEEDING ATTENTION -->
+  <div class="tile">
+    <div class="section-title">
+      <h2>🚨 Needs Attention</h2>
+      <span class="count" id="attention-count">0</span>
+    </div>
+    <div class="list" id="attention-list"></div>
+  </div>
+
+  <!-- INBOX MEETING NOTES -->
+  <div class="tile">
+    <div class="section-title">
+      <h2>📝 Recent Meeting Notes</h2>
+      <span class="count" id="meetings-count">0</span>
+    </div>
+    <div class="email-list" id="meetings-list"></div>
+  </div>
+
+  <!-- ALL PROJECTS -->
+  <div class="tile full-width">
+    <div class="section-title">
+      <h2>📁 All Projects</h2>
+      <span class="count" id="projects-count">0</span>
+    </div>
+    <div class="tabs" id="proj-tabs"></div>
+    <div class="list" id="projects-list"></div>
+  </div>
+
+  <!-- DIRECT EMAILS -->
+  <div class="tile full-width">
+    <div class="section-title">
+      <h2>📧 Direct (needs reply)</h2>
+      <span class="count" id="direct-count">0</span>
+    </div>
+    <div class="email-list" id="direct-list"></div>
+  </div>
+
+  <!-- ACTIVITY FEED -->
+  <div class="tile full-width">
+    <div class="section-title">
+      <h2>⚡ Recent Activity</h2>
+      <span class="count" id="activity-count">0</span>
+    </div>
+    <div class="list" id="activity-list"></div>
+  </div>
+</div>
+
+<script>
+// ============ INITIAL LOAD ============
+let projects = [];
+let activeProjType = 'all';
+
+const fmtTime = iso => {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const now = new Date();
+  const diff = (now - d) / 60000;
+  if (diff < 60) return Math.round(diff) + 'm ago';
+  if (diff < 1440) return Math.round(diff / 60) + 'h ago';
+  return Math.round(diff / 1440) + 'd ago';
+};
+
+async function loadAll() {
+  await Promise.all([
+    loadStats(),
+    loadAttention(),
+    loadMeetings(),
+    loadProjects(),
+    loadDirectEmails(),
+    loadActivity(),
+  ]);
+}
+
+async function loadStats() {
+  const [stats, inboxStats, overview] = await Promise.all([
+    fetch('/api/stats').then(r => r.json()),
+    fetch('/api/inbox/stats').then(r => r.json()),
+    fetch('/api/aggregated/projects-overview').then(r => r.json()),
+  ]);
+  const html = `
+    <div class="stat"><div class="l">Brain chunks</div><div class="v">${(stats.amir_training||0).toLocaleString()}</div></div>
+    <div class="stat"><div class="l">Knowledge nodes</div><div class="v">${stats.graph_nodes||0}</div></div>
+    <div class="stat"><div class="l">Edges</div><div class="v">${stats.graph_edges||0}</div></div>
+    <div class="stat"><div class="l">Inbox total</div><div class="v">${inboxStats.total||0}</div></div>
+    <div class="stat"><div class="l">Direct emails</div><div class="v warn">${inboxStats.needs_attention||0}</div></div>
+    <div class="stat"><div class="l">Meeting notes</div><div class="v">${inboxStats.meetings||0}</div></div>
+    <div class="stat"><div class="l">Projects</div><div class="v">${overview.total_projects||0}</div></div>
+    <div class="stat"><div class="l">In-progress tasks</div><div class="v">${overview.totals?.in_progress||0}</div></div>
+    <div class="stat"><div class="l">Pending approvals</div><div class="v ${(overview.totals?.approvals_pending||0) > 0 ? 'danger' : ''}">${overview.totals?.approvals_pending||0}</div></div>
+  `;
+  document.getElementById('top-stats').innerHTML = html;
+}
+
+async function loadAttention() {
+  const overview = await fetch('/api/aggregated/projects-overview').then(r => r.json());
+  const items = overview.needs_attention || [];
+  document.getElementById('attention-count').textContent = items.length;
+  document.getElementById('attention-list').innerHTML = items.length === 0
+    ? '<div class="row"><div class="sub">Nothing needs attention 🎉</div></div>'
+    : items.map(p => `
+      <div class="row" onclick="window.location='?project=${p.id}'">
+        <div class="icon">${p.icon || '•'}</div>
+        <div class="name">${p.name}</div>
+        <div class="sub">in_progress: ${p.in_progress}</div>
+        ${p.pending_approvals > 0 ? '<div class="badge danger">' + p.pending_approvals + ' ⚠</div>' : ''}
+        ${p.in_progress >= 2 ? '<div class="badge warn">busy</div>' : ''}
+      </div>
+    `).join('');
+}
+
+async function loadMeetings() {
+  const data = await fetch('/api/inbox/category/meeting_notes?limit=8').then(r => r.json());
+  document.getElementById('meetings-count').textContent = data.count;
+  document.getElementById('meetings-list').innerHTML = data.messages.length === 0
+    ? '<div class="email-row"><div class="subject">No meeting notes yet.</div></div>'
+    : data.messages.map(m => `
+      <div class="email-row meeting" onclick="window.open('/api/inbox/${m.id}', '_blank')">
+        <div class="sender">${m.sender.split('<')[0].trim()}</div>
+        <div class="subject">${m.subject || '(no subject)'}</div>
+        <div class="meta">
+          <span class="cat">📝 meeting</span>
+          <span class="linked">${m.attachment_names?.join(', ') || 'gemini notes'}</span>
+          <span>${fmtTime(m.date)}</span>
+        </div>
+      </div>
+    `).join('');
+}
+
+async function loadProjects() {
+  const data = await fetch('/api/projects').then(r => r.json());
+  projects = data.projects;
+  document.getElementById('projects-count').textContent = projects.length;
+  
+  // Build type tabs
+  const types = [...new Set(projects.map(p => p.type))];
+  const tabsHtml = ['<div class="tab' + (activeProjType === 'all' ? ' active' : '') + '" data-type="all">all</div>']
+    .concat(types.map(t => `<div class="tab${activeProjType === t ? ' active' : ''}" data-type="${t}">${t}</div>`))
+    .join('');
+  document.getElementById('proj-tabs').innerHTML = tabsHtml;
+  document.querySelectorAll('#proj-tabs .tab').forEach(t => {
+    t.onclick = () => {
+      activeProjType = t.dataset.type;
+      document.querySelectorAll('#proj-tabs .tab').forEach(x => x.classList.remove('active'));
+      t.classList.add('active');
+      renderProjects();
+    };
+  });
+  renderProjects();
+}
+
+function renderProjects() {
+  const filtered = activeProjType === 'all' ? projects : projects.filter(p => p.type === activeProjType);
+  const html = filtered.map(p => `
+    <div class="row" onclick="window.location='?project=${p.id}'">
+      <div class="icon" style="color: ${p.color}">${p.icon || '•'}</div>
+      <div class="name">${p.name}</div>
+      <div class="sub">${p.description.substring(0, 60)}${p.description.length > 60 ? '…' : ''}</div>
+      ${p.approvals_pending > 0 ? `<div class="badge danger">${p.approvals_pending} approve</div>` : ''}
+      ${p.tasks_in_progress > 0 ? `<div class="badge warn">${p.tasks_in_progress} in-prog</div>` : ''}
+      <div class="badge">${p.tasks_total} tasks</div>
+    </div>
+  `).join('');
+  document.getElementById('projects-list').innerHTML = html || '<div class="row"><div class="sub">No projects in this view.</div></div>';
+}
+
+async function loadDirectEmails() {
+  const data = await fetch('/api/inbox/category/direct?limit=15').then(r => r.json());
+  document.getElementById('direct-count').textContent = data.count;
+  document.getElementById('direct-list').innerHTML = data.messages.length === 0
+    ? '<div class="email-row"><div class="subject">No direct emails.</div></div>'
+    : data.messages.map(m => `
+      <div class="email-row direct" onclick="window.open('/api/inbox/${m.id}', '_blank')">
+        <div class="sender">${m.sender.split('<')[0].trim()}</div>
+        <div class="subject">${m.subject || '(no subject)'}</div>
+        <div class="meta">
+          <span class="cat">📧 direct</span>
+          ${(m.project_links || []).map(p => `<span class="linked">→ ${p.id}</span>`).join('')}
+          <span>${fmtTime(m.date)}</span>
+        </div>
+      </div>
+    `).join('');
+}
+
+async function loadActivity() {
+  const data = await fetch('/api/activity?limit=20').then(r => r.json());
+  document.getElementById('activity-count').textContent = data.total;
+  const html = data.activity.map(a => `
+    <div class="row" onclick="window.location='?project=${a.project_id}'">
+      <div class="icon">${a.action.includes('task') ? '✓' : a.action.includes('approval') ? '🛡' : '⚡'}</div>
+      <div class="name">${a.project_id}</div>
+      <div class="sub">${a.action}: ${(a.title || a.name || '').substring(0, 60)}</div>
+      <span class="badge">${fmtTime(new Date(a.ts * 1000).toISOString())}</span>
+    </div>
+  `).join('');
+  document.getElementById('activity-list').innerHTML = html || '<div class="row"><div class="sub">No activity yet.</div></div>';
+}
+
+async function syncInbox() {
+  const btn = document.querySelector('.actions .primary');
+  btn.textContent = '⏳ syncing...';
+  btn.disabled = true;
+  try {
+    const r = await fetch('/api/inbox/sync', { method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({max_results: 100, query: 'newer_than:7d'}) });
+    const d = await r.json();
+    if (d.ok) {
+      btn.textContent = '✓ ' + d.synced + ' synced';
+      setTimeout(() => { btn.textContent = '↻ Sync Inbox'; btn.disabled = false; }, 2000);
+      loadAll();
+    } else {
+      btn.textContent = '✗ error';
+      btn.disabled = false;
+    }
+  } catch (e) {
+    btn.textContent = '✗ error';
+    btn.disabled = false;
+  }
+}
+
+loadAll();
+setInterval(loadAll, 60000);  // refresh every minute
+</script>
+</body>
+</html>

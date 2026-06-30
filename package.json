@@ -15,6 +15,7 @@
     "@capacitor/cli": "^6.2.1",
     "@capacitor/core": "^6.2.1",
     "@novnc/novnc": "^1.7.0",
+    "form-data": "^4.0.6",
     "puppeteer": "^25.1.0",
     "three": "^0.170.0",
     "web-push": "^3.6.7",

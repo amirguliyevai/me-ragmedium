@@ -1,0 +1,45 @@
+# Dependencies
+node_modules/
+*/node_modules/
+
+# Build artifacts
+android/app/build/
+android/build/
+android/.gradle/
+*.apk
+*.aab
+
+# State backups (rotating, not source)
+data/backups/
+data/agent-log.json
+data/state.json
+
+# Local config
+.env
+.env.local
+*.log
+npm-debug.log*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# OS
+Thumbs.db
+
+# Temp
+tmp/
+*.tmp
+.cache/
+
+# Index backups (don't track these)
+index.html.backup
+index.html.bak
+index.html.backup-today
+index.html.pre-feedback-*
+index.html.new
+index_original.html
+index_wrapper.html
+index-ingest.js

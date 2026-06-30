@@ -787,6 +787,9 @@ async function route(req,res){
   if(req.method==='OPTIONS') return send(res,200,{ok:true}); const u=new URL(req.url,'http://x');
   if(u.pathname==='/manifest.webmanifest') return send(res,200,fs.readFileSync(path.join(ROOT,'manifest.webmanifest'),'utf8'),'application/manifest+json');
   if(u.pathname==='/sw.js') return send(res,200,fs.readFileSync(path.join(ROOT,'sw.js'),'utf8'),'application/javascript');
+  // Voice call UI (floating FAB + WebSocket STT/TTS)
+  if(u.pathname==='/voice-call-ui.js') return send(res,200,fs.readFileSync(path.join(ROOT,'voice-call-ui.js'),'utf8'),'application/javascript');
+  if(u.pathname==='/voice-client.js') return send(res,200,fs.readFileSync(path.join(ROOT,'voice-client.js'),'utf8'),'application/javascript');
   if(u.pathname.startsWith('/icons/')){ const file=path.join(ROOT,u.pathname.replace(/^\/+/,'')); if(file.startsWith(path.join(ROOT,'icons'))&&fs.existsSync(file)){ const ext=path.extname(file); return send(res,200,fs.readFileSync(file),ext==='.svg'?'image/svg+xml':'image/png'); } }
   if(u.pathname.startsWith('/audio/')){ const file=path.join(ROOT,u.pathname.replace(/^\/+/,'')); if(file.startsWith(path.join(ROOT,'audio'))&&fs.existsSync(file)){ const ext=path.extname(file).toLowerCase(); const mtypes={'mp3':'audio/mpeg','wav':'audio/wav','ogg':'audio/ogg','webm':'audio/webm'}; return send(res,200,fs.readFileSync(file),mtypes[ext]||'audio/mpeg'); } }
   if(u.pathname.startsWith('/media/')){
@@ -1034,6 +1037,60 @@ async function route(req,res){
     else proxyReq.end();
     return;
   }
+
+  // ─── Project proxy: forward /api/projects to port 1707 ───
+  const isProjectsPath = u.pathname==='/api/projects' || u.pathname.startsWith('/api/projects/');
+  if(isProjectsPath){
+    const target = u.pathname.replace(/^\/agents/, '') + (u.search||'');
+    const proxyReq = http.request({
+      hostname: '127.0.0.1', port: 1707, path: target,
+      method: req.method, headers: { ...req.headers, host: '127.0.0.1:1707' }
+    }, (proxyRes) => {
+      const outHeaders = {...proxyRes.headers};
+      res.writeHead(proxyRes.statusCode, outHeaders);
+      proxyRes.pipe(res);
+    });
+    proxyReq.on('error', () => { if(!res.headersSent) send(res,502,{error:'project_api_unreachable'}); });
+    if(req.method==='POST'||req.method==='PUT'||req.method==='PATCH') req.pipe(proxyReq);
+    else proxyReq.end();
+    return;
+  }
+
+  // ─── Team API proxy: forward /api/team/* to port 1707 (strip /team) ───
+  if(u.pathname.startsWith('/api/team/')){
+    const target = '/api/' + u.pathname.split('/').slice(3).join('/') + (u.search||'');
+    const proxyReq = http.request({
+      hostname: '127.0.0.1', port: 1707, path: target,
+      method: req.method, headers: { ...req.headers, host: '127.0.0.1:1707' }
+    }, (proxyRes) => {
+      const outHeaders = {...proxyRes.headers};
+      res.writeHead(proxyRes.statusCode, outHeaders);
+      proxyRes.pipe(res);
+    });
+    proxyReq.on('error', () => { if(!res.headersSent) send(res,502,{error:'team_api_unreachable'}); });
+    if(req.method==='POST'||req.method==='PUT'||req.method==='PATCH') req.pipe(proxyReq);
+    else proxyReq.end();
+    return;
+  }
+
+  // ─── Agent detail proxy: forward /api/agents/:id to port 1707 ───
+  // Must be before /api/agents/status to avoid intercepting it
+  const isAgentDetailPath = /^\/api\/agents\/[\w-]+$/.test(u.pathname) || /^\/api\/agents\/[\w-]+\/(connections|projects)$/.test(u.pathname);
+  if(isAgentDetailPath){
+    const target = u.pathname.replace(/^\/api\/agents/, '/api/agents') + (u.search||'');
+    const proxyReq = http.request({
+      hostname: '127.0.0.1', port: 1707, path: target,
+      method: req.method, headers: { ...req.headers, host: '127.0.0.1:1707' }
+    }, (proxyRes) => {
+      const outHeaders = {...proxyRes.headers};
+      res.writeHead(proxyRes.statusCode, outHeaders);
+      proxyRes.pipe(res);
+    });
+    proxyReq.on('error', () => { if(!res.headersSent) send(res,502,{error:'agent_detail_unreachable'}); });
+    if(req.method==='POST'||req.method==='PUT'||req.method==='PATCH') req.pipe(proxyReq);
+    else proxyReq.end();
+    return;
+  }
   if(u.pathname.startsWith('/agents')){
     const target = u.pathname + (u.search||'');
     const proxyReq = http.request({
@@ -1138,6 +1195,16 @@ async function route(req,res){
   if(u.pathname==='/'||u.pathname==='/index.html'||(!u.pathname.startsWith('/api/')&&!u.pathname.startsWith('/agents/api/'))){ res.setHeader('Cache-Control','no-cache,no-store,must-revalidate'); return send(res,200,fs.readFileSync(path.join(ROOT,'index.html'),'utf8'),'text/html'); }
   if(u.pathname==='/api/state'&&req.method==='GET') return send(res,200,readState());
   if(u.pathname==='/api/state'&&(req.method==='POST'||req.method==='PUT')){ const b=await body(req); writeState(b); return send(res,200,{ok:true,state:normalizeState(b)}); }
+  // Skills catalog (from data/skills.json — separate from brain skills)
+  if(u.pathname==='/api/skills-catalog'&&req.method==='GET'){
+    try{
+      const fp=path.join(ROOT,'data','skills.json');
+      if(!fs.existsSync(fp)) return send(res,200,{ok:true,categories:[],total:0});
+      const raw=JSON.parse(fs.readFileSync(fp,'utf8'));
+      const total=raw.reduce((n,c)=>n+(c.skills||[]).length,0);
+      return send(res,200,{ok:true,categories:raw,total});
+    }catch(e){ return send(res,500,{ok:false,error:String(e)}); }
+  }
   if(u.pathname==='/api/brain'&&req.method==='GET'){ const s=readState(); s.brain.content.metrics=contentMetrics(s.brain.content); return send(res,200,{ok:true,brain:s.brain,businesses:s.businesses,projects:s.businesses,crm:s.crm,integrations:s.integrations,brief:generateBrief(s)}); }
   if(u.pathname==='/api/health'&&req.method==='GET'){ return send(res,200,{ok:true,status:'running',uptime:process.uptime(),port:PORT,memory:process.memoryUsage()}); }
   if(u.pathname==='/api/businesses'&&req.method==='GET'){ const s=readState(); return send(res,200,{ok:true,businesses:s.businesses}); }

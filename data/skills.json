@@ -1,0 +1,269 @@
+{
+  "categories": [
+    {
+      "category": "AI Skills",
+      "skills": [
+        {
+          "name": "Caveman Skill",
+          "desc": "Claude Code token-saver \u2014 65% fewer tokens, caveman talk",
+          "link": "https://github.com/JuliusBrussee/caveman"
+        },
+        {
+          "name": "Impeccable",
+          "desc": "Design language for agents \u2014 23 commands, 7 domain refs",
+          "link": "https://github.com/pbakaus/impeccable"
+        },
+        {
+          "name": "UI/UX Pro Max",
+          "desc": "Design intelligence for professional UI across all stacks",
+          "link": "https://github.com/nextlevelbuilder/ui-ux-pro-max-skill"
+        },
+        {
+          "name": "Context Mode",
+          "desc": "MCP server \u2014 98% context window reduction",
+          "link": "https://github.com/mksglu/context-mode"
+        },
+        {
+          "name": "NotFair",
+          "desc": "SEO, Google Ads, Meta Ads agent skills",
+          "link": "https://github.com/nowork-studio/NotFair"
+        },
+        {
+          "name": "Graphify",
+          "desc": "Turn code/knowledge into queryable graphs",
+          "link": "https://github.com/safishamsi/graphify"
+        },
+        {
+          "name": "Remotion",
+          "desc": "React-based video generation + agent skill",
+          "link": "https://github.com/remotion-dev/skills"
+        }
+      ],
+      "count": 7
+    },
+    {
+      "category": "Browser & Automation",
+      "skills": [
+        {
+          "name": "Browser Harness",
+          "desc": "Connect LLM to real Chrome via CDP",
+          "link": "https://github.com/browser-use/browser-harness"
+        },
+        {
+          "name": "Camofox Browser",
+          "desc": "Stealth Firefox \u2014 bypass bot detection/Cloudflare",
+          "link": "https://github.com/jo-inc/camofox-browser"
+        },
+        {
+          "name": "yt-dlp",
+          "desc": "Download video from 1000+ sites",
+          "link": "https://github.com/yt-dlp/yt-dlp"
+        }
+      ],
+      "count": 3
+    },
+    {
+      "category": "Video & Media",
+      "skills": [
+        {
+          "name": "HyperFrames",
+          "desc": "Write HTML, render MP4 video. For agents.",
+          "link": "https://github.com/heygen-com/hyperframes"
+        },
+        {
+          "name": "Motion (Framer)",
+          "desc": "Animation library \u2014 React, Vue, JS",
+          "link": "https://github.com/motiondivision/motion"
+        }
+      ],
+      "count": 2
+    },
+    {
+      "category": "Finance & Data",
+      "skills": [
+        {
+          "name": "FinceptTerminal",
+          "desc": "C++20 Qt6 terminal \u2014 37 agents, DCF, trading, QuantLib",
+          "link": "https://github.com/Fincept-Corporation/FinceptTerminal"
+        }
+      ],
+      "count": 1
+    },
+    {
+      "category": "Infrastructure",
+      "skills": [
+        {
+          "name": "OpenGenAI",
+          "desc": "Open source GenAI stack for developing world",
+          "link": "https://github.com/anurajennai/OpenGenAI"
+        },
+        {
+          "name": "Obsidian Agent Client",
+          "desc": "AI agents inside Obsidian vault (ACP protocol)",
+          "link": "https://github.com/rait-09/obsidian-agent-client"
+        }
+      ],
+      "count": 2
+    },
+    {
+      "category": "Internal",
+      "skills": [
+        {
+          "name": "Waterspring Build",
+          "desc": "Waterspring AI platform \u2014 project context & build plan",
+          "local": true
+        },
+        {
+          "name": "Business Guru",
+          "desc": "Multi-discipline business advisor skill",
+          "local": true
+        },
+        {
+          "name": "Hormozi Advisor",
+          "desc": "Hormozi-style business strategy",
+          "local": true
+        },
+        {
+          "name": "Sentient Guru",
+          "desc": "Advanced business advisor skill",
+          "local": true
+        },
+        {
+          "name": "RAG Engineering",
+          "desc": "Engineering best practices skill",
+          "local": true
+        },
+        {
+          "name": "RAG Email",
+          "desc": "Cold email / outreach marketing",
+          "local": true
+        },
+        {
+          "name": "RAG GTM",
+          "desc": "Go-to-market strategy",
+          "local": true
+        },
+        {
+          "name": "RAG LinkedIn",
+          "desc": "LinkedIn outreach",
+          "local": true
+        },
+        {
+          "name": "RAG Reddit",
+          "desc": "Reddit marketing",
+          "local": true
+        },
+        {
+          "name": "RAG SEO",
+          "desc": "SEO strategy",
+          "local": true
+        },
+        {
+          "name": "RAG X/Twitter",
+          "desc": "X/Twitter marketing",
+          "local": true
+        },
+        {
+          "name": "RAG Prompt",
+          "desc": "AI prompting skill",
+          "local": true
+        },
+        {
+          "name": "RAG Revenue",
+          "desc": "Revenue optimization",
+          "local": true
+        },
+        {
+          "name": "RAG Voice",
+          "desc": "Voice/narrative skill",
+          "local": true
+        },
+        {
+          "name": "LamaTrader",
+          "desc": "Trading platform skill",
+          "local": true
+        }
+      ],
+      "count": 15
+    },
+    {
+      "category": "Platforms",
+      "skills": [
+        {
+          "name": "RAGmind Mindmap",
+          "desc": "Strategy mindmap & knowledge graph",
+          "local": true
+        },
+        {
+          "name": "Lead Database",
+          "desc": "Lead management via l.ragmedium.com",
+          "local": true
+        },
+        {
+          "name": "ScrapeGraphAI",
+          "desc": "AI web scraper interface",
+          "local": true
+        },
+        {
+          "name": "KASM Desktop",
+          "desc": "Browser-based Linux desktop VNC",
+          "local": true
+        }
+      ],
+      "count": 4
+    },
+    {
+      "category": "Content",
+      "skills": [
+        {
+          "name": "IG Content Strategy",
+          "desc": "Jun's 'I am the niche' framework \u2014 3 pillars (Skills/Passions/Story), IG-native formats, hook-first visual storytelling",
+          "local": true
+        },
+        {
+          "name": "LinkedIn Growth",
+          "desc": "LI-specific rules \u2014 long-form thought leadership, comment-driven reach, document posts, engagement tactics. DIFFERENT from IG.",
+          "local": true
+        },
+        {
+          "name": "Content Copywriting",
+          "desc": "Hooks, body structure, CTAs, threads, video scripts. Text posts, video hooks, engagement tactics per platform.",
+          "local": true
+        },
+        {
+          "name": "Amir Brand Voice",
+          "desc": "Tone, vocabulary, sentence structure, hard rules. Load before writing ANY content for Amir.",
+          "local": true
+        }
+      ],
+      "count": 4
+    },
+    {
+      "category": "Tools",
+      "skills": [
+        {
+          "name": "Flight Scanner",
+          "desc": "7-prompt flight pricing analyst \u2014 hidden routes, geo-arbitrage, fare rules, OTA traps",
+          "local": true
+        },
+        {
+          "name": "Design.md",
+          "desc": "Google Labs \u2014 design token format spec + CLI for lint/diff/export",
+          "link": "https://github.com/google-labs-code/design.md"
+        },
+        {
+          "name": "SuperDesign",
+          "desc": "AI Product Design Agent \u2014 generate mockups/components from prompts",
+          "link": "https://github.com/superdesigndev/superdesign"
+        },
+        {
+          "name": "MoneyPrinterTurbo",
+          "desc": "AI short video gen \u2014 topic/script/clips/subtitles/music \u2192 MP4. Perfect for Content Empire.",
+          "link": "https://github.com/harry0703/MoneyPrinterTurbo"
+        }
+      ],
+      "count": 4
+    }
+  ],
+  "total": 42
+}

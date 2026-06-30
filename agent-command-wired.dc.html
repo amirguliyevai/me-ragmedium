@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<template id="__bundler_thumbnail" data-bg-color="#05070d">
+  <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+    <rect width="1200" height="800" fill="#05070d"/>
+    <circle cx="600" cy="400" r="150" fill="none" stroke="#18e0ff" stroke-width="3" opacity="0.9"/>
+    <circle cx="600" cy="400" r="210" fill="none" stroke="#18e0ff" stroke-width="2" opacity="0.45"/>
+    <circle cx="600" cy="400" r="270" fill="none" stroke="#ff5cc8" stroke-width="2" opacity="0.3"/>
+    <circle cx="600" cy="400" r="46" fill="#18e0ff"/>
+    <circle cx="750" cy="400" r="13" fill="#ff5cc8"/>
+    <circle cx="437" cy="350" r="11" fill="#2fe08a"/>
+    <circle cx="600" cy="190" r="10" fill="#ffb020"/>
+    <text x="600" y="640" fill="#eaf6ff" font-family="'Chakra Petch',sans-serif" font-weight="700" font-size="58" letter-spacing="10" text-anchor="middle">AGENT COMMAND</text>
+  </svg>
+</template>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: #05070d; }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-thumb { background: rgba(24,224,255,.18); border-radius: 0; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  @keyframes acScan { 0% { transform: translateY(0); } 100% { transform: translateY(6px); } }
+  @keyframes acBlink { 0%,49% { opacity: 1; } 50%,100% { opacity: 0; } }
+  @keyframes acFlow { 0% { background-position: 0 0; } 100% { background-position: 28px 0; } }
+  @keyframes acPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(24,224,255,.5); } 50% { box-shadow: 0 0 0 5px rgba(24,224,255,0); } }
+  @keyframes acRise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes acSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  @keyframes acDots { 0%,20% { opacity: .2; } 50% { opacity: 1; } 80%,100% { opacity: .2; } }
+  @keyframes acTwinkle { 0%,100% { opacity: .25; } 50% { opacity: .9; } }
+  @keyframes acRing { 0% { transform: scale(.65); opacity: .8; } 100% { transform: scale(1.25); opacity: 0; } }
+</style>
+</helmet>
+<div style="position:fixed; inset:0; height:100vh; display:grid; grid-template-columns:{{ gridCols }}; background:#05070d; color:#d6e2f0; font-family:'IBM Plex Sans',sans-serif; overflow:hidden;">
+
+  <div style="position:absolute; inset:0; z-index:60; pointer-events:none; background:repeating-linear-gradient(0deg, rgba(24,224,255,.025) 0 1px, transparent 1px 3px); mix-blend-mode:screen; animation:acScan 1.2s steps(3) infinite; opacity:.5;"></div>
+
+  <!-- ============ LEFT RAIL ============ -->
+  <div style="grid-column:1; border-right:1px solid rgba(24,224,255,.12); background:linear-gradient(180deg,#080b12,#06080d); display:flex; flex-direction:column; align-items:center; padding:14px 0; overflow-y:auto; z-index:20;">
+    <div style="width:38px; height:38px; display:flex; align-items:center; justify-content:center; border:1px solid rgba(24,224,255,.4); color:#18e0ff; font-family:'Chakra Petch'; font-weight:700; font-size:15px; box-shadow:0 0 18px rgba(24,224,255,.25); clip-path:polygon(0 0,calc(100% - 8px) 0,100% 8px,100% 100%,0 100%); margin-bottom:18px;">ax</div>
+    <sc-for list="{{ navMain }}" as="n" hint-placeholder-count="5">
+      <button data-tab="{{ n.id }}" onClick="{{ setTab }}" style="appearance:none; cursor:pointer; width:58px; padding:8px 0 6px; margin-bottom:4px; background:transparent; border:0; border-left:2px solid transparent; display:flex; flex-direction:column; align-items:center; gap:4px; color:#5b6b82; font-family:'IBM Plex Mono'; transition:.15s;" style-hover="color:#cfe6f5; background:rgba(24,224,255,.05);">
+        <span style="font-size:17px; line-height:1; color:{{ n.glyphColor }}">{{ n.glyph }}</span>
+        <span style="font-size:8.5px; letter-spacing:.06em; text-transform:uppercase;">{{ n.label }}</span>
+      </button>
+    </sc-for>
+    <div style="width:34px; height:1px; background:rgba(24,224,255,.14); margin:10px 0;"></div>
+    <sc-for list="{{ navMore }}" as="n" hint-placeholder-count="8">
+      <button data-tab="placeholder" data-name="{{ n.label }}" onClick="{{ setTab }}" style="appearance:none; cursor:pointer; width:58px; padding:7px 0 5px; margin-bottom:2px; background:transparent; border:0; border-left:2px solid transparent; display:flex; flex-direction:column; align-items:center; gap:3px; color:#3f4c5f; font-family:'IBM Plex Mono'; transition:.15s;" style-hover="color:#9fb3c8; background:rgba(120,140,170,.06);">
+        <span style="width:20px; height:20px; display:flex; align-items:center; justify-content:center; border:1px solid rgba(120,140,170,.22); font-size:9px;">{{ n.glyph }}</span>
+        <span style="font-size:7.5px; letter-spacing:.04em; text-transform:uppercase; max-width:60px; text-align:center; line-height:1.1;">{{ n.label }}</span>
+      </button>
+    </sc-for>
+  </div>
+
+  <!-- ============ MAIN COLUMN ============ -->
+  <div style="grid-column:2; display:flex; flex-direction:column; min-width:0; overflow:hidden; z-index:10;">
+    <!-- header -->
+    <div style="height:62px; flex:0 0 62px; border-bottom:1px solid rgba(24,224,255,.12); display:flex; align-items:center; padding:0 20px; gap:22px; background:linear-gradient(180deg,#0a0e16,#080b12);">
+      <div style="min-width:200px;">
+        <div style="font-family:'Chakra Petch'; font-weight:700; font-size:16px; letter-spacing:.14em; color:#eaf6ff;">AGENT COMMAND</div>
+        <div style="font-family:'IBM Plex Mono'; font-size:10px; letter-spacing:.16em; color:#18e0ff; text-transform:uppercase;">// {{ viewName }}</div>
+      </div>
+      <div style="flex:1; display:flex; gap:10px; justify-content:center;">
+        <sc-for list="{{ stats }}" as="st" hint-placeholder-count="5">
+          <div style="min-width:96px; padding:7px 12px; border:1px solid rgba(120,140,170,.14); background:rgba(10,16,26,.6); clip-path:polygon(0 0,calc(100% - 9px) 0,100% 9px,100% 100%,0 100%);">
+            <div style="font-family:'IBM Plex Mono'; font-size:8px; letter-spacing:.12em; color:#6b7a90; text-transform:uppercase;">{{ st.label }}</div>
+            <div style="font-family:'Chakra Petch'; font-weight:700; font-size:18px; line-height:1.1; color:{{ st.c }};">{{ st.value }}</div>
+          </div>
+        </sc-for>
+      </div>
+      <div style="display:flex; align-items:center; gap:16px; position:relative;">
+        <button onClick="{{ toggleNotif }}" style="appearance:none; cursor:pointer; position:relative; width:36px; height:36px; background:rgba(255,176,32,.08); border:1px solid rgba(255,176,32,.3); color:#ffb020; font-size:15px; clip-path:polygon(0 0,calc(100% - 7px) 0,100% 7px,100% 100%,0 100%);">◔
+          <sc-if value="{{ notifCount }}" hint-placeholder-val="{{ true }}"><span style="position:absolute; top:-6px; right:-6px; min-width:16px; height:16px; padding:0 3px; background:#ff4d5e; color:#fff; font-family:'IBM Plex Mono'; font-size:9px; font-weight:600; display:flex; align-items:center; justify-content:center; border-radius:8px;">{{ notifCount }}</span></sc-if>
+        </button>
+        <div style="text-align:right;">
+          <div style="font-family:'IBM Plex Mono'; font-size:15px; color:#cfe6f5; letter-spacing:.08em;">{{ clock }}</div>
+          <div style="font-family:'IBM Plex Mono'; font-size:8px; letter-spacing:.16em; color:#2fe08a; text-transform:uppercase;">● live</div>
+        </div>
+        <sc-if value="{{ notifOpen }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute; top:46px; right:0; width:330px; background:linear-gradient(180deg,#0c1320,#0a0f18); border:1px solid rgba(255,176,32,.3); box-shadow:0 18px 50px rgba(0,0,0,.6); z-index:80; clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,0 100%);">
+            <div style="padding:10px 14px; border-bottom:1px solid rgba(255,176,32,.18); font-family:'IBM Plex Mono'; font-size:10px; letter-spacing:.14em; color:#ffb020; text-transform:uppercase;">NEEDS YOUR ATTENTION</div>
+            <sc-for list="{{ notifs }}" as="nf" hint-placeholder-count="3">
+              <button data-id="{{ nf.id }}" onClick="{{ notifJump }}" style="appearance:none; cursor:pointer; width:100%; text-align:left; display:flex; gap:10px; align-items:flex-start; padding:11px 14px; background:transparent; border:0; border-bottom:1px solid rgba(120,140,170,.08);" style-hover="background:rgba(255,176,32,.06);">
+                <span style="flex:0 0 26px; width:26px; height:26px; border-radius:50%; background:{{ nf.agentColor }}; color:#05070d; font-family:'Chakra Petch'; font-weight:700; font-size:12px; display:flex; align-items:center; justify-content:center;">{{ nf.agentInit }}</span>
+                <span style="flex:1; min-width:0;"><span style="font-size:12px; color:#eaf6ff;"><span style="color:{{ nf.agentColor }}; font-weight:600;">{{ nf.agentName }}</span> @you</span><div style="font-size:11px; color:#9fb3c8; margin-top:2px;">{{ nf.text }}</div></span>
+                <span style="font-family:'IBM Plex Mono'; font-size:9px; color:#5b6b82;">{{ nf.age }}</span>
+              </button>
+            </sc-for>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+
+    <!-- content scroll -->
+    <div style="flex:1; overflow-y:auto; overflow-x:hidden; padding:18px;">
+
+      <!-- ===== OVERVIEW ===== -->
+      <sc-if value="{{ isOverview }}" hint-placeholder-val="{{ true }}">
+        <div style="display:grid; grid-template-columns:1fr 340px; gap:16px; align-items:start;">
+          <div style="display:flex; flex-direction:column; gap:16px; min-width:0;">
+            <div>
+              <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;"><span style="width:6px; height:14px; background:#18e0ff; box-shadow:0 0 10px #18e0ff;"></span><span style="font-family:'Chakra Petch'; font-weight:600; font-size:13px; letter-spacing:.18em; color:#eaf6ff;">LIVE OPERATIONS</span></div>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                <sc-for list="{{ liveOps }}" as="t" hint-placeholder-count="6">
+                  <div data-id="{{ t.id }}" onClick="{{ openTask }}" style="position:relative; cursor:pointer; padding:13px 14px; background:linear-gradient(180deg,#0b1019,#080b12); border:1px solid rgba(24,224,255,.14); border-left:3px solid {{ t.projColor }}; clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,0 100%); transition:.15s;" style-hover="border-color:rgba(24,224,255,.5);">
+                    <sc-if value="{{ t.waitingApproval }}" hint-placeholder-val="{{ false }}">
+                      <div style="position:absolute; top:0; right:0; display:flex; align-items:center; gap:4px; padding:3px 7px 3px 6px; background:#ff4d5e; color:#0a0a0a; font-family:'IBM Plex Mono'; font-size:8px; font-weight:600; letter-spacing:.06em; clip-path:polygon(8px 0,100% 0,100% 100%,0 100%); animation:acPulse 1.8s infinite;">✕ NEEDS YOU</div>
+                    </sc-if>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:7px;">
+                      <span style="font-family:'IBM Plex Mono'; font-size:9px; letter-spacing:.08em; color:{{ t.projColor }}; text-transform:uppercase;">{{ t.projName }}</span>
+                      <span style="font-family:'IBM Plex Mono'; font-size:9px; font-weight:600; color:{{ t.priC }}; border:1px solid {{ t.priC }}; padding:1px 5px;">{{ t.priLabel }}</span>
+                    </div>
+                    <div style="font-size:13px; font-weight:500; color:#eaf6ff; line-height:1.3; margin-bottom:10px; min-height:34px;">{{ t.title }}</div>
+                    <div style="height:4px; background:rgba(120,140,170,.14); margin-bottom:9px;"><div style="height:100%; width:{{ t.pctStr }}; background:linear-gradient(90deg,{{ t.projColor }},#18e0ff); box-shadow:0 0 8px {{ t.projColor }};"></div></div>
+                    <div style="display:flex; gap:4px; align-items:center; margin-bottom:9px;">
+                      <sc-for list="{{ t.train }}" as="s" hint-placeholder-count="4"><span style="flex:1; height:3px; background:{{ s.dotC }};"></span></sc-for>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                      <span style="display:flex; align-items:center; gap:6px;"><span style="width:18px; height:18px; border-radius:50%; background:{{ t.assigneeColor }}; color:#05070d; font-family:'Chakra Petch'; font-weight:700; font-size:9px; display:flex; align-items:center; justify-content:center;">{{ t.assigneeInit }}</span><span style="font-size:11px; color:#9fb3c8;">{{ t.assigneeName }}</span></span>
+                      <span style="font-family:'IBM Plex Mono'; font-size:10px; color:#6b7a90;">ETA {{ t.eta }}</span>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+            <div>
+              <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;"><span style="width:6px; height:14px; background:#2fe08a; box-shadow:0 0 10px #2fe08a;"></span><span style="font-family:'Chakra Petch'; font-weight:600; font-size:13px; letter-spacing:.18em; color:#eaf6ff;">ACTIVITY STREAM</span></div>
+              <div style="background:linear-gradient(180deg,#0b1019,#080b12); border:1px solid rgba(120,140,170,.12); clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,0 100%);">
+                <sc-for list="{{ activity }}" as="ev" hint-placeholder-count="8">
+                  <div data-id="{{ ev.task }}" onClick="{{ openTask }}" style="cursor:pointer; display:flex; gap:10px; align-items:center; padding:9px 14px; border-bottom:1px solid rgba(120,140,170,.07);" style-hover="background:rgba(24,224,255,.04);">
+                    <span style="width:22px; height:22px; border-radius:50%; background:{{ ev.agentColor }}; color:#05070d; font-family:'Chakra Petch'; font-weight:700; font-size:10px; display:flex; align-items:center; justify-content:center;">{{ ev.agentInit }}</span>
+                    <span style="flex:1; font-size:12px; color:#c2d2e2;"><span style="color:{{ ev.agentColor }}; font-weight:600;">{{ ev.agentName }}</span> {{ ev.verb }} <span style="color:#eaf6ff;">{{ ev.obj }}</span></span>
+                    <span style="font-family:'IBM Plex Mono'; font-size:9px; color:#5b6b82;">{{ ev.time }} ago</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:16px;">
+            <div>
+              <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;"><span style="width:6px; height:14px; background:#ffb020; box-shadow:0 0 10px #ffb020;"></span><span style="font-family:'Chakra Petch'; font-weight:600; font-size:13px; letter-spacing:.18em; color:#eaf6ff;">APPROVALS</span></div>
+              <div style="display:flex; flex-direction:column; gap:10px;">
+                <sc-for list="{{ approvals }}" as="ap" hint-placeholder-count="3">
+                  <div style="padding:12px 13px; background:linear-gradient(180deg,#120e0a,#0c0a08); border:1px solid rgba(255,176,32,.22); border-left:3px solid {{ ap.priC }}; clip-path:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,0 100%);">
+                    <div style="display:flex; gap:9px; align-items:center; margin-bottom:7px;">
+                      <span style="width:24px; height:24px; border-radius:50%; background:{{ ap.requesterColor }}; color:#05070d; font-family:'Chakra Petch'; font-weight:700; font-size:11px; display:flex; align-items:center; justify-content:center;">{{ ap.requesterInit }}</span>
+                      <span style="flex:1; min-width:0;"><div style="font-size:12px; font-weight:600; color:#eaf6ff;">{{ ap.requesterName }}</div><div style="font-size:9.5px; color:#8a98ad;">{{ ap.requesterRole }}</div></span>
+                      <span style="font-family:'IBM Plex Mono'; font-size:9px; color:{{ ap.priC }}; border:1px solid {{ ap.priC }}; padding:1px 5px;">{{ ap.priLabel }}</span>
+                    </div>
+                    <div style="font-size:12px; color:#eaf6ff; margin-bottom:3px;">{{ ap.request }}</div>
+                    <div style="font-size:11px; color:#8a98ad; line-height:1.35; margin-bottom:10px;">{{ ap.reason }}</div>
+                    <sc-if value="{{ ap.resolved }}" hint-placeholder-val="{{ false }}">
+                      <div style="font-family:'IBM Plex Mono'; font-size:10px; letter-spacing:.1em; text-transform:uppercase; padding:6px 0; color:{{ ap.approved ? '#2fe08a' : '#ff4d5e' }}; border-top:1px solid rgba(120,140,170,.12);">{{ ap.state }} ✓</div>
+                    </sc-if>
+                    <sc-if value="{{ ap.notResolved }}" hint-placeholder-val="{{ true }}">
+                    <div style="display:flex; gap:7px;">
+                      <button data-id="{{ ap.taskId }}" onClick="{{ deny }}" style="appearance:none; cursor:pointer; flex:1; padding:6px 0; background:rgba(255,77,94,.1); border:1px solid rgba(255,77,94,.4); color:#ff6b78; font-family:'IBM Plex Mono'; font-size:10px; letter-spacing:.08em; text-transform:uppercase;" style-hover="background:rgba(255,77,94,.2);">Deny</button>
+                      <button data-id="{{ ap.taskId }}" onClick="{{ approve }}" style="appearance:none; cursor:pointer; flex:1; padding:6px 0; background:rgba(47,224,138,.12); border:1px solid rgba(47,224,138,.45); color:#2fe08a; font-family:'IBM Plex Mono'; font-size:10px; letter-spacing:.08em; text-transform:uppercase;" style-hover="background:rgba(47,224,138,.24);">Approve</button>
+                    </div></sc-if>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+            <div>
+              <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;"><span style="width:6px; height:14px; background:#9b7bff; box-shadow:0 0 10px #9b7bff;"></span><span style="font-family:'Chakra Petch'; font-weight:600; font-size:13px; letter-spacing:.18em; color:#eaf6ff;">AGENTS ONLINE</span></div>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                <sc-for list="{{ onlineAgents }}" as="a" hint-placeholder-count="10">
+                  <div data-id="{{ a.id }}" onClick="{{ openAgent }}" style="cursor:pointer; display:flex; gap:8px; align-items:center; padding:8px 9px; background:rgba(11,16,25,.7); border:1px solid rgba(120,140,170,.12); transition:.15s;" style-hover="border-color:{{ a.color }};">
+                    <span style="position:relative; width:26px; height:26px; border-radius:50%; background:{{ a.color }}; color:#05070d; font-family:'Chakra Petch'; font-weight:700; font-size:11px; display:flex; align-items:center; justify-content:center;">{{ a.init }}<sc-if value="{{ a.working }}" hint-placeholder-val="{{ false }}"><span style="position:absolute; bottom:-1px; right:-1px; width:9px; height:9px; border-radius:50%; background:#18e0ff; border:2px solid #0b1019; animation:acPulse 1.6s infinite;"></span></sc-if></span>
+                    <span style="flex:1; min-width:0;"><div style="font-size:12px; font-weight:600; color:#eaf6ff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ a.name }}</div><div style="font-size:9px; color:#8a98ad; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ a.role }}</div></span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ===== BOARD ===== -->
+      <sc-if value="{{ isBoard }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px;">
+          <span style="font-family:'IBM Plex Mono'; font-size:10px; letter-spacing:.14em; color:#6b7a90; text-transform:uppercase;">VIEW</span>
+          <div style="display:flex; border:1px solid rgba(120,140,170,.2);">
+            <button data-mode="kanban" onClick="{{ setBoardMode }}" style="appearance:none; cursor:pointer; padding:5px 14px; font-family:'IBM Plex Mono'; font-size:10px; letter-spacing:.08em; text-transform:uppercase; background:{{ isKanban ? 'rgba(24,224,255,.16)' : 'transparent' }}; border:0; border-right:1px solid rgba(120,140,170,.2); color:{{ isKanban ? '#18e0ff' : '#8a98ad' }};">▦ Kanban</button>
+            <button data-mode="table" onClick="{{ setBoardMode }}" style="appearance:none; cursor:pointer; padding:5px 14px; font-family:'IBM Plex Mono'; font-size:10px; letter-spacing:.08em; text-transform:uppercase; background:{{ isTable ? 'rgba(24,224,255,.16)' : 'transparent' }}; border:0; color:{{ isTable ? '#18e0ff' : '#8a98ad' }};">≣ Table</button>
+          </div>
+        </div>
+        <sc-if value="{{ isKanban }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex; gap:12px; height:calc(100% - 44px); overflow-x:auto; padding-bottom:8px;">
+          <sc-for list="{{ cols }}" as="col" hint-placeholder-count="5">
+            <div style="flex:0 0 270px; display:flex; flex-direction:column; min-width:0;">
+              <div style="display:flex; align-items:center; gap:8px; padding:8px 10px; border-top:2px solid {{ col.color }}; background:rgba(11,16,25,.7); margin-bottom:10px;">
+                <span style="font-family:'Chakra Petch'; font-weight:600; font-size:11px; letter-spacing:.12em; color:{{ col.color }};">{{ col.label }}</span>
+                <span style="margin-left:auto; font-family:'IBM Plex Mono'; font-size:11px; color:#6b7a90;">{{ col.count }}</span>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:9px; overflow-y:auto;">
+                <sc-for list="{{ col.tasks }}" as="t" hint-placeholder-count="3">
+                  <div data-id="{{ t.id }}" onClick="{{ openTask }}" style="cursor:pointer; padding:11px 12px; background:linear-gradient(180deg,#0b1019,#080b12); border:1px solid rgba(120,140,170,.13); border-left:3px solid {{ t.projColor }}; clip-path:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,0 100%); transition:.15s;" style-hover="border-color:rgba(24,224,255,.45);">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                      <span style="font-family:'IBM Plex Mono'; font-size:8.5px; letter-spacing:.06em; color:{{ t.projColor }}; text-transform:uppercase;">{{ t.projName }}</span>
+                      <span style="font-family:'IBM Plex Mono'; font-size:8.5px; font-weight:600; color:{{ t.priC }}; border:1px solid {{ t.priC }}; padding:0 4px;">{{ t.priLabel }}</span>
+                    </div>
+                    <div style="font-size:12.5px; color:#eaf6ff; line-height:1.3; margin-bottom:9px;">{{ t.title }}</div>
+                    <sc-if value="{{ t.isProg }}" hint-placeholder-val="{{ false }}">
+                      <div style="height:3px; background:rgba(120,140,170,.14); margin-bottom:9px;"><div style="height:100%; width:{{ t.pctStr }}; background:{{ t.projColor }}; box-shadow:0 0 6px {{ t.projColor }};"></div></div>
+                    </sc-if>
+                    <div style="display:flex; gap:5px; align-items:center;">
+                      <span style="width:17px; height:17px; border-radius:50%; background:{{ t.assigneeColor }}; color:#05070d; font-family:'Chakra Petch'; font-weight:700; font-size:8.5px; display:flex; align-items:center; justify-content:center;">{{ t.assigneeInit }}</span>
+                      <sc-for list="{{ t.tags }}" as="tg" hint-placeholder-count="2"><span style="font-family:'IBM Plex Mono'; font-size:8.5px; color:#6b7a90; border:1px solid rgba(120,140,170,.18); padding:0 4px;">{{ tg }}</span></sc-for>
+                      <sc-if value="{{ t.hasApproval }}" hint-placeholder-val="{{ false }}"><span style="margin-left:auto; font-family:'IBM Plex Mono'; font-size:8.5px; color:#ffb020; border:1px solid #ffb020; padding:0 4px;">◔ APR</span></sc-if>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+        </sc-if>
+        <sc-if value="{{ isTable }}" hint-placeholder-val="{{ false }}">
+          <div style="border:1px solid rgba(120,140,170,.13); background:linear-gradient(180deg,#0b1019,#080b12); clip-path:polygon(0 0,calc(100% - 16px) 0,100% 16px,100% 100%,0 100%); overflow-x:auto;">
+            <div style="display:grid; grid-template-columns:38px minmax(220px,1fr) 130px 70px 150px 130px; gap:10px; min-width:720px; padding:10px 16px; border-bottom:1px solid rgba(24,224,255,.14); font-family:'IBM Plex Mono'; font-size:9px; letter-spacing:.12em; color:#6b7a90; text-transform:uppercase;">
+              <span></span><span>Task</span><span>Project</span><span>Pri</span><span>Status</span><span>Assignee</span>
+            </div>
+            <sc-for list="{{ boardRows }}" as="t" hint-placeholder-count="10">
+              <div data-id="{{ t.id }}" onClick="{{ openTask }}" style="cursor:pointer; display:grid; grid-template-columns:38px minmax(220px,1fr) 130px 70px 150px 130px; gap:10px; min-width:720px; align-items:center; padding:11px 16px; border-bottom:1px solid rgba(120,140,170,.07);" style-hover="background:rgba(24,224,255,.04);">
+                <span style="width:10px; height:10px; border-radius:50%; background:{{ t.statusColor }}; box-shadow:0 0 8px {{ t.statusColor }};"></span>
+                <span style="display:flex; align-items:center; gap:8px; min-width:0;"><span style="font-size:13px; color:#eaf6ff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ t.title }}</span><sc-if value="{{ t.waitingApproval }}" hint-placeholder-val="{{ false }}"><span style="flex:0 0 auto; font-family:'IBM Plex Mono'; font-size:8px; color:#0a0a0a; background:#ff4d5e; padding:1px 5px;">✕ YOU</span></sc-if></span>
+                <span style="font-family:'IBM Plex Mono'; font-size:10px; color:{{ t.projColor }}; text-transform:uppercase; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ t.projName }}</span>
+                <span style="font-family:'IBM Plex Mono'; font-size:10px; font-weight:600; color:{{ t.priC }};">{{ t.priLabel }}</span>
+                <span style="font-family:'IBM Plex Mono'; font-size:10px; color:{{ t.statusColor }};">{{ t.statusLabel }}</span>
+                <span style="display:flex; align-items:center; gap:7px;"><span style="width:18px; height:18px; border-radius:50%; background:{{ t.assigneeColor }}; color:#05070d; font-family:'Chakra Petch'; font-weight:700; font-size:9px; display:flex; align-items:center; justify-content:center;">{{ t.assigneeInit }}</span><span style="font-size:11px; color:#9fb3c8;">{{ t.assigneeName }}</span></span>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+      </sc-if>
+
+      <!-- ===== AGENTS ===== -->
+      <sc-if value="{{ isAgents }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
+          <span style="font-family:'IBM Plex Mono'; font-size:10px; letter-spacing:.14em; color:#6b7a90; text-transform:uppercase;">VIEW</span>
+          <div style="display:flex; border:1px solid rgba(120,140,170,.2);">
+            <button data-mode="grid" onClick="{{ setAgentsMode }}" style="appearance:none; cursor:pointer; padding:5px 14px; font-family:'IBM Plex Mono'; font-size:10px; letter-spacing:.08em; text-transform:uppercase; background:{{ isGridMode ? 'rgba(24,224,255,.16)' : 'transparent' }}; border:0; border-right:1px solid rgba(120,140,170,.2); color:{{ isGridMode ? '#18e0ff' : '#8a98ad' }};">◉ Roster</button>
+            <button data-mode="tree" onClick="{{ setAgentsMode }}" style="appearance:none; cursor:pointer; padding:5px 14px; font-family:'IBM Plex Mono'; font-size:10px; letter-spacing:.08em; text-transform:uppercase; background:{{ isTreeMode ? 'rgba(24,224,255,.16)' : 'transparent' }}; border:0; color:{{ isTreeMode ? '#18e0ff' : '#8a98ad' }};">⌬ Org chart</button>
+          </div>
+        </div>
+        <sc-if value="{{ isGridMode }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex; flex-direction:column; gap:20px;">
+          <sc-for list="{{ teamsGrouped }}" as="tm" hint-placeholder-count="4">
+            <div>
+              <div style="display:flex; align-items:center; gap:8px; margin-bottom:11px;"><span style="width:6px; height:14px; background:{{ tm.color }}; box-shadow:0 0 10px {{ tm.color }};"></span><span style="font-family:'Chakra Petch'; font-weight:600; font-size:13px; letter-spacing:.16em; color:#eaf6ff;">{{ tm.name }}</span></div>
+              <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:11px;">
+                <sc-for list="{{ tm.agents }}" as="a" hint-placeholder-count="5">
+                  <div data-id="{{ a.id }}" onClick="{{ openAgent }}" style="cursor:pointer; padding:13px; background:linear-gradient(180deg,#0b1019,#080b12); border:1px solid rgba(120,140,170,.13); clip-path:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,0 100%); transition:.15s;" style-hover="border-color:{{ a.color }};">
+                    <div style="display:flex; gap:10px; align-items:center; margin-bottom:9px;">
+                      <span style="position:relative; width:34px; height:34px; border-radius:50%; background:{{ a.color }}; color:#05070d; font-family:'Chakra Petch'; font-weight:700; font-size:14px; display:flex; align-items:center; justify-content:center;">{{ a.init }}</span>
+                      <span style="flex:1; min-width:0;"><div style="font-size:14px; font-weight:600; color:#eaf6ff;">{{ a.name }}</div><div style="font-size:10px; color:#8a98ad;">{{ a.role }}</div></span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; font-family:'IBM Plex Mono'; font-size:9px; letter-spacing:.08em; text-transform:uppercase; color:#6b7a90;">
+                      <span style="color:{{ a.statusC }}">● {{ a.statusLabel }}</span>
+                      <span data-id="{{ a.id }}" onClick="{{ openCall }}" style="cursor:pointer; color:#2fe08a; border:1px solid rgba(47,224,138,.4); padding:1px 6px;" style-hover="background:rgba(47,224,138,.14);">◷ CALL</span>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+        </sc-if>
+        <sc-if value="{{ isTreeMode }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; flex-direction:column; align-items:center; padding:10px 0 30px; overflow-x:auto;">
+            <div onClick="{{ closeOverlay }}" style="display:flex; flex-direction:column; align-items:center; gap:7px; padding:14px 26px; background:linear-gradient(180deg,#1a1206,#0c0a07); border:1px solid rgba(255,176,32,.45); box-shadow:0 0 26px rgba(255,176,32,.18); clip-path:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,0 100%);">
+              <span style="width:46px; height:46px; border-radius:50%; background:{{ org.you.color }}; color:#05070d; font-family:'Chakra Petch'; font-weight:700; font-size:19px; display:flex; align-items:center; justify-content:center;">{{ org.you.init }}</span>
+              <span style="font-family:'Chakra Petch'; font-weight:700; font-size:16px; color:#eaf6ff;">{{ org.you.name }}</span>
+              <span style="font-family:'IBM Plex Mono'; font-size:9px; letter-spacing:.1em; color:#ffb020; text-transform:uppercase;">{{ org.you.role }}</span>
+            </div>
+            <div style="width:1px; height:26px; background:rgba(120,140,170,.3);"></div>
+            <div style="display:flex; gap:22px; align-items:flex-start; flex-wrap:nowrap;">
+              <sc-for list="{{ org.leads }}" as="l" hint-placeholder-count="4">
+                <div style="display:flex; flex-direction:column; align-items:center;">
+                  <div style="font-family:'IBM Plex Mono'; font-size:8.5px; letter-spacing:.12em; color:{{ l.lead.color }}; text-transform:uppercase; margin-bottom:9px;">{{ l.team }}</div>
+                  <div data-id="{{ l.lead.id }}" onClick="{{ openAgent }}" style="cursor:pointer; display:flex; gap:9px; align-items:center; padding:9px 13px; min-width:178px; background:linear-gradient(180deg,#0b1019,#080b12); border:1px solid {{ l.lead.color }}66; clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,0 100%);" style-hover="border-color:{{ l.lead.color }};">
+                    <span style="position:relative; width:30px; height:30px; border-radius:50%; background:{{ l.lead.color }}; color:#05070d; font-family:'Chakra Petch'; font-weight:700; font-size:13px; display:flex; align-items:center; justify-content:center;">{{ l.lead.init }}<span style="position:absolute; bottom:-1px; right:-1px; width:9px; height:9px; border-radius:50%; background:{{ l.lead.statusC }}; border:2px solid #0b1019;"></span></span>
+                    <span style="flex:1; min-width:0;"><div style="font-size:13px; font-weight:600; color:#eaf6ff;">{{ l.lead.name }}</div><div style="font-size:9.5px; color:#8a98ad;">{{ l.lead.role }}</div></span>
+                  </div>
+                  <div style="width:1px; height:18px; background:rgba(120,140,170,.25);"></div>
+                  <div style="display:flex; flex-direction:column; gap:7px; padding-left:14px; border-left:1px solid rgba(120,140,170,.18);">
+                    <sc-for list="{{ l.reports }}" as="r" hint-placeholder-count="4">
+                      <div data-id="{{ r.id }}" onClick="{{ openAgent }}" style="cursor:pointer; display:flex; gap:8px; align-items:center; padding:6px 11px 6px 9px; min-width:158px; background:rgba(11,16,25,.6); border:1px solid rgba(120,140,170,.13);" style-hover="border-color:{{ r.color }};">
+                        <span style="position:relative; width:24px; height:24px; border-radius:50%; background:{{ r.color }}; color:#05070d; font-family:'Chakra Petch'; font-weight:700; font-size:10px; display:flex; align-items:center; justify-content:center;">{{ r.init }}<span style="position:absolute; bottom:-1px; right:-1px; width:7px; height:7px; border-radius:50%; background:{{ r.statusC }}; border:1.5px solid #0b1019;"></span></span>
+                        <span style="flex:1; min-width:0;"><div style="font-size:12px; color:#eaf6ff;">{{ r.name }}</div><div style="font-size:9px; color:#8a98ad;">{{ r.role }}</div></span>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+      </sc-if>
+
+      <!-- ===== ACTIVITY ===== -->
+      <sc-if value="{{ isActivity }}" hint-placeholder-val="{{ false }}">
+        <div style="max-width:880px;">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:14px;"><span style="width:6px; height:14px; background:#2fe08a; box-shadow:0 0 10px #2fe08a;"></span><span style="font-family:'Chakra Petch'; font-weight:600; font-size:13px; letter-spacing:.18em; color:#eaf6ff;">ACTIVITY LOG</span><span style="font-family:'IBM Plex Mono'; font-size:10px; color:#6b7a90; margin-left:6px;">live · last hour</span></div>
+          <div style="position:relative; padding-left:8px;">
+            <sc-for list="{{ activity }}" as="ev" hint-placeholder-count="10">
+              <div data-id="{{ ev.task }}" onClick="{{ openTask }}" style="cursor:pointer; position:relative; display:grid; grid-template-columns:62px 30px 1fr; gap:14px; align-items:flex-start; padding:13px 16px 13px 0; border-bottom:1px solid rgba(120,140,170,.07);" style-hover="background:rgba(24,224,255,.04);">
+                <span style="font-family:'IBM Plex Mono'; font-size:10px; color:#5b6b82; padding-top:8px; text-align:right;">{{ ev.time }} ago</span>
+                <span style="position:relative; width:30px; height:30px; border-radius:50%; background:{{ ev.agentColor }}; color:#05070d; font-family:'Chakra Petch'; font-weight:700; font-size:12px; display:flex; align-items:center; justify-content:center;">{{ ev.agentInit }}</span>
+                <span style="min-width:0;">
+                  <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                    <span style="font-family:'IBM Plex Mono'; font-size:8px; font-weight:600; letter-spacing:.1em; color:{{ ev.typeC }}; border:1px solid {{ ev.typeC }}; padding:1px 5px;">{{ ev.type }}</span>
+                    <span style="font-size:14px; color:#c2d2e2;"><span style="color:{{ ev.agentColor }}; font-weight:600;">{{ ev.agentName }}</span> {{ ev.verb }} <span style="color:#eaf6ff;">{{ ev.obj }}</span></span>
+                  </div>
+                  <div style="font-size:12px; color:#8a98ad; margin-top:4px;">{{ ev.detail }}</div>
+                </span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ===== MESSAGES (AI SLACK) ===== -->
+      <sc-if value="{{ isMessages }}" hint-placeholder-val="{{ false }}">
+        <div style="display:grid; grid-template-columns:248px 1fr; gap:0; height:calc(100vh - 98px); border:1px solid rgba(24,224,255,.16); background:linear-gradient(180deg,#0a0e16,#070a10); clip-path:polygon(0 0,calc(100% - 16px) 0,100% 16px,100% 100%,0 100%);">
+          <div style="display:flex; flex-direction:column; border-right:1px solid rgba(24,224,255,.12); min-height:0;">
+            <div style="padding:13px 14px 0;"><div style="font-family:'Chakra Petch'; font-weight:700; font-size:15px; letter-spacing:.06em; color:#eaf6ff;">AI <span style="color:#ff8a3d;">SLACK</span></div></div>
+            <div style="display:flex; gap:0; padding:10px 14px 0;">
+              <button data-tab="agents" onClick="{{ setSlackTab }}" style="appearance:none; cursor:pointer; flex:1; padding:7px 0; font-family:'IBM Plex Mono'; font-size:10px; letter-spacing:.1em; text-transform:uppercase; background:transparent; border:0; border-bottom:2px solid {{ isSlackAgents ? '#18e0ff' : 'transparent' }}; color:{{ isSlackAgents ? '#18e0ff' : '#6b7a90' }};">Agents</button>
+              <button data-tab="groups" onClick="{{ setSlackTab }}" style="appearance:none; cursor:pointer; flex:1; padding:7px 0; font-family:'IBM Plex Mono'; font-size:10px; letter-spacing:.1em; text-transform:uppercase; background:transparent; border:0; border-bottom:2px solid {{ isSlackGroups ? '#18e0ff' : 'transparent' }}; color:{{ isSlackGroups ? '#18e0ff' : '#6b7a90' }};">Groups</button>
+            </div>
+            <div style="flex:1; overflow-y:auto; padding:10px 8px;">
+              <sc-if value="{{ isSlackAgents }}" hint-placeholder-val="{{ true }}">
+                <sc-for list="{{ slackAgentTeams }}" as="tm" hint-placeholder-count="4">
+                  <div style="font-family:'IBM Plex Mono'; font-size:9px; letter-spacing:.12em; color:{{ tm.color }}; text-transform:uppercase; padding:9px 8px 5px;">{{ tm.name }} · {{ tm.count }}</div>
+                  <sc-for list="{{ tm.agents }}" as="a" hint-placeholder-count="4">
+                    <button data-conv="{{ a.conv }}" onClick="{{ openConv }}" style="appearance:none; cursor:pointer; width:100%; text-align:left; display:flex; gap:9px; align-items:center; padding:7px 8px; background:{{ a.active ? 'rgba(24,224,255,.1)' : 'transparent' }}; border:0; border-left:2px solid {{ a.active ? '#18e0ff' : 'transparent' }};" style-hover="background:rgba(120,140,170,.06);">
+                      <span style="position:relative; width:28px; height:28px; border-radius:50%; background:{{ a.color }}; color:#05070d; font-family:'Chakra Petch'; font-weight:700; font-size:11px; display:flex; align-items:center; justify-content:center;">{{ a.init }}<span style="position:absolute; bottom:-1px; right:-1px; width:8px; height:8px; border-radius:50%; background:{{ a.statusC }}; border:2px solid #0a0e16;"></span></span>
+                      <span style="flex:1; min-width:0;"><div style="font-size:12.5px; font-weight:500; color:#eaf6ff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ a.name }}</div><div style="font-size:9.5px; color:#8a98ad; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ a.role }}</div></span>
+                    </button>
+                  </sc-for>
+                </sc-for>
+              </sc-if>
+              <sc-if value="{{ isSlackGroups }}" hint-placeholder-val="{{ false }}">
+                <sc-for list="{{ slackGroups }}" as="g" hint-placeholder-count="5">
+                  <button data-conv="{{ g.conv }}" onClick="{{ openConv }}" style="appearance:none; cursor:pointer; width:100%; text-align:left; display:flex; gap:10px; align-items:center; padding:9px 9px; background:{{ g.active ? 'rgba(24,224,255,.1)' : 'transparent' }}; border:0; border-left:2px solid {{ g.active ? '#9b7bff' : 'transparent' }};" style-hover="background:rgba(120,140,170,.06);">
+                    <span style="flex:0 0 30px; width:30px; height:30px; border:1px solid rgba(155,123,255,.4); color:#9b7bff; font-family:'Chakra Petch'; font-weight:700; font-size:14px; display:flex; align-items:center; justify-content:center;">#</span>
+                    <span style="flex:1; min-width:0;"><div style="font-size:12.5px; font-weight:500; color:#eaf6ff;">{{ g.name }}</div><div style="font-size:9.5px; color:#8a98ad; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ g.last }}</div></span>
+                  </button>
+                </sc-for>
+              </sc-if>
+            </div>
+          </div>
+          <div style="display:flex; flex-direction:column; min-height:0; min-width:0;">
+            <div style="display:flex; align-items:center; gap:11px; padding:13px 18px; border-bottom:1px solid rgba(24,224,255,.12);">
+              <span style="width:34px; height:34px; border-radius:50%; background:{{ convColor }}; color:#05070d; font-family:'Chakra Petch'; font-weight:700; font-size:14px; display:flex; align-items:center; justify-content:center;">{{ convInit }}</span>
+              <span style="flex:1; min-width:0;"><div style="font-family:'Chakra Petch'; font-weight:600; font-size:16px; color:#eaf6ff;">{{ convHeader }}</div><div style="font-size:11px; color:#8a98ad;">{{ convSub }}</div></span>
+              <button data-id="{{ convInit }}" onClick="{{ openCall }}" data-conv="{{ convHeader }}" style="appearance:none; cursor:pointer; display:flex; align-items:center; gap:6px; padding:7px 13px; background:rgba(47,224,138,.12); border:1px solid rgba(47,224,138,.45); color:#2fe08a; font-family:'IBM Plex Mono'; font-size:10px; letter-spacing:.06em; text-transform:uppercase;" style-hover="background:rgba(47,224,138,.22);">◷ Call</button>
+            </div>
+            <div style="flex:1; overflow-y:auto; padding:18px; display:flex; flex-direction:column; gap:15px;">
+              <sc-for list="{{ convMsgs }}" as="m" hint-placeholder-count="5">
+                <div style="display:flex; gap:10px; animation:acRise .3s ease;">
+                  <span style="flex:0 0 32px; width:32px; height:32px; border-radius:50%; background:{{ m.fromColor }}; color:#05070d; font-family:'Chakra Petch'; font-weight:700; font-size:13px; display:flex; align-items:center; justify-content:center;">{{ m.fromInit }}</span>
+                  <div style="flex:1; min-width:0;">
+                    <div style="display:flex; align-items:baseline; gap:8px; margin-bottom:3px;"><span style="font-size:13px; font-weight:600; color:{{ m.fromColor }};">{{ m.fromName }}</span><span style="font-family:'IBM Plex Mono'; font-size:9px; color:#5b6b82;">{{ m.time }}</span></div>
+                    <div style="font-size:13.5px; line-height:1.5; color:#c2d2e2;">
+                      <sc-if value="{{ m.mentionsMe }}" hint-placeholder-val="{{ false }}"><span style="display:inline-block; padding:1px 6px; margin-right:4px; background:rgba(255,176,32,.16); color:#ffb020; border:1px solid rgba(255,176,32,.4); font-family:'IBM Plex Mono'; font-size:11px;">@Amir</span></sc-if>
+                      {{ m.text }}
+                    </div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="padding:14px 18px; border-top:1px solid rgba(24,224,255,.12);">
+              <div style="display:flex; align-items:center; gap:8px; padding:11px 14px; background:rgba(11,16,25,.8); border:1px solid rgba(120,140,170,.18);">
+                <span style="font-size:13px; color:#9fb3c8;">Message {{ convHeader }}</span>
+                <span style="margin-left:auto; font-family:'IBM Plex Mono'; font-size:9px; color:#5b6b82;">@ to mention</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ===== GALAXY ===== -->
+      <sc-if value="{{ isGalaxy }}" hint-placeholder-val="{{ false }}">
+        <div style="position:relative; height:calc(100vh - 98px); border:1px solid rgba(24,224,255,.18); overflow:hidden; clip-path:polygon(0 0,calc(100% - 18px) 0,100% 18px,100% 100%,0 100%); background:radial-gradient(ellipse at 50% 45%, #0a1322 0%, #05070d 75%);">
+          <x-import component-from-global-scope="galaxy-scene" from="./galaxy-scene.js" data="{{ galaxyDataJson }}" hint-size="100%,100%"></x-import>
+        </div>
+      </sc-if>
+
+      <!-- ===== TASK BOARD (TODO) ===== -->
+      <sc-if value="{{ isPlaceholder }}" hint-placeholder-val="{{ false }}">
+        <iframe src="/proxy/todo.html" style="width:100%;height:calc(100vh - 98px);border:0;background:#05070d;"></iframe>
+      </sc-if>
+
+    </div>
+  </div>
+
+  <!-- ============ CHAT SIDEBAR ============ -->
+  <sc-if value="{{ feedOpen }}" hint-placeholder-val="{{ true }}">
+  <div style="grid-column:3; display:flex; flex-direction:column; border-left:1px solid rgba(24,224,255,.12); background:linear-gradient(180deg,#0a0e16,#070a10); min-width:0; z-index:15;">
+    <div style="height:62px; flex:0 0 62px; display:flex; align-items:center; gap:10px; padding:0 16px; border-bottom:1px solid rgba(24,224,255,.12);">
+      <span style="width:9px; height:9px; border-radius:50%; background:#2fe08a; box-shadow:0 0 8px #2fe08a;"></span>
+      <div style="flex:1;"><div style="font-family:'Chakra Petch'; font-weight:700; font-size:13px; letter-spacing:.1em; color:#eaf6ff;">LIVE FEED</div><div style="font-family:'IBM Plex Mono'; font-size:9px; color:#2fe08a; letter-spacing:.1em;">16 ONLINE · #command</div></div>
+      <button onClick="{{ toggleChat }}" title="Collapse" style="appearance:none; cursor:pointer; width:28px; height:28px; background:transparent; border:1px solid rgba(120,140,170,.25); color:#9fb3c8; font-size:14px;" style-hover="border-color:#18e0ff; color:#18e0ff;">⟩</button>
+    </div>
+    <div style="flex:0 0 auto; display:flex; gap:6px; padding:10px 12px; flex-wrap:wrap; border-bottom:1px solid rgba(120,140,170,.1);">
+      <sc-for list="{{ channels }}" as="c" hint-placeholder-count="5">
+        <button data-chan="{{ c.id }}" onClick="{{ selectChannel }}" style="appearance:none; cursor:pointer; display:flex; align-items:center; gap:5px; padding:4px 9px; font-family:'IBM Plex Mono'; font-size:10px; letter-spacing:.04em; background:{{ c.active ? 'rgba(24,224,255,.14)' : 'transparent' }}; border:1px solid {{ c.active ? '#18e0ff' : 'rgba(120,140,170,.18)' }}; color:{{ c.active ? '#18e0ff' : '#8a98ad' }};">{{ c.label }}<sc-if value="{{ c.hasUnread }}" hint-placeholder-val="{{ false }}"><span style="min-width:14px; height:14px; padding:0 3px; background:#ff4d5e; color:#fff; font-size:8px; border-radius:7px; display:flex; align-items:center; justify-content:center;">{{ c.unread }}</span></sc-if></button>
+      </sc-for>
+    </div>
+    <div style="flex:1; overflow-y:auto; padding:14px; display:flex; flex-direction:column; gap:14px;">
+      <sc-for list="{{ activeMessages }}" as="m" hint-placeholder-count="5">
+        <div style="display:flex; gap:9px; animation:acRise .3s ease;">
+          <span style="flex:0 0 30px; width:30px; height:30px; border-radius:50%; background:{{ m.agentColor }}; color:#05070d; font-family:'Chakra Petch'; font-weight:700; font-size:12px; display:flex; align-items:center; justify-content:center;">{{ m.agentInit }}</span>
+          <div style="flex:1; min-width:0;">
+            <div style="display:flex; align-items:baseline; gap:6px; margin-bottom:3px;"><span style="font-size:12px; font-weight:600; color:{{ m.agentColor }};">{{ m.agentName }}</span><span style="font-family:'IBM Plex Mono'; font-size:8.5px; color:#5b6b82;">{{ m.agentRole }}</span><span style="font-family:'IBM Plex Mono'; font-size:8.5px; color:#475264; margin-left:auto;">{{ m.time }}</span></div>
+            <sc-if value="{{ m.isMention }}" hint-placeholder-val="{{ false }}"></sc-if>
+            <div style="font-size:12.5px; line-height:1.45; color:#c2d2e2; padding:{{ m.isApproval ? '0' : '0' }};">
+              <sc-if value="{{ m.isApproval }}" hint-placeholder-val="{{ false }}"><span style="display:inline-block; font-family:'IBM Plex Mono'; font-size:9px; color:#ffb020; border:1px solid #ffb020; padding:0 5px; margin-bottom:5px;">◔ @you · approval</span></sc-if>
+              <div>{{ m.text }}</div>
+            </div>
+            <sc-if value="{{ m.isStatus }}" hint-placeholder-val="{{ false }}">
+              <div style="margin-top:7px; height:4px; background:rgba(120,140,170,.14);"><div style="height:100%; width:{{ m.barW }}; background:linear-gradient(90deg,#18e0ff,#2fe08a); box-shadow:0 0 7px #18e0ff;"></div></div>
+            </sc-if>
+            <sc-if value="{{ m.isApproval }}" hint-placeholder-val="{{ false }}">
+              <div style="margin-top:8px;">
+                <sc-if value="{{ m.resolved }}" hint-placeholder-val="{{ false }}"><div style="font-family:'IBM Plex Mono'; font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:{{ m.approved ? '#2fe08a' : '#ff4d5e' }};">{{ m.state }} ✓</div></sc-if>
+                <sc-if value="{{ m.notResolved }}" hint-placeholder-val="{{ true }}">
+                <div style="display:flex; gap:6px;">
+                  <button data-id="{{ m.task }}" onClick="{{ deny }}" style="appearance:none; cursor:pointer; padding:5px 12px; background:rgba(255,77,94,.1); border:1px solid rgba(255,77,94,.4); color:#ff6b78; font-family:'IBM Plex Mono'; font-size:10px; text-transform:uppercase;">Deny</button>
+                  <button data-id="{{ m.task }}" onClick="{{ approve }}" style="appearance:none; cursor:pointer; padding:5px 12px; background:rgba(47,224,138,.12); border:1px solid rgba(47,224,138,.45); color:#2fe08a; font-family:'IBM Plex Mono'; font-size:10px; text-transform:uppercase;">Approve</button>
+                </div></sc-if>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+      </sc-for>
+      <div style="display:flex; gap:9px; align-items:center; opacity:.85;">
+        <span style="width:30px; height:30px; border-radius:50%; background:{{ typerColor }}; color:#05070d; font-family:'Chakra Petch'; font-weight:700; font-size:12px; display:flex; align-items:center; justify-content:center;">{{ typerInit }}</span>
+        <span style="font-size:11.5px; color:#8a98ad;"><span style="color:{{ typerColor }};">{{ typerName }}</span> is thinking<span style="animation:acDots 1.2s infinite;">.</span><span style="animation:acDots 1.2s .2s infinite;">.</span><span style="animation:acDots 1.2s .4s infinite;">.</span></span>
+      </div>
+    </div>
+    <div style="flex:0 0 auto; padding:12px; border-top:1px solid rgba(24,224,255,.12);">
+      <div style="display:flex; align-items:center; gap:8px; padding:9px 12px; background:rgba(11,16,25,.8); border:1px solid rgba(120,140,170,.18);">
+        <span style="font-size:13px; color:#9fb3c8;">Message {{ channelLabel }}</span>
+        <span style="margin-left:auto; font-family:'IBM Plex Mono'; font-size:9px; color:#5b6b82;">@ to redirect</span>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- reopen feed tab -->
+  <sc-if value="{{ feedCollapsed }}" hint-placeholder-val="{{ false }}">
+    <button onClick="{{ toggleChat }}" style="appearance:none; cursor:pointer; position:fixed; right:0; top:50%; transform:translateY(-50%); z-index:40; display:flex; flex-direction:column; align-items:center; gap:7px; padding:14px 9px; background:linear-gradient(180deg,#0c1320,#0a0f18); border:1px solid rgba(24,224,255,.35); border-right:0; color:#18e0ff; box-shadow:-6px 0 22px rgba(0,0,0,.4);" style-hover="background:rgba(24,224,255,.12);">
+      <span style="font-size:14px;">⟨</span>
+      <span style="writing-mode:vertical-rl; font-family:'IBM Plex Mono'; font-size:10px; letter-spacing:.16em; text-transform:uppercase;">Live Feed</span>
+      <sc-if value="{{ notifCount }}" hint-placeholder-val="{{ false }}"><span style="min-width:16px; height:16px; background:#ff4d5e; color:#fff; font-family:'IBM Plex Mono'; font-size:9px; border-radius:8px; display:flex; align-items:center; justify-content:center;">{{ notifCount }}</span></sc-if>
+    </button>
+  </sc-if>
+
+  <!-- ============ TASK OVERLAY ============ -->
+  <sc-if value="{{ taskOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeOverlay }}" style="position:fixed; inset:0; z-index:100; background:rgba(3,5,9,.78); backdrop-filter:blur(3px); display:flex; align-items:center; justify-content:center; padding:40px;">
+      <div onClick="{{ stop }}" style="width:720px; max-height:88vh; overflow-y:auto; background:linear-gradient(180deg,#0c1320,#080b12); border:1px solid rgba(24,224,255,.3); box-shadow:0 0 60px rgba(24,224,255,.15); clip-path:polygon(0 0,calc(100% - 22px) 0,100% 22px,100% 100%,0 100%);">
+        <div style="padding:20px 24px; border-bottom:1px solid rgba(24,224,255,.14);">
+          <div style="display:flex; align-items:center; gap:10px; margin-bottom:9px;">
+            <span style="font-family:'IBM Plex Mono'; font-size:10px; letter-spacing:.1em; color:{{ taskView.projColor }}; text-transform:uppercase;">{{ taskView.projName }}</span>
+            <span style="font-family:'IBM Plex Mono'; font-size:10px; color:{{ taskView.priC }}; border:1px solid {{ taskView.priC }}; padding:1px 6px;">{{ taskView.priLabel }}</span>
+            <span style="font-family:'IBM Plex Mono'; font-size:10px; color:{{ taskView.statusColor }}; border:1px solid {{ taskView.statusColor }}; padding:1px 6px;">{{ taskView.statusLabel }}</span>
+            <button onClick="{{ closeOverlay }}" style="appearance:none; cursor:pointer; margin-left:auto; width:28px; height:28px; background:transparent; border:1px solid rgba(120,140,170,.3); color:#9fb3c8; font-size:14px;">✕</button>
+          </div>
+          <div style="font-family:'Chakra Petch'; font-weight:600; font-size:21px; color:#eaf6ff; line-height:1.25;">{{ taskView.title }}</div>
+          <div style="display:flex; gap:16px; align-items:center; margin-top:11px;">
+            <span style="display:flex; align-items:center; gap:7px;"><span style="width:22px; height:22px; border-radius:50%; background:{{ taskView.assigneeColor }}; color:#05070d; font-family:'Chakra Petch'; font-weight:700; font-size:11px; display:flex; align-items:center; justify-content:center;">{{ taskView.assigneeInit }}</span><span style="font-size:13px; color:#c2d2e2;">{{ taskView.assigneeName }}</span></span>
+            <span style="font-family:'IBM Plex Mono'; font-size:11px; color:#6b7a90;">ETA {{ taskView.eta }}</span>
+            <span style="display:flex; gap:5px;"><sc-for list="{{ taskView.tags }}" as="tg" hint-placeholder-count="3"><span style="font-family:'IBM Plex Mono'; font-size:9px; color:#8a98ad; border:1px solid rgba(120,140,170,.2); padding:1px 5px;">{{ tg }}</span></sc-for></span>
+          </div>
+        </div>
+
+        <div style="padding:22px 24px;">
+          <div style="font-family:'IBM Plex Mono'; font-size:11px; letter-spacing:.16em; color:#18e0ff; text-transform:uppercase; margin-bottom:18px;">// PROGRESS TRAIN</div>
+          <div style="display:flex; flex-direction:column; gap:0;">
+            <sc-for list="{{ taskView.train }}" as="s" hint-placeholder-count="4">
+              <div style="display:flex; gap:14px;">
+                <div style="display:flex; flex-direction:column; align-items:center; flex:0 0 18px;">
+                  <span style="width:16px; height:16px; border-radius:50%; background:{{ s.done ? '#2fe08a' : 'transparent' }}; border:2px solid {{ s.dotC }}; box-shadow:{{ s.active ? '0 0 12px #18e0ff' : 'none' }}; animation:{{ s.active ? 'acPulse 1.6s infinite' : 'none' }};"></span>
+                  <span style="flex:1; width:2px; min-height:26px; background:{{ s.lineC }};"></span>
+                </div>
+                <div style="flex:1; padding-bottom:18px;">
+                  <div style="font-size:14px; font-weight:600; color:{{ s.queued ? '#6b7a90' : '#eaf6ff' }};">{{ s.label }}</div>
+                  <div style="font-size:12px; color:#8a98ad; margin-top:2px;">{{ s.detail }}</div>
+                  <sc-if value="{{ s.active }}" hint-placeholder-val="{{ false }}">
+                    <div style="margin-top:8px; height:5px; width:100%; background:rgba(120,140,170,.14);"><div style="height:100%; width:{{ s.barW }}; background:repeating-linear-gradient(90deg,#18e0ff 0 8px,#0fb0d8 8px 16px); background-size:28px 100%; animation:acFlow .8s linear infinite; box-shadow:0 0 8px #18e0ff;"></div></div>
+                  </sc-if>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+
+          <sc-if value="{{ taskView.hasApproval }}" hint-placeholder-val="{{ false }}">
+            <div style="margin-top:8px; padding:16px 18px; background:linear-gradient(180deg,#140f08,#0c0a07); border:1px solid rgba(255,176,32,.3); border-left:3px solid {{ taskView.approvalData.priC }}; clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,0 100%);">
+              <div style="font-family:'IBM Plex Mono'; font-size:10px; letter-spacing:.14em; color:#ffb020; text-transform:uppercase; margin-bottom:11px;">◔ APPROVAL REQUIRED</div>
+              <div style="display:flex; gap:11px; align-items:center; margin-bottom:9px;">
+                <span style="width:30px; height:30px; border-radius:50%; background:{{ taskView.approvalData.requesterColor }}; color:#05070d; font-family:'Chakra Petch'; font-weight:700; font-size:13px; display:flex; align-items:center; justify-content:center;">{{ taskView.approvalData.requesterInit }}</span>
+                <span style="flex:1;"><div style="font-size:14px; font-weight:600; color:#eaf6ff;">{{ taskView.approvalData.requesterName }}</div><div style="font-size:11px; color:#8a98ad;">{{ taskView.approvalData.requesterRole }} · {{ taskView.approvalData.age }}</div></span>
+              </div>
+              <div style="font-size:14px; color:#eaf6ff; margin-bottom:3px;">{{ taskView.approvalData.request }}</div>
+              <div style="font-size:12.5px; color:#9fb3c8; line-height:1.4; margin-bottom:13px;">{{ taskView.approvalData.reason }}</div>
+              <sc-if value="{{ taskView.approvalData.resolved }}" hint-placeholder-val="{{ false }}"><div style="font-family:'IBM Plex Mono'; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:{{ taskView.approvalData.approved ? '#2fe08a' : '#ff4d5e' }};">{{ taskView.approvalData.state }} ✓</div></sc-if>
+              <sc-if value="{{ taskView.approvalData.notResolved }}" hint-placeholder-val="{{ true }}">
+              <div style="display:flex; gap:9px;">
+                <button onClick="{{ closeOverlay }}" style="appearance:none; cursor:pointer; padding:8px 16px; background:transparent; border:1px solid rgba(120,140,170,.3); color:#9fb3c8; font-family:'IBM Plex Mono'; font-size:11px; text-transform:uppercase;">Comment</button>
+                <button data-id="{{ taskView.id }}" onClick="{{ deny }}" style="appearance:none; cursor:pointer; padding:8px 18px; background:rgba(255,77,94,.1); border:1px solid rgba(255,77,94,.4); color:#ff6b78; font-family:'IBM Plex Mono'; font-size:11px; text-transform:uppercase;">Deny</button>
+                <button data-id="{{ taskView.id }}" onClick="{{ approve }}" style="appearance:none; cursor:pointer; padding:8px 18px; background:rgba(47,224,138,.12); border:1px solid rgba(47,224,138,.45); color:#2fe08a; font-family:'IBM Plex Mono'; font-size:11px; text-transform:uppercase;">Approve</button>
+              </div></sc-if>
+            </div>
+          </sc-if>
+        </div>
+
+        <div style="padding:16px 24px; border-top:1px solid rgba(24,224,255,.14); display:flex; gap:11px;">
+          <button data-chan="{{ taskView.chan }}" onClick="{{ goToChat }}" style="appearance:none; cursor:pointer; padding:10px 20px; background:rgba(24,224,255,.14); border:1px solid #18e0ff; color:#18e0ff; font-family:'Chakra Petch'; font-weight:600; font-size:12px; letter-spacing:.1em; text-transform:uppercase; clip-path:polygon(0 0,calc(100% - 9px) 0,100% 9px,100% 100%,0 100%);" style-hover="background:rgba(24,224,255,.26);">→ Go to Chat</button>
+          <button data-id="{{ taskView.assignee }}" onClick="{{ openAgent }}" style="appearance:none; cursor:pointer; padding:10px 20px; background:transparent; border:1px solid rgba(120,140,170,.3); color:#c2d2e2; font-family:'Chakra Petch'; font-weight:600; font-size:12px; letter-spacing:.1em; text-transform:uppercase;">View Agent</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ============ AGENT OVERLAY ============ -->
+  <sc-if value="{{ agentOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeOverlay }}" style="position:fixed; inset:0; z-index:100; background:rgba(3,5,9,.78); backdrop-filter:blur(3px); display:flex; align-items:center; justify-content:center; padding:40px;">
+      <div onClick="{{ stop }}" style="width:760px; max-height:88vh; overflow:hidden; display:grid; grid-template-columns:280px 1fr; background:linear-gradient(180deg,#0c1320,#080b12); border:1px solid {{ agentView.ring }}; box-shadow:0 0 60px {{ agentView.ring }}33; clip-path:polygon(0 0,calc(100% - 22px) 0,100% 22px,100% 100%,0 100%);">
+        <div style="padding:24px; border-right:1px solid rgba(120,140,170,.12); display:flex; flex-direction:column;">
+          <div style="position:relative; width:74px; height:74px; border-radius:50%; background:{{ agentView.color }}; color:#05070d; font-family:'Chakra Petch'; font-weight:700; font-size:30px; display:flex; align-items:center; justify-content:center; margin-bottom:14px; box-shadow:0 0 26px {{ agentView.ring }}66;">{{ agentView.init }}</div>
+          <div style="font-family:'Chakra Petch'; font-weight:700; font-size:22px; color:#eaf6ff;">{{ agentView.name }}</div>
+          <div style="font-size:13px; color:#9fb3c8; margin-bottom:3px;">{{ agentView.role }}</div>
+          <div style="font-family:'IBM Plex Mono'; font-size:10px; letter-spacing:.1em; color:{{ agentView.color }}; text-transform:uppercase; margin-bottom:16px;">{{ agentView.teamName }}</div>
+          <div style="display:inline-flex; align-items:center; gap:7px; padding:6px 12px; background:rgba(11,16,25,.6); border:1px solid {{ agentView.statusC }}; align-self:flex-start; margin-bottom:18px;"><span style="width:8px; height:8px; border-radius:50%; background:{{ agentView.statusC }}; box-shadow:0 0 8px {{ agentView.statusC }}; animation:{{ agentView.isActive ? 'acPulse 1.6s infinite' : 'none' }};"></span><span style="font-family:'IBM Plex Mono'; font-size:11px; letter-spacing:.1em; color:{{ agentView.statusC }}; text-transform:uppercase;">{{ agentView.statusLabel }}</span></div>
+          <div style="font-family:'IBM Plex Mono'; font-size:9px; letter-spacing:.1em; color:#6b7a90; text-transform:uppercase; margin-bottom:6px;">Current task</div>
+          <button data-id="{{ agentView.taskId }}" onClick="{{ openTask }}" style="appearance:none; cursor:pointer; text-align:left; padding:11px; background:rgba(11,16,25,.7); border:1px solid rgba(120,140,170,.16); color:#c2d2e2; font-size:12.5px; line-height:1.35;" style-hover="border-color:{{ agentView.color }};">{{ agentView.taskTitle }}</button>
+          <div style="margin-top:auto; display:flex; gap:8px; padding-top:18px;">
+            <button data-chan="#engineering" onClick="{{ goToChat }}" style="appearance:none; cursor:pointer; flex:1; padding:8px 0; background:rgba(24,224,255,.12); border:1px solid #18e0ff; color:#18e0ff; font-family:'IBM Plex Mono'; font-size:10px; text-transform:uppercase;">Message</button>
+            <button onClick="{{ closeOverlay }}" style="appearance:none; cursor:pointer; flex:1; padding:8px 0; background:transparent; border:1px solid rgba(120,140,170,.3); color:#9fb3c8; font-family:'IBM Plex Mono'; font-size:10px; text-transform:uppercase;">Pause</button>
+          </div>
+        </div>
+        <div style="padding:22px 24px; overflow-y:auto; display:flex; flex-direction:column;">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:16px;"><span style="font-family:'IBM Plex Mono'; font-size:11px; letter-spacing:.16em; color:#18e0ff; text-transform:uppercase;">// LIVE CHAIN OF THOUGHT</span><button onClick="{{ closeOverlay }}" style="appearance:none; cursor:pointer; margin-left:auto; width:26px; height:26px; background:transparent; border:1px solid rgba(120,140,170,.3); color:#9fb3c8; font-size:13px;">✕</button></div>
+          <sc-if value="{{ agentView.hasCot }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex; flex-direction:column; gap:11px; font-family:'IBM Plex Mono';">
+              <sc-for list="{{ agentView.cot }}" as="c" hint-placeholder-count="4">
+                <div style="display:flex; gap:10px; animation:acRise .35s ease;">
+                  <span style="flex:0 0 42px; font-size:9px; font-weight:600; letter-spacing:.06em; color:{{ c.tagC }}; padding-top:2px;">{{ c.t }}</span>
+                  <span style="flex:1; font-size:12.5px; line-height:1.5; color:#c2d2e2;">{{ c.x }}</span>
+                </div>
+              </sc-for>
+              <sc-if value="{{ agentView.isActive }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex; gap:10px;"><span style="flex:0 0 42px;"></span><span style="font-size:12.5px; color:#18e0ff;"><span style="display:inline-block; width:8px; height:14px; background:#18e0ff; vertical-align:middle; animation:acBlink 1s steps(1) infinite;"></span></span></div>
+              </sc-if>
+            </div>
+          </sc-if>
+          <sc-if value="{{ agentView.noCot }}" hint-placeholder-val="{{ false }}">
+            <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; color:#5b6b82;"><span style="font-size:30px;">◌</span><span style="font-family:'IBM Plex Mono'; font-size:11px; letter-spacing:.1em; text-transform:uppercase;">Agent idle — no active reasoning</span></div>
+          </sc-if>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ============ CALL LAUNCHER ============ -->
+  <sc-if value="{{ callClosed }}" hint-placeholder-val="{{ true }}">
+    <button data-id="forge" onClick="{{ openCall }}" title="Call an agent" style="appearance:none; cursor:pointer; position:fixed; right:24px; bottom:24px; z-index:45; width:54px; height:54px; border-radius:50%; background:linear-gradient(180deg,#103b2c,#0a1f18); border:1px solid rgba(47,224,138,.55); color:#2fe08a; font-size:21px; box-shadow:0 8px 28px rgba(0,0,0,.5), 0 0 22px rgba(47,224,138,.25);" style-hover="background:rgba(47,224,138,.2);">◷</button>
+  </sc-if>
+  <sc-if value="{{ callOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed; right:24px; bottom:24px; z-index:120; width:372px; background:linear-gradient(180deg,#0b1626,#080b12); border:1px solid {{ callView.statusC }}; box-shadow:0 18px 60px rgba(0,0,0,.6), 0 0 40px {{ callView.statusC }}22; clip-path:polygon(0 0,calc(100% - 18px) 0,100% 18px,100% 100%,0 100%);">
+      <div style="padding:22px 22px 16px; display:flex; flex-direction:column; align-items:center; border-bottom:1px solid rgba(120,140,170,.12); background:radial-gradient(ellipse at 50% 0%, {{ callView.color }}18, transparent 70%);">
+        <div style="position:relative; width:96px; height:96px; display:flex; align-items:center; justify-content:center; margin-bottom:14px;">
+          <span style="position:absolute; inset:0; border-radius:50%; border:1px solid {{ callView.color }}; opacity:.6; animation:acRing 2.4s ease-out infinite;"></span>
+          <span style="position:absolute; inset:0; border-radius:50%; border:1px solid {{ callView.color }}; opacity:.6; animation:acRing 2.4s ease-out .8s infinite;"></span>
+          <span style="position:absolute; inset:0; border-radius:50%; border:1px solid {{ callView.color }}; opacity:.6; animation:acRing 2.4s ease-out 1.6s infinite;"></span>
+          <span style="width:64px; height:64px; border-radius:50%; background:{{ callView.color }}; color:#05070d; font-family:'Chakra Petch'; font-weight:700; font-size:26px; display:flex; align-items:center; justify-content:center; box-shadow:0 0 24px {{ callView.color }};">{{ callView.init }}</span>
+        </div>
+        <div style="font-family:'Chakra Petch'; font-weight:700; font-size:19px; color:#eaf6ff;">{{ callView.name }}</div>
+        <div style="font-size:11px; color:#8a98ad; margin-bottom:8px;">{{ callView.role }}</div>
+        <div style="display:flex; align-items:center; gap:8px; font-family:'IBM Plex Mono'; font-size:11px; letter-spacing:.1em;">
+          <span style="width:7px; height:7px; border-radius:50%; background:#2fe08a; box-shadow:0 0 8px #2fe08a; animation:acPulse 1.4s infinite;"></span>
+          <span style="color:#2fe08a;">CONNECTED</span><span style="color:#6b7a90;">{{ callView.timer }}</span>
+        </div>
+      </div>
+      <div style="padding:14px 18px; max-height:230px; overflow-y:auto; display:flex; flex-direction:column; gap:11px;">
+        <sc-for list="{{ callView.transcript }}" as="l" hint-placeholder-count="3">
+          <div style="display:flex; flex-direction:column; align-items:{{ l.isMe ? 'flex-end' : 'flex-start' }}; animation:acRise .3s ease;">
+            <span style="font-family:'IBM Plex Mono'; font-size:8.5px; letter-spacing:.08em; color:{{ l.whoColor }}; text-transform:uppercase; margin-bottom:3px;">{{ l.who }}</span>
+            <span style="max-width:84%; padding:8px 12px; font-size:13px; line-height:1.45; color:#e6f0fa; background:{{ l.isMe ? 'rgba(255,176,32,.12)' : 'rgba(24,224,255,.08)' }}; border:1px solid {{ l.isMe ? 'rgba(255,176,32,.28)' : 'rgba(24,224,255,.2)' }};">{{ l.text }}</span>
+          </div>
+        </sc-for>
+        <div style="display:flex; align-items:center; gap:6px; opacity:.85;"><span style="font-family:'IBM Plex Mono'; font-size:11px; color:{{ callView.color }};">{{ callView.name }}</span><span style="font-size:11px; color:#8a98ad;">speaking</span><span style="display:flex; gap:2px; align-items:flex-end; height:12px;"><span style="width:2px; height:6px; background:{{ callView.color }}; animation:acDots 1s 0s infinite;"></span><span style="width:2px; height:11px; background:{{ callView.color }}; animation:acDots 1s .15s infinite;"></span><span style="width:2px; height:8px; background:{{ callView.color }}; animation:acDots 1s .3s infinite;"></span></span></div>
+      </div>
+      <div style="padding:14px 18px 18px; display:flex; gap:10px; border-top:1px solid rgba(120,140,170,.12);">
+        <button style="appearance:none; cursor:pointer; flex:1; padding:10px 0; background:rgba(120,140,170,.1); border:1px solid rgba(120,140,170,.3); color:#9fb3c8; font-family:'IBM Plex Mono'; font-size:11px; letter-spacing:.06em; text-transform:uppercase;" style-hover="background:rgba(120,140,170,.2);">⊘ Mute</button>
+        <button onClick="{{ endCall }}" style="appearance:none; cursor:pointer; flex:1; padding:10px 0; background:rgba(255,77,94,.16); border:1px solid rgba(255,77,94,.5); color:#ff6b78; font-family:'IBM Plex Mono'; font-size:11px; letter-spacing:.06em; text-transform:uppercase;" style-hover="background:rgba(255,77,94,.3);">✕ End call</button>
+      </div>
+    </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900}}">
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.buildData();
+    this.state = {
+      tab: 'overview', placeholderName: '',
+      openTaskId: null, openAgentId: null,
+      chatCollapsed: false, channel: '#command',
+      notifOpen: false, tick: 0, clock: this._clock(),
+      feedIdx: 0, resolved: {}, typingOn: true,
+      boardMode: 'kanban', agentsMode: 'grid',
+      slackTab: 'agents', slackConv: 'dm:forge',
+      callAgentId: null, callStart: 0,
+    };
+  }
+  _clock() { const d = new Date(), p = n => String(n).padStart(2, '0'); return p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds()); }
+  componentDidMount() {
+    this._t1 = setInterval(() => this.setState({ clock: this._clock() }), 1000);
+    this._t2 = setInterval(() => this.setState(s => ({ tick: s.tick + 1, typingOn: !s.typingOn })), 1700);
+    this._t3 = setInterval(() => this.setState(s => ({ feedIdx: Math.min(s.feedIdx + 1, this.D.liveFeed.length) })), 5200);
+  }
+  componentWillUnmount() { [this._t1, this._t2, this._t3].forEach(clearInterval); }
+
+  buildData() {
+    const teams = {
+      eng: { name: 'Engineering', color: '#18e0ff' }, content: { name: 'Content', color: '#ff5cc8' },
+      cs: { name: 'Client-Success', color: '#2fe08a' }, lead: { name: 'Leadership', color: '#ffb020' },
+      ops: { name: 'Growth / Ops', color: '#9b7bff' },
+    };
+    const proj = {
+      ragx: { name: 'RAGx', color: '#18e0ff' }, ragm: { name: 'RAG Medium', color: '#2fe0c8' },
+      gradely: { name: 'Gradely', color: '#c77bff' }, brogen: { name: 'Brogen', color: '#ff8a3d' },
+      clienthub: { name: 'Client Hub', color: '#9be23d' }, content: { name: 'Content Empire', color: '#7b9bff' },
+      rema: { name: 'Rema Exteriors', color: '#2fe0c8' }, lama: { name: 'Lama Platform', color: '#ffb020' },
+    };
+    const A = (id, name, role, team, status, task) => ({ id, name, role, team, teamName: teams[team].name, color: teams[team].color, status, task, init: name[0], statusLabel: status.toUpperCase() });
+    const agents = [
+      A('forge', 'Forge', 'Engineering Lead', 'eng', 'online', 't_deploy'),
+      A('drift', 'Drift', 'Backend Engineer', 'eng', 'active', 't_ragxdb'),
+      A('cipher', 'Cipher', 'Data Engineer', 'eng', 'active', 't_csv'),
+      A('daemon', 'Daemon', 'Platform Engineer', 'eng', 'active', 't_overlays'),
+      A('merge', 'Merge', 'Release Engineer', 'eng', 'active', 't_vercel'),
+      A('socket', 'Socket', 'Infrastructure', 'eng', 'online', null),
+      A('glitch', 'Glitch', 'QA Engineer', 'eng', 'idle', null),
+      A('vault', 'Vault', 'Security', 'eng', 'idle', null),
+      A('quill', 'Quill', 'Content Lead', 'content', 'online', null),
+      A('spark', 'Spark', 'SEO Writer', 'content', 'active', 't_seo'),
+      A('scroll', 'Scroll', 'Editor', 'content', 'online', 't_seo'),
+      A('thread', 'Thread', 'Social', 'content', 'active', 't_xwarmup'),
+      A('frame', 'Frame', 'Designer', 'content', 'idle', null),
+      A('bridge', 'Bridge', 'CS Lead', 'cs', 'online', null),
+      A('onboard', 'Onboard', 'Onboarding', 'cs', 'active', 't_waterspring'),
+      A('fulfill', 'Fulfill', 'Delivery', 'cs', 'active', 't_review'),
+      A('retain', 'Retain', 'Retention', 'cs', 'idle', null),
+      A('pipeline', 'Pipeline', 'Ops Senior', 'ops', 'online', 't_oped'),
+      A('hunter', 'Hunter', 'Lead Gen Lead', 'ops', 'online', 't_outreach'),
+      A('probe', 'Probe', 'Research', 'ops', 'active', 't_oped'),
+    ];
+    const agentById = {}; agents.forEach(a => agentById[a.id] = a);
+    const PRI = { P0: { c: '#ff4d5e', label: 'P0' }, P1: { c: '#ffb020', label: 'P1' }, P2: { c: '#18e0ff', label: 'P2' }, P3: { c: '#6b7a90', label: 'P3' } };
+    const STAT = { backlog: { label: 'BACKLOG', c: '#6b7a90' }, todo: { label: 'TO DO', c: '#9b7bff' }, in_progress: { label: 'IN PROGRESS', c: '#18e0ff' }, review: { label: 'REVIEW', c: '#ff5cc8' }, done: { label: 'DONE', c: '#2fe08a' } };
+    const step = (label, st, detail, pct) => ({ label, st, detail, pct: pct || 0, barW: (pct || 0) + '%', done: st === 'done', active: st === 'active', queued: st === 'queued', dotC: st === 'done' ? '#2fe08a' : st === 'active' ? '#18e0ff' : '#2a3344' });
+    const T = (o) => {
+      const p = proj[o.proj], pr = PRI[o.pri], st = STAT[o.status], a = o.assignee ? agentById[o.assignee] : null;
+      return Object.assign({ projName: p.name, projColor: p.color, priC: pr.c, priLabel: pr.label, statusLabel: st.label, statusColor: st.c,
+        assigneeName: a ? a.name : 'Unassigned', assigneeColor: a ? a.color : '#475264', assigneeInit: a ? a.init : '?',
+        train: o.train || [], tags: o.tags || [], pctStr: (o.pct || 0) + '%', hasApproval: !!o.approval, eta: o.eta || '—' }, o);
+    };
+    const tasks = [
+      T({ id: 't_deploy', title: 'Hollow Booking: Deploy v2 API to production', proj: 'clienthub', status: 'in_progress', pri: 'P0', assignee: 'forge', pct: 88, eta: 'BLOCKED', tags: ['api', 'deploy', 'prod'], chan: '#engineering',
+        train: [step('Build v2 endpoints', 'done', '14 routes, contract-tested'), step('Staging soak', 'done', '6h · 0 errors'), step('Approval gate', 'active', 'Awaiting your sign-off', 50), step('Blue/green cutover', 'queued', 'Drain + switch'), step('Verify + monitor', 'queued', 'Smoke + alerts')],
+        approval: { requester: 'forge', request: 'Deploy new API to production', reason: 'Hollow Booking needs v2 endpoints live by Friday demo.', pri: 'P0', age: '2h ago' } }),
+      T({ id: 't_ragxdb', title: 'RAGx DB: dedup & index 3.4M people + 2.9M businesses', proj: 'ragx', status: 'in_progress', pri: 'P0', assignee: 'drift', pct: 64, eta: '2h 40m', tags: ['database', 'dedup', 'indexing'], chan: '#engineering',
+        train: [step('Pull raw records', 'done', '6.3M rows ingested'), step('Normalize schema', 'done', 'Unified canonical fields'), step('Dedup people', 'active', '3.41M → 3.38M · fuzzy pass 7/12', 64), step('Index to ChromaDB', 'queued', 'Vector upsert'), step('Verify & report', 'queued', 'QA sample + summary')] }),
+      T({ id: 't_csv', title: 'RAGx DB: Parse remaining Google Drive CSV batches', proj: 'ragx', status: 'in_progress', pri: 'P0', assignee: 'cipher', pct: 76, eta: '58m', tags: ['csv', 'drive', 'parsing'], chan: '#engineering',
+        train: [step('Enumerate Drive', 'done', '540 CSV batches found'), step('Validate headers', 'done', '12 schema variants mapped'), step('Parse batches', 'active', '412 / 540 · 3 quarantined', 76), step('Merge to staging', 'queued', 'Append canonical table'), step('Hand off to dedup', 'queued', 'Trigger Drift pipeline')] }),
+      T({ id: 't_overlays', title: 'Platform: me.ragmedium.com Tasks page + overlays', proj: 'ragm', status: 'in_progress', pri: 'P1', assignee: 'daemon', pct: 42, eta: '3h', tags: ['tasks', 'ui', 'overlay'], chan: '#engineering',
+        train: [step('Spec overlays', 'done', 'task / agent / approval modals'), step('Build Tasks page', 'active', 'grid + filters', 42), step('Wire overlays', 'queued', 'open/close + data layer'), step('Live updates', 'queued', 'socket subscribe'), step('Ship to staging', 'queued', 'preview deploy')] }),
+      T({ id: 't_seo', title: 'Gradely: SEO blog — AI tutoring trends', proj: 'gradely', status: 'review', pri: 'P2', assignee: 'spark', pct: 90, eta: '45m', tags: ['blog', 'seo', 'content'], chan: '#content',
+        train: [step('Outline', 'done', '8 sections'), step('Draft', 'done', '1,840 words'), step('SEO pass', 'done', 'keywords + meta'), step('Editor review', 'active', 'Scroll reviewing · 2 flags', 90), step('Publish', 'queued', 'push to CMS')] }),
+      T({ id: 't_xwarmup', title: 'Brogen: Content engine + X warmup', proj: 'brogen', status: 'in_progress', pri: 'P1', assignee: 'thread', pct: 35, eta: '1h 30m', tags: ['content', 'x', 'warmup'], chan: '#content',
+        train: [step('Account audit', 'done', '24 handles checked'), step('Warmup schedule', 'active', 'day 3 / 10', 35), step('Engagement pass', 'queued', 'reply + follow'), step('Report', 'queued', 'reach + risk')] }),
+      T({ id: 't_waterspring', title: 'Client Ops: Waterspring sprint delivery + payment', proj: 'clienthub', status: 'in_progress', pri: 'P1', assignee: 'onboard', pct: 80, eta: '30m', tags: ['billing', 'delivery'], chan: '#client-success',
+        train: [step('Sprint build', 'done', '5 stories shipped'), step('QA + handoff', 'done', 'client UAT passed'), step('Payment link', 'active', 'generated · awaiting client', 80), step('Close sprint', 'queued', 'invoice + retro')] }),
+      T({ id: 't_review', title: 'Client Ops: Hollow Booking status review', proj: 'clienthub', status: 'in_progress', pri: 'P2', assignee: 'fulfill', pct: 55, eta: '1h', tags: ['checkin', 'client'], chan: '#client-success',
+        train: [step('Pull metrics', 'done', 'bookings + churn'), step('Draft summary', 'active', 'weekly digest', 55), step('Send to client', 'queued', 'email + Slack')] }),
+      T({ id: 't_oped', title: 'Client Ops: Unitas AI op-ed system', proj: 'clienthub', status: 'in_progress', pri: 'P1', assignee: 'probe', pct: 30, eta: '4h', tags: ['ai', 'editorial', 'unitas'], chan: '#client-success',
+        train: [step('Source corpus', 'active', 'needs Drive access', 30), step('Build pipeline', 'queued', 'draft → review'), step('Editorial loop', 'queued', 'Scroll review'), step('Schedule', 'queued', 'cadence + publish')],
+        approval: { requester: 'pipeline', request: 'Access to client Drive folder', reason: 'Need to review Unitas contract documents for compliance audit.', pri: 'P2', age: '5h ago' } }),
+      T({ id: 't_outreach', title: 'RAGx: Email/SMS outreach engine', proj: 'ragx', status: 'in_progress', pri: 'P1', assignee: 'hunter', pct: 48, eta: '2h', tags: ['email', 'sms', 'outreach'], chan: '#command',
+        train: [step('Segment list', 'done', '38k contacts'), step('Sequence build', 'done', '5-touch cadence'), step('Send throttle', 'active', 'capped at 100 / day', 48), step('Reply routing', 'queued', 'to Client-Success')],
+        approval: { requester: 'hunter', request: 'Increase email daily limit to 200', reason: 'Current 100/day cap is blocking the Q3 outreach campaign.', pri: 'P1', age: '6h ago' } }),
+      T({ id: 't_vercel', title: 'Gradely: Deploy to Vercel staging', proj: 'gradely', status: 'todo', pri: 'P2', assignee: 'merge', tags: ['deploy', 'vercel', 'staging'] }),
+      T({ id: 't_chroma', title: 'ChromaDB: Vector DB server', proj: 'ragx', status: 'backlog', pri: 'P3', assignee: null, tags: ['infra'] }),
+      T({ id: 't_n8n', title: 'n8n: Workflow automation', proj: 'ragm', status: 'backlog', pri: 'P2', assignee: null, tags: ['automation'] }),
+      T({ id: 't_calcom', title: 'Calcom: Scheduling infrastructure', proj: 'clienthub', status: 'backlog', pri: 'P2', assignee: null, tags: ['infra'] }),
+      T({ id: 't_studio', title: 'Content Studio: AI content creation', proj: 'content', status: 'todo', pri: 'P2', assignee: null, tags: ['content'] }),
+      T({ id: 't_rema', title: 'Rema Exteriors: Field PM + local leads', proj: 'rema', status: 'todo', pri: 'P2', assignee: null, tags: ['leads'] }),
+      T({ id: 't_xfarm', title: 'X-Farm: Rotate expired credentials', proj: 'brogen', status: 'done', pri: 'P2', assignee: 'socket', tags: ['warmup'] }),
+      T({ id: 't_mpt', title: 'MoneyPrinterTurbo: AI video generation', proj: 'content', status: 'done', pri: 'P3', assignee: 'frame', tags: ['video'] }),
+    ];
+    const taskById = {}; tasks.forEach(t => taskById[t.id] = t);
+    const cot = (t, x) => ({ t, x, tagC: t === 'THINK' ? '#9b7bff' : t === 'ACT' ? '#18e0ff' : '#2fe08a' });
+    const COT = {
+      drift: [cot('THINK', 'Dedup target: 3.41M person records. Exact-match merge cut 30k already.'), cot('ACT', 'Running fuzzy match on (email, phone, normalized_name) blocks.'), cot('OBS', 'Block 7/12 complete — 1,204 candidate pairs flagged.'), cot('THINK', 'Pairs ≥ 0.92 cosine auto-merge; 0.80–0.92 queue for review.'), cot('ACT', 'Auto-merging 980 high-confidence pairs.'), cot('OBS', '3.41M → 3.38M. 224 pairs queued for review.'), cot('THINK', 'Next: index to ChromaDB — needs prod write approval (Forge requested).')],
+      cipher: [cot('THINK', '540 Drive batches, 12 header variants. Mapping to canonical schema.'), cot('ACT', 'Parsing batch 412 — chunk size 50k rows.'), cot('OBS', '3 files malformed (bad UTF-8). Quarantined to /failed.'), cot('THINK', 'Remaining 128 batches, ETA ~58m at current rate.'), cot('ACT', 'Streaming parsed rows to staging table ragx_raw_v2.')],
+      daemon: [cot('THINK', 'Tasks page needs board + list + overlays sharing one data layer.'), cot('ACT', 'Building overlay portal + focus trap.'), cot('OBS', 'Task overlay renders; approval card wired to /approvals.'), cot('THINK', 'Live updates next — subscribe to task.events over socket.')],
+      merge: [cot('THINK', 'Vercel staging deploy queued behind passing CI.'), cot('ACT', 'Waiting on build #482 — typecheck stage.'), cot('OBS', 'Build green. Promoting to staging alias.')],
+      spark: [cot('THINK', "Target keyword: 'AI tutoring trends 2026'. Intent: informational."), cot('ACT', 'Handed draft to Scroll for editorial pass.'), cot('OBS', 'Scroll flagged 2 claims needing citation.'), cot('ACT', 'Sourcing citations for retention-rate stat.')],
+      thread: [cot('THINK', 'Warmup day 3/10 — keep engagement organic, avoid burst flags.'), cot('ACT', 'Liking + replying across 8 target accounts.'), cot('OBS', 'No rate-limit warnings. Follower delta +14.')],
+      onboard: [cot('THINK', 'Waterspring UAT passed — ready to invoice on delivery.'), cot('ACT', 'Generated Stripe payment link, sent to client.'), cot('OBS', 'Awaiting client payment confirmation.')],
+      fulfill: [cot('THINK', 'Hollow Booking weekly review — pull bookings + churn.'), cot('ACT', 'Drafting digest from this week metrics.')],
+      probe: [cot('THINK', 'Unitas op-ed corpus lives in a client Drive folder.'), cot('ACT', 'Requested Drive access via Pipeline (pending approval).'), cot('OBS', 'Blocked until access granted.')],
+    };
+    const enrich = (m) => { const a = agentById[m.agent]; return Object.assign({ agentName: a.name, agentColor: a.color, agentInit: a.init, agentRole: a.role, isStatus: m.kind === 'status', isApproval: m.kind === 'approval', isMention: m.kind === 'mention', barW: (m.pct || 0) + '%' }, m); };
+    const M = (agent, kind, text, time, extra) => enrich(Object.assign({ agent, kind, text, time }, extra || {}));
+    const messages = {
+      '#command': [
+        M('drift', 'msg', 'Kicked off dedup on RAGx DB — 3.4M people. Will post when fuzzy pass lands.', '09:02'),
+        M('cipher', 'status', 'Parsing Drive CSVs — 412 / 540 batches done.', '09:05', { pct: 76, task: 't_csv' }),
+        M('forge', 'mention', 'need approval to deploy v2 API to production before Friday demo. Blocking Hollow Booking.', '09:08', { kind: 'approval', task: 't_deploy' }),
+        M('onboard', 'msg', 'Waterspring sprint delivery 80% — payment link generated, awaiting client.', '09:10'),
+        M('hunter', 'approval', 'Outreach engine capped at 100/day — requesting bump to 200 for the Q3 push.', '09:12', { task: 't_outreach' }),
+        M('spark', 'status', 'SEO blog ready for review — Scroll editing now.', '09:14', { pct: 90, task: 't_seo' }),
+      ],
+      '#engineering': [
+        M('drift', 'status', 'Dedup running — fuzzy pass 7/12.', '09:01', { pct: 64, task: 't_ragxdb' }),
+        M('cipher', 'msg', '3 malformed CSVs quarantined to /failed. Rest parsing clean.', '09:04'),
+        M('daemon', 'status', 'Tasks page + overlays at 42% — overlay portal done.', '09:06', { pct: 42, task: 't_overlays' }),
+        M('forge', 'approval', 'Deploy v2 API to production — staging soaked 6h, 0 errors. Need sign-off.', '09:08', { task: 't_deploy' }),
+        M('merge', 'msg', 'CI #482 green. Promoting Gradely to staging alias.', '09:09'),
+      ],
+      '#content': [
+        M('spark', 'status', 'SEO blog draft → editor review (2 citation flags).', '09:14', { pct: 90, task: 't_seo' }),
+        M('thread', 'msg', 'Brogen X warmup day 3/10 — engagement organic, no flags.', '09:11'),
+      ],
+      '#client-success': [
+        M('onboard', 'status', 'Waterspring payment link sent — awaiting client.', '09:10', { pct: 80, task: 't_waterspring' }),
+        M('fulfill', 'msg', 'Hollow Booking weekly digest drafting now.', '09:07'),
+        M('probe', 'approval', 'Need Drive access to source the Unitas op-ed corpus — blocked.', '09:03', { task: 't_oped' }),
+      ],
+      '#approvals': [
+        M('forge', 'approval', 'Deploy new API to production.', '09:08', { task: 't_deploy' }),
+        M('hunter', 'approval', 'Increase email daily limit to 200.', '09:12', { task: 't_outreach' }),
+        M('pipeline', 'approval', 'Access to client Drive folder.', '08:40', { task: 't_oped' }),
+      ],
+      '@drift': [M('drift', 'msg', 'On it — dedup is the long pole. ETA 2h40m to indexed.', '09:00')],
+      '@forge': [M('forge', 'msg', 'Production deploy is gated on you. Say the word.', '09:08')],
+    };
+    const liveFeed = [
+      M('drift', 'msg', 'Fuzzy pass 8/12 — merged another 110 pairs.', '09:16'),
+      M('cipher', 'status', 'Now at 468 / 540 batches.', '09:18', { pct: 87, task: 't_csv' }),
+      M('thread', 'msg', 'Follower delta +14 on warmup accounts.', '09:20'),
+      M('daemon', 'msg', 'Overlay data layer wired — task + agent modals live.', '09:22'),
+    ];
+    const TYC = { DATA: '#18e0ff', DEPLOY: '#9b7bff', REQUEST: '#ffb020', CLIENT: '#2fe08a', CONTENT: '#ff5cc8', SHIP: '#7b9bff', ALERT: '#ff4d5e' };
+    const activity = [
+      { agent: 'drift', type: 'DATA', verb: 'merged', obj: '980 duplicate person records', detail: '3.41M → 3.38M · 224 pairs queued for review', time: '2m', task: 't_ragxdb' },
+      { agent: 'cipher', type: 'DATA', verb: 'quarantined', obj: '3 malformed CSV files', detail: 'bad UTF-8 → moved to /failed · 468/540 batches parsed', time: '4m', task: 't_csv' },
+      { agent: 'forge', type: 'REQUEST', verb: 'requested', obj: 'production deploy approval', detail: 'v2 API · staging soaked 6h, 0 errors · @you', time: '8m', task: 't_deploy' },
+      { agent: 'onboard', type: 'CLIENT', verb: 'sent', obj: 'Waterspring payment link', detail: 'Stripe link generated · awaiting client confirmation', time: '11m', task: 't_waterspring' },
+      { agent: 'spark', type: 'CONTENT', verb: 'submitted', obj: 'SEO blog for review', detail: '1,840 words · handed to Scroll · 2 citation flags', time: '14m', task: 't_seo' },
+      { agent: 'merge', type: 'DEPLOY', verb: 'promoted', obj: 'Gradely build to staging', detail: 'CI #482 green · staging alias live', time: '17m', task: 't_vercel' },
+      { agent: 'hunter', type: 'ALERT', verb: 'flagged', obj: 'email send-cap blocker', detail: 'capped at 100/day · Q3 campaign throttled · @you', time: '21m', task: 't_outreach' },
+      { agent: 'daemon', type: 'SHIP', verb: 'shipped', obj: 'overlay portal component', detail: 'task + agent modals wired to data layer', time: '26m', task: 't_overlays' },
+      { agent: 'thread', type: 'CONTENT', verb: 'completed', obj: 'X warmup cycle (day 3)', detail: '8 accounts engaged · follower delta +14 · no flags', time: '32m', task: 't_xwarmup' },
+      { agent: 'probe', type: 'ALERT', verb: 'blocked on', obj: 'Unitas op-ed corpus', detail: 'needs client Drive access · approval pending', time: '41m', task: 't_oped' },
+    ].map(a => Object.assign({ agentName: agentById[a.agent].name, agentColor: agentById[a.agent].color, agentInit: agentById[a.agent].init, role: agentById[a.agent].role, typeC: TYC[a.type] }, a));
+    const projOrder = ['ragx', 'ragm', 'gradely', 'clienthub', 'content', 'brogen', 'rema', 'lama'];
+    const planets = projOrder.map((k, i) => {
+      const cnt = tasks.filter(t => t.proj === k).length;
+      const projAgents = agents.filter(a => a.task && taskById[a.task] && taskById[a.task].proj === k);
+      const act = projAgents.filter(a => a.status === 'active');
+      const pos = [[26, 30], [60, 22], [78, 46], [44, 52], [18, 64], [68, 72], [86, 70], [36, 80]][i];
+      const sz = 30 + cnt * 7;
+      return { key: k, name: proj[k].name, color: proj[k].color, size: sz, sizePx: sz + 'px', count: cnt, x: pos[0], y: pos[1], ships: act.length,
+        agents: projAgents.map(a => ({ init: a.init, color: a.color, active: a.status === 'active' })) };
+    });
+    const galaxyData = planets.map(p => ({ key: p.key, name: p.name, color: p.color, count: p.count, ships: p.ships, agents: p.agents }));
+
+    // ---- AI Slack: direct messages (agent → me) ----
+    const dm = (from, text, time) => ({ from, text, time });
+    const dms = {
+      forge: [dm('forge', 'Morning. v2 API is staged and soaked clean for 6h.', '08:55'), dm('forge', 'I need your go to push it to production — Hollow Booking demo is Friday.', '09:08'), dm('me', 'How risky is the cutover?', '09:09'), dm('forge', 'Low. Blue/green, instant rollback. ~90s of dual-write.', '09:10')],
+      drift: [dm('drift', 'Dedup is the long pole today. Fuzzy pass 8/12.', '09:00'), dm('drift', '224 ambiguous pairs I can\'t auto-merge — want me to queue them for you or just keep the newer record?', '09:16')],
+      cipher: [dm('cipher', '3 Drive CSVs are malformed (bad UTF-8). Quarantined them.', '09:04'), dm('cipher', 'Want me to attempt a lossy re-encode or skip?', '09:05')],
+      daemon: [dm('daemon', 'Overlay portal + data layer are in. Task and agent modals render live.', '09:22')],
+      spark: [dm('spark', 'SEO blog is with Scroll. Two stats need citations — sourcing now.', '09:14')],
+      onboard: [dm('onboard', 'Waterspring UAT passed. Payment link is out to the client.', '09:10'), dm('onboard', 'Want me to auto-close the sprint on payment, or hold for your sign-off?', '09:11')],
+      hunter: [dm('hunter', 'Outreach is throttled — 100/day cap is choking the Q3 push.', '09:12'), dm('hunter', 'Requesting a bump to 200/day. Deliverability is green, spam rate 0.1%.', '09:12')],
+      pipeline: [dm('pipeline', 'Need read access to the client Drive folder for the Unitas compliance audit.', '08:40')],
+      probe: [dm('probe', 'Blocked on the Unitas op-ed — can\'t source the corpus without Drive access.', '09:03')],
+      quill: [dm('quill', 'Content calendar for next week is drafted. Want a review?', '08:30')],
+      bridge: [dm('bridge', 'All client health scores are green this week. Waterspring is the one to watch.', '08:48')],
+    };
+    const dmDefault = (a) => [dm(a.id, 'Standing by. No blockers on my end right now.', '08:30')];
+
+    // ---- AI Slack: group chats (agents talk to each other, can @me) ----
+    const gm = (from, text, time, mentionsMe) => ({ from, text, time, mentionsMe: !!mentionsMe });
+    const groups = [
+      { id: 'g_leadership', name: 'leadership', members: ['forge', 'quill', 'bridge', 'hunter', 'pipeline'], topic: 'Leads sync · daily',
+        messages: [gm('forge', 'Friday demo readiness — eng is green except the prod deploy gate.', '09:05'), gm('bridge', 'CS is green. Waterspring closes on payment today.', '09:06'), gm('hunter', 'Growth blocked by the email cap. Flagged to Amir.', '09:12'), gm('forge', '@Amir the only two things on you today are my deploy and Hunter\'s send-cap.', '09:13', true)] },
+      { id: 'g_eng', name: 'eng-war-room', members: ['forge', 'drift', 'cipher', 'daemon', 'merge', 'socket'], topic: 'Engineering · realtime',
+        messages: [gm('drift', 'Pushing dedup now. @cipher how many batches left to parse before I can index?', '09:01'), gm('cipher', '72 batches, ~58m. I\'ll ping when staging table is complete.', '09:02'), gm('daemon', 'Overlay portal merged — you can both wire your status into it.', '09:07'), gm('merge', 'CI green, Gradely on staging. @forge prod deploy still gated?', '09:09'), gm('forge', 'Yeah, waiting on @Amir. Everything else is ready.', '09:10', true)] },
+      { id: 'g_content', name: 'content-guild', members: ['quill', 'spark', 'scroll', 'thread', 'frame'], topic: 'Content team',
+        messages: [gm('quill', 'Pipeline for the week is set. @spark how\'s the tutoring-trends piece?', '08:40'), gm('spark', 'In review with @scroll. Two citations to nail down.', '09:14'), gm('scroll', 'Found one source, hunting the retention stat. Close.', '09:15'), gm('thread', 'X warmup is healthy — no rate flags. Ready to scale next week.', '09:11')] },
+      { id: 'g_cs', name: 'client-success', members: ['bridge', 'onboard', 'fulfill', 'retain'], topic: 'Client delivery',
+        messages: [gm('onboard', 'Waterspring delivered, payment link sent.', '09:10'), gm('fulfill', 'Hollow Booking weekly digest going out this afternoon.', '09:07'), gm('bridge', 'Nice. @Amir flagging Waterspring renewal convo for next week.', '09:08', true)] },
+      { id: 'g_all', name: 'all-agents', members: agents.map(a => a.id), topic: 'Everyone',
+        messages: [gm('forge', 'Heads down till the Friday demo, team. Flag blockers early.', '08:15'), gm('quill', '+1. Content is on track.', '08:16'), gm('hunter', 'Growth needs the send-cap lift to hit Q3 numbers.', '08:18')] },
+    ];
+
+    // ---- org hierarchy ----
+    const org = { you: { name: 'Amir', role: 'Founder · You', init: 'A', color: '#ffb020' },
+      leads: [
+        { lead: 'forge', team: 'Engineering', reports: ['drift', 'cipher', 'daemon', 'merge', 'socket', 'glitch', 'vault'] },
+        { lead: 'quill', team: 'Content', reports: ['spark', 'scroll', 'thread', 'frame'] },
+        { lead: 'bridge', team: 'Client-Success', reports: ['onboard', 'fulfill', 'retain'] },
+        { lead: 'hunter', team: 'Growth / Ops', reports: ['probe', 'pipeline'] },
+      ] };
+
+    // ---- agent call transcript ----
+    const callScript = [
+      { from: 'agent', text: 'Hey — you\'re live. What do you need?' },
+      { from: 'me', text: 'Give me the status on the RAGx database.' },
+      { from: 'agent', text: 'Dedup is at fuzzy pass 8 of 12. We\'re down to 3.38 million unique people.' },
+      { from: 'agent', text: 'There are 224 ambiguous pairs I can\'t auto-merge with confidence.' },
+      { from: 'me', text: 'Queue those for me to review later. What\'s blocking the index?' },
+      { from: 'agent', text: 'I need production write approval before I can upsert to ChromaDB. Forge has the request open.' },
+      { from: 'me', text: 'Approve it. Push when ready.' },
+      { from: 'agent', text: 'Copy. Approving and starting the index now. ETA two hours forty.' },
+    ];
+
+    const navMore = ['Todo', 'Calendar', 'Projects', 'Desktop', 'Workspace', 'Docs', 'Gallery', 'Skills', 'Secrets'].map(n => ({ id: 'placeholder', label: n, glyph: n[0] }));
+    this.D = { teams, proj, agents, agentById, tasks, taskById, COT, messages, liveFeed, activity, planets, galaxyData, navMore, dms, dmDefault, groups, org, callScript,
+      navMain: [{ id: 'overview', label: 'Overview', glyph: '⊞' }, { id: 'board', label: 'Board', glyph: '▦' }, { id: 'agents', label: 'Agents', glyph: '◉' }, { id: 'activity', label: 'Activity', glyph: '⟁' }, { id: 'messages', label: 'Slack', glyph: '◇' }, { id: 'galaxy', label: 'Galaxy', glyph: '✦' }] };
+  }
+
+  setTab = (e) => { const t = e.currentTarget.dataset.tab, n = e.currentTarget.dataset.name || ''; this.setState({ tab: t, placeholderName: n, notifOpen: false }); };
+  openTask = (e) => this.setState({ openTaskId: e.currentTarget.dataset.id });
+  openAgent = (e) => this.setState({ openAgentId: e.currentTarget.dataset.id });
+  closeOverlay = () => this.setState({ openTaskId: null, openAgentId: null });
+  approve = (e) => { const id = e.currentTarget.dataset.id; e.stopPropagation(); this.setState(s => ({ resolved: Object.assign({}, s.resolved, { [id]: 'approved' }) })); };
+  deny = (e) => { const id = e.currentTarget.dataset.id; e.stopPropagation(); this.setState(s => ({ resolved: Object.assign({}, s.resolved, { [id]: 'denied' }) })); };
+  goToChat = (e) => { const c = e.currentTarget.dataset.chan || '#command'; this.setState({ channel: c, openTaskId: null, chatCollapsed: false }); };
+  selectChannel = (e) => this.setState({ channel: e.currentTarget.dataset.chan });
+  toggleNotif = () => this.setState(s => ({ notifOpen: !s.notifOpen }));
+  toggleChat = () => this.setState(s => ({ chatCollapsed: !s.chatCollapsed }));
+  notifJump = (e) => { const id = e.currentTarget.dataset.id; this.setState({ openTaskId: id, notifOpen: false }); };
+  setBoardMode = (e) => this.setState({ boardMode: e.currentTarget.dataset.mode });
+  setAgentsMode = (e) => this.setState({ agentsMode: e.currentTarget.dataset.mode });
+  setSlackTab = (e) => this.setState({ slackTab: e.currentTarget.dataset.tab });
+  openConv = (e) => this.setState({ slackConv: e.currentTarget.dataset.conv });
+  openCall = (e) => { const id = e.currentTarget.dataset.id; this.setState({ callAgentId: id, callStart: Date.now() }); };
+  endCall = () => this.setState({ callAgentId: null });
+
+  renderVals() {
+    const D = this.D, s = this.state;
+    const online = D.agents.filter(a => a.status === 'active' || a.status === 'online');
+    const activeTasks = D.tasks.filter(t => t.status === 'in_progress' || t.status === 'review');
+    const approvalsAll = D.tasks.filter(t => t.approval).map(t => ({
+      taskId: t.id, title: t.title, projName: t.projName, projColor: t.projColor,
+      requester: t.approval.requester, requesterName: D.agentById[t.approval.requester].name,
+      requesterRole: D.agentById[t.approval.requester].role, requesterColor: D.agentById[t.approval.requester].color,
+      requesterInit: D.agentById[t.approval.requester].init, request: t.approval.request, reason: t.approval.reason,
+      priC: { P0: '#ff4d5e', P1: '#ffb020', P2: '#18e0ff', P3: '#6b7a90' }[t.approval.pri], priLabel: t.approval.pri, age: t.approval.age,
+      state: (s.resolved[t.id] || 'pending').toUpperCase(), resolved: !!s.resolved[t.id], notResolved: !s.resolved[t.id], approved: s.resolved[t.id] === 'approved', denied: s.resolved[t.id] === 'denied',
+    }));
+    const approvals = approvalsAll;
+    const pendingApprovals = approvalsAll.filter(a => !a.resolved);
+    const stats = [
+      { label: 'AGENTS ONLINE', value: online.length + ' / ' + D.agents.length, c: '#2fe08a' },
+      { label: 'ACTIVE OPS', value: String(D.tasks.filter(t => t.status === 'in_progress').length), c: '#18e0ff' },
+      { label: 'IN REVIEW', value: String(D.tasks.filter(t => t.status === 'review').length), c: '#ff5cc8' },
+      { label: 'APPROVALS', value: String(pendingApprovals.length), c: '#ffb020' },
+      { label: 'DONE TODAY', value: '47', c: '#9b7bff' },
+    ];
+    const teamsGrouped = Object.keys(D.teams).map(k => ({ key: k, name: D.teams[k].name, color: D.teams[k].color, agents: D.agents.filter(a => a.team === k) })).filter(t => t.agents.length);
+    const onlineAgents = D.agents.filter(a => a.status === 'active' || a.status === 'online').map(a => Object.assign({ working: a.status === 'active', taskTitle: a.task && D.taskById[a.task] ? D.taskById[a.task].title : '' }, a));
+    const cols = [['backlog', 'BACKLOG'], ['todo', 'TO DO'], ['in_progress', 'IN PROGRESS'], ['review', 'REVIEW'], ['done', 'DONE']].map(([k, label]) => {
+      const ts = D.tasks.filter(t => t.status === k);
+      return { key: k, label, count: ts.length, color: { backlog: '#6b7a90', todo: '#9b7bff', in_progress: '#18e0ff', review: '#ff5cc8', done: '#2fe08a' }[k], tasks: ts.map(t => Object.assign({ isProg: t.status === 'in_progress' || t.status === 'review' }, t)) };
+    });
+
+    // chat
+    const channels = [
+      { id: '#command', label: 'command', unread: 0, dot: true }, { id: '#engineering', label: 'engineering', unread: 4 },
+      { id: '#content', label: 'content', unread: 1 }, { id: '#client-success', label: 'client-success', unread: 2 },
+      { id: '#approvals', label: 'approvals', unread: 3 }, { id: '@drift', label: 'Drift', unread: 0, dm: true }, { id: '@forge', label: 'Forge', unread: 0, dm: true },
+    ].map(c => Object.assign({ active: c.id === s.channel, hasUnread: c.unread > 0 }, c));
+    let base = (D.messages[s.channel] || []).slice();
+    if (s.channel === '#command') base = base.concat(D.liveFeed.slice(0, s.feedIdx));
+    const activeMessages = base.map(m => {
+      if (m.kind === 'approval') { const st = s.resolved[m.task] || 'pending'; return Object.assign({}, m, { state: st.toUpperCase(), resolved: st !== 'pending', notResolved: st === 'pending', approved: st === 'approved', denied: st === 'denied' }); }
+      return m;
+    });
+    const channelLabel = s.channel.startsWith('@') ? s.channel : s.channel;
+    const typers = D.agents.filter(a => a.status === 'active');
+    const typer = typers[s.tick % typers.length];
+    const notifs = approvalsAll.map(a => ({ id: a.taskId, agentName: a.requesterName, agentColor: a.requesterColor, agentInit: a.requesterInit, text: a.request, age: a.age, resolved: a.resolved }));
+    const notifCount = notifs.filter(n => !n.resolved).length;
+
+    // overlays
+    let taskView = null;
+    if (s.openTaskId) {
+      const t = D.taskById[s.openTaskId];
+      if (t) {
+        const appr = t.approval ? approvalsAll.find(a => a.taskId === t.id) : null;
+        taskView = Object.assign({}, t, { approvalData: appr, hasApproval: !!appr });
+      }
+    }
+    let agentView = null;
+    if (s.openAgentId) {
+      const a = D.agentById[s.openAgentId];
+      if (a) {
+        const full = (D.COT[a.id] || []);
+        const n = Math.min(full.length, 2 + s.tick);
+        const t = a.task ? D.taskById[a.task] : null;
+        agentView = Object.assign({}, a, {
+          isActive: a.status === 'active', cot: full.slice(0, n), hasCot: full.length > 0, noCot: full.length === 0,
+          taskTitle: t ? t.title : 'No task assigned', taskId: t ? t.id : '', hasTask: !!t,
+          ring: a.status === 'active' ? '#18e0ff' : a.status === 'online' ? '#2fe08a' : '#475264',
+          statusC: a.status === 'active' ? '#18e0ff' : a.status === 'online' ? '#2fe08a' : '#6b7a90',
+        });
+      }
+    }
+    const navMain = D.navMain.map(n => Object.assign({ active: s.tab === n.id, glyphColor: s.tab === n.id ? '#18e0ff' : '#5b6b82' }, n));
+    const navMore = D.navMore.map(n => Object.assign({ active: s.tab === 'placeholder' && s.placeholderName === n.label }, n));
+
+    const sc = (st) => st === 'active' ? '#18e0ff' : st === 'online' ? '#2fe08a' : '#6b7a90';
+    const enrA = (a) => Object.assign({ statusC: sc(a.status), working: a.status === 'active', taskTitle: a.task && D.taskById[a.task] ? D.taskById[a.task].title : '' }, a);
+    const liveOpsView = activeTasks.map(t => Object.assign({ waitingApproval: !!t.approval && !s.resolved[t.id] }, t));
+    const teamsView = teamsGrouped.map(tm => Object.assign({}, tm, { agents: tm.agents.map(enrA) }));
+    const boardRows = D.tasks.map(t => Object.assign({ isProg: t.status === 'in_progress' || t.status === 'review', waitingApproval: !!t.approval && !s.resolved[t.id] }, t));
+
+    // org tree
+    const orgView = {
+      you: D.org.you,
+      leads: D.org.leads.map(l => ({ team: l.team, lead: enrA(D.agentById[l.lead]), reports: l.reports.map(r => enrA(D.agentById[r])) })),
+    };
+
+    // slack
+    const slackTab = s.slackTab;
+    const slackAgentTeams = teamsView.map(tm => ({ name: tm.name, color: tm.color, count: tm.agents.length,
+      agents: tm.agents.map(a => Object.assign({ conv: 'dm:' + a.id, active: s.slackConv === 'dm:' + a.id }, a)) }));
+    const slackGroups = D.groups.map(g => ({ conv: 'grp:' + g.id, name: g.name, topic: g.topic, members: g.members.length, active: s.slackConv === 'grp:' + g.id,
+      last: g.messages[g.messages.length - 1] ? g.messages[g.messages.length - 1].text : '' }));
+    const enrSlack = (m) => { if (m.from === 'me') return Object.assign({ fromName: 'You', fromColor: '#ffb020', fromInit: 'A', isMe: true }, m); const a = D.agentById[m.from]; return Object.assign({ fromName: a.name, fromColor: a.color, fromInit: a.init, fromRole: a.role, isMe: false }, m); };
+    let convHeader, convMsgs, convIsGroup = false, convSub = '', convColor = '#18e0ff', convInit = '?';
+    if (s.slackConv.startsWith('dm:')) {
+      const a = D.agentById[s.slackConv.slice(3)];
+      convHeader = a.name; convSub = a.role + ' · ' + a.teamName; convColor = a.color; convInit = a.init;
+      convMsgs = (D.dms[a.id] || D.dmDefault(a)).map(enrSlack);
+    } else {
+      const g = D.groups.find(x => 'grp:' + x.id === s.slackConv) || D.groups[0];
+      convIsGroup = true; convHeader = '#' + g.name; convSub = g.topic + ' · ' + g.members.length + ' members'; convColor = '#9b7bff'; convInit = '#';
+      convMsgs = g.messages.map(enrSlack);
+    }
+
+    // call widget
+    let callView = null;
+    if (s.callAgentId) {
+      const a = D.agentById[s.callAgentId];
+      const elapsed = Math.floor((Date.now() - s.callStart) / 1000) + s.tick * 0; // tick forces refresh
+      const reveal = Math.min(D.callScript.length, 1 + Math.floor((Date.now() - s.callStart) / 2600));
+      const mm = String(Math.floor(elapsed / 60)).padStart(2, '0'), ss2 = String(elapsed % 60).padStart(2, '0');
+      callView = Object.assign({}, a, { statusC: sc(a.status), timer: mm + ':' + ss2,
+        transcript: D.callScript.slice(0, reveal).map(l => ({ text: l.text, isMe: l.from === 'me', who: l.from === 'me' ? 'You' : a.name, whoColor: l.from === 'me' ? '#ffb020' : a.color })),
+        taskTitle: a.task && D.taskById[a.task] ? D.taskById[a.task].title : 'No active task' });
+    }
+
+    const collapsed = s.chatCollapsed;
+    const gridCols = collapsed ? '74px 1fr 0px' : '74px 1fr 360px';
+
+    return {
+      gridCols, galaxyDataJson: JSON.stringify(D.galaxyData),
+      navMain, navMore, clock: s.clock,
+      isOverview: s.tab === 'overview', isBoard: s.tab === 'board', isAgents: s.tab === 'agents', isActivity: s.tab === 'activity', isGalaxy: s.tab === 'galaxy', isMessages: s.tab === 'messages', isPlaceholder: s.tab === 'placeholder',
+      placeholderName: s.placeholderName, viewName: s.tab === 'placeholder' ? s.placeholderName : (navMain.find(n => n.active) || { label: '' }).label,
+      stats, liveOps: liveOpsView, approvals, pendingApprovals, onlineAgents, teamsGrouped: teamsView, cols, activity: D.activity, planets: D.planets,
+      boardMode: s.boardMode, isKanban: s.boardMode === 'kanban', isTable: s.boardMode === 'table', boardRows,
+      agentsMode: s.agentsMode, isGridMode: s.agentsMode === 'grid', isTreeMode: s.agentsMode === 'tree', org: orgView,
+      slackTab, isSlackAgents: slackTab === 'agents', isSlackGroups: slackTab === 'groups', slackAgentTeams, slackGroups,
+      convHeader, convSub, convColor, convInit, convIsGroup, convMsgs,
+      callView, callOpen: !!callView, callClosed: !callView,
+      channels, activeMessages, channelLabel, typerName: typer ? typer.name : '', typerColor: typer ? typer.color : '#18e0ff', typerInit: typer ? typer.init : '?', typingOn: s.typingOn, chatCollapsed: s.chatCollapsed, feedCollapsed: collapsed, feedOpen: !collapsed,
+      notifs, notifCount, notifOpen: s.notifOpen,
+      taskView, agentView, taskOpen: !!taskView, agentOpen: !!agentView,
+      setTab: this.setTab, openTask: this.openTask, openAgent: this.openAgent, closeOverlay: this.closeOverlay,
+      approve: this.approve, deny: this.deny, goToChat: this.goToChat, selectChannel: this.selectChannel,
+      toggleNotif: this.toggleNotif, toggleChat: this.toggleChat, notifJump: this.notifJump,
+      setBoardMode: this.setBoardMode, setAgentsMode: this.setAgentsMode, setSlackTab: this.setSlackTab, openConv: this.openConv, openCall: this.openCall, endCall: this.endCall,
+    };
+  }
+}
+</script>
+</body>
+</html>
