@@ -1073,6 +1073,25 @@ async function route(req,res){
     return;
   }
 
+  // 2026-06-30: forward /api/initiatives, /api/initiative_chat, /api/tasks/running to :1707
+  if(u.pathname === '/api/initiatives' || u.pathname.startsWith('/api/initiatives/')
+     || u.pathname === '/api/initiative_chat' || u.pathname.startsWith('/api/initiative_chat/')
+     || u.pathname === '/api/tasks/running' || u.pathname.startsWith('/api/tasks/running/')){
+    const target = u.pathname + (u.search||'');
+    const proxyReq = http.request({
+      hostname: '127.0.0.1', port: 1707, path: target,
+      method: req.method, headers: { ...req.headers, host: '127.0.0.1:1707' }
+    }, (proxyRes) => {
+      const outHeaders = {...proxyRes.headers};
+      res.writeHead(proxyRes.statusCode, outHeaders);
+      proxyRes.pipe(res);
+    });
+    proxyReq.on('error', () => { if(!res.headersSent) send(res,502,{error:'hierarchy_api_unreachable'}); });
+    if(req.method==='POST'||req.method==='PUT'||req.method==='PATCH') req.pipe(proxyReq);
+    else proxyReq.end();
+    return;
+  }
+
   // ─── Agent detail proxy: forward /api/agents/:id to port 1707 ───
   // Must be before /api/agents/status to avoid intercepting it
   const isAgentDetailPath = /^\/api\/agents\/[\w-]+$/.test(u.pathname) || /^\/api\/agents\/[\w-]+\/(connections|projects)$/.test(u.pathname);

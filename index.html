@@ -293,6 +293,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--cyan);box-shadow:0 0 
     <div class="nav-divider"></div>
     <button class="nav-side-btn" onclick="nav('todo')" title="Todo"><span class="ico">✅</span><span class="lbl">Todo</span></button>
     <button class="nav-side-btn" onclick="nav('calendar')" title="Calendar"><span class="ico">📅</span><span class="lbl">Cal</span></button>
+    <button class="nav-side-btn" onclick="nav('initiatives')" title="Initiatives"><span class="ico">🎯</span><span class="lbl">Init</span></button>
     <button class="nav-side-btn" onclick="nav('projects')" title="Projects"><span class="ico">📂</span><span class="lbl">Proj</span></button>
     <button class="nav-side-btn" onclick="nav('leads')" title="Leads"><span class="ico">👥</span><span class="lbl">Leads</span></button>
     <button class="nav-side-btn" onclick="nav('ragx')" title="RAGx"><span class="ico">⚡</span><span class="lbl">RAGx</span></button>
@@ -303,6 +304,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--cyan);box-shadow:0 0 
     <button class="nav-side-btn" onclick="nav('gallery')" title="Gallery"><span class="ico">🖼️</span><span class="lbl">Gall</span></button>
     <button class="nav-side-btn" onclick="nav('skills')" title="Skills"><span class="ico">🧠</span><span class="lbl">Skill</span></button>
     <button class="nav-side-btn" onclick="nav('kb')" title="Knowledge Base"><span class="ico">🕸️</span><span class="lbl">KB</span></button>
+    <button class="nav-side-btn" onclick="nav('running')" title="Running Tasks"><span class="ico">⚡</span><span class="lbl">Run</span></button>
     <button class="nav-side-btn" onclick="nav('inbox')" title="Inbox"><span class="ico">📥</span><span class="lbl">Inbox</span></button>
     <button class="nav-side-btn" onclick="nav('old')" title="Old dashboard"><span class="ico">🏛️</span><span class="lbl">Old</span></button>
   </div>
@@ -324,7 +326,8 @@ input:focus,select:focus,textarea:focus{border-color:var(--cyan);box-shadow:0 0 
       <div class="page" id="p-galaxy" style="background:#000"><iframe src="/galaxy-3d" style="width:100%;height:100%;border:none" title="Galaxy 3D"></iframe></div>
       <div class="page" id="p-todo"><div class="page-padded" id="todoBody"></div></div>
       <div class="page" id="p-calendar"><div class="page-padded" id="calendarBody"></div></div>
-      <div class="page" id="p-projects"><div class="page-padded" id="projectsBody"></div></div>
+      <div class="page" id="p-initiatives"><div class="page-padded" id="initiativesBody"></div></div>
+    <div class="page" id="p-projects"><div class="page-padded" id="projectsBody"></div></div>
       <div class="page" id="p-ragx" style="background:#000"><iframe src="https://ai.ragmedium.com/dashboard" style="width:100%;height:100%;border:none"></iframe></div>
       <div class="page" id="p-leads" style="background:#000"><iframe src="/proxy/leads/" style="width:100%;height:100%;border:none"></iframe></div>
       <div class="page" id="p-content" style="background:#000"><iframe src="/proxy/content-empire/" style="width:100%;height:100%;border:none"></iframe></div>
@@ -333,7 +336,8 @@ input:focus,select:focus,textarea:focus{border-color:var(--cyan);box-shadow:0 0 
       <div class="page" id="p-docs"><div class="page-padded" id="docsBody"></div></div>
       <div class="page" id="p-gallery"><div class="page-padded" id="galleryBody"></div></div>
       <div class="page" id="p-skills"><div class="page-padded" id="skillsBody"></div></div>
-      <div class="page" id="p-kb"><div class="page-padded" id="kbBody"></div></div>
+      <div class="page" id="p-running"><div class="page-padded" id="runningBody"></div></div>
+    <div class="page" id="p-kb"><div class="page-padded" id="kbBody"></div></div>
       <div class="page" id="p-inbox"><div class="page-padded" id="inboxBody"></div></div>
       <div class="page" id="p-old"><iframe src="/old/" style="width:100%;height:100%;border:none"></iframe></div>
     </div>
@@ -478,6 +482,8 @@ let DOCS = [];
 let INBOX = [];
 let CALENDAR_EVENTS = [];
 let APPROVALS = [];
+let MESSAGES = [];   // Real inter-agent messages from /api/team/messages/Amir
+let NOTIFICATIONS = []; // Merged approvals + messages for the right rail
 let RAIL_AGENT_FILTER = 'all';
 let RAIL_AGENT_SEARCH = '';
 let orgStructure = null;
@@ -516,7 +522,7 @@ function renderPage(page){
   const renderers = {
     'overview':renderOverview,'board':renderBoard,'agents':renderAgents,'org':renderOrg,
     'activity':renderActivity,'slack':renderSlack,'todo':renderTodo,'calendar':renderCalendar,
-    'projects':renderProjects,'kb':renderKB,'skills':renderSkills,'gallery':renderGallery,
+    'projects':renderProjects,'initiatives':renderInitiatives,'running':renderRunning,'kb':renderKB,'skills':renderSkills,'gallery':renderGallery,
     'inbox':renderInbox,'docs':renderDocs
   };
   if(renderers[page]) renderers[page]();
@@ -540,7 +546,7 @@ function renderPage(page){
 // ═══ OVERVIEW (with progress bars + mini calendar + mini inbox) ═══
 async function renderOverview(){
   const body = $('overviewBody');
-  const onlineAgents = AGENTS.filter(a => a.status === 'active' || a.status === 'online').length;
+  const onlineAgents = AGENTS.filter(a => a.status === 'active' || a.status === 'online' || a.is_active).length;
   const inProgress = TASKS.filter(t => t.status === 'in_progress').length;
   const blocked = TASKS.filter(t => t.status === 'blocked').length;
   const pendingApprovals = APPROVALS.filter(a => a.status==='pending').length;
@@ -566,6 +572,37 @@ async function renderOverview(){
       <div class="stat-card" style="--accent:var(--green)"><div class="lbl">LEADS</div><div class="val">${(leads.people/1e6).toFixed(1)}M</div><div class="sub">${(leads.biz/1e6).toFixed(1)}M biz · ${(leads.pros/1e6).toFixed(1)}M pros</div></div>
       <div class="stat-card" style="--accent:var(--purple)"><div class="lbl">KNOWLEDGE</div><div class="val">${(KB_STATS.total/1000).toFixed(1)}K</div><div class="sub">${KB_STATS.topics||0} topics · ${KB_STATS.nodes||0} graph nodes</div></div>
     </div>
+
+    ${pendingApprovals > 0 ? `
+    <!-- APPROVALS / BLOCKERS — tick/cross/chat per item -->
+    <div style="background:var(--surface);border:1px solid var(--red);border-radius:8px;padding:14px;margin-bottom:14px;box-shadow:0 0 12px rgba(255,77,94,0.15)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div style="font-family:'Audiowide';font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--red);display:flex;align-items:center;gap:8px">
+          <span style="font-size:16px">🔐</span> APPROVALS · ${pendingApprovals} pending
+        </div>
+        <a onclick="nav('activity')" style="color:var(--cyan);font-size:10px;cursor:pointer;text-transform:uppercase;letter-spacing:.06em">All activity →</a>
+      </div>
+      <div style="font-size:9px;color:var(--text3);margin-bottom:8px">
+        <span style="color:var(--green)">✓</span> Approve ·
+        <span style="color:var(--red)">✕</span> Deny ·
+        <span style="color:var(--cyan)">💬</span> Chat with agent
+      </div>
+      <div style="display:grid;gap:6px">
+        ${APPROVALS.filter(a => a.status==='pending').map(a => `
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg2);border:1px solid var(--line);border-radius:6px;border-left:3px solid var(--red)">
+            <div style="font-size:18px">🔐</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:12px;font-weight:600;color:var(--text)">${esc(a.title||'Permission request')}</div>
+              <div style="font-size:10px;color:var(--text3);margin-top:2px">${esc(a.requested_by||a.from_agent||'Agent')} · ${esc(a.description||a.context||'')}</div>
+            </div>
+            <button class="btn green sm" onclick="approveOne('${a.id||''}')" style="font-size:14px;padding:4px 10px">✓</button>
+            <button class="btn red sm" onclick="denyOne('${a.id||''}')" style="font-size:14px;padding:4px 10px">✕</button>
+            <button class="btn sm" onclick="dmFromNotif('${esc(a.requested_by||'')}','')" style="font-size:14px;padding:4px 10px" title="Chat with ${esc(a.requested_by||'agent')}">💬</button>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+    ` : ''}
 
     <!-- Mini calendar + mini inbox side-by-side -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
@@ -999,16 +1036,23 @@ function switchChannelFull(ch){
 }
 
 function renderChannelMessagesFull(ch){
-  $('slackMessagesFull').innerHTML = generateSlackHistory(ch).map(m => `
-    <div class="slack-msg">
+  const el = $('slackMessagesFull');
+  if(!el) return;
+  const msgs = buildRealSlackMessages(ch, 30);
+  if(!msgs.length){
+    el.innerHTML = `<div style="padding:20px;text-align:center;color:var(--dim);font-size:11px">No messages yet in ${esc(ch)}.<br><span style="font-size:9px">Agents will post here as they work.</span></div>`;
+    return;
+  }
+  el.innerHTML = msgs.map(m => `
+    <div class="slack-msg" onclick="openAgentChat(\'${(m.name||'').replace(/'/g, "\\'")}\')" style="cursor:pointer" title="Open ${m.name||'agent'} thread">
       <div class="avatar" style="background:${TEAM_COLORS[m.team]||'#6b7a90'}">${(m.name||'?')[0]}</div>
       <div class="bubble">
-        <div class="who"><span class="name" style="color:${TEAM_COLORS[m.team]||'var(--cyan)'}">${esc(m.name)}</span><span class="time">${esc(m.time)}</span></div>
+        <div class="who"><span class="name" style="color:${TEAM_COLORS[m.team]||'var(--cyan)'}">${esc(m.name)}</span><span class="time">${esc(m.time)}</span>${m.priority==='high'?`<span class="unread" style="background:var(--red)">!</span>`:''}</div>
         <div class="text">${esc(m.text)}</div>
       </div>
     </div>
   `).join('');
-  $('slackMessagesFull').scrollTop = $('slackMessagesFull').scrollHeight;
+  el.scrollTop = el.scrollHeight;
 }
 
 function sendSlackMsgFull(){
@@ -1027,24 +1071,41 @@ function sendSlackMsgFull(){
   msgs.insertAdjacentHTML('beforeend', html);
   msgs.scrollTop = msgs.scrollHeight;
   input.value = '';
-  // POST to backend
-  fetch('/api/slack/message',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({channel:currentSlackChannel,text:txt,from:'amir'})}).catch(()=>{});
-  // Add agent echo after a moment for DMs
-  if(currentSlackChannel.startsWith('@')){
-    setTimeout(() => {
-      const name = currentSlackChannel.slice(1);
-      const agent = AGENTS.find(a => (a.codename||'').toLowerCase() === name);
-      const echo = `<div class="slack-msg">
-        <div class="avatar" style="background:${TEAM_COLORS[agent?.team]||'#6b7a90'}">${(agent?.codename||'?')[0]}</div>
-        <div class="bubble">
-          <div class="who"><span class="name" style="color:${TEAM_COLORS[agent?.team]||'var(--cyan)'}">${esc(agent?.codename||name)}</span><span class="time">${new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</span></div>
-          <div class="text">Got it. Routing to the task queue. APS updating…</div>
-        </div>
-      </div>`;
-      msgs.insertAdjacentHTML('beforeend', echo);
-      msgs.scrollTop = msgs.scrollHeight;
-    }, 800);
-  }
+  // POST to REAL agent-team inter-agent messages (port 1707)
+  const isDM = currentSlackChannel.startsWith('@');
+  const targetAgent = isDM ? currentSlackChannel.slice(1) : (SLACK_CHANNELS.find(c=>c.id===currentSlackChannel)?.name || 'command');
+  // Map channel/dm → target agent name (must match the names in /api/team/agents)
+  const to = isDM
+    ? (AGENTS.find(a => (a.codename||'').toLowerCase() === targetAgent.toLowerCase())?.name || targetAgent)
+    : targetAgent;
+  fetch('/api/team/messages', {
+    method:'POST',
+    headers:{'content-type':'application/json'},
+    body: JSON.stringify({
+      from_agent: 'Amir',
+      to_agent: to,
+      subject: isDM ? `💬 DM from Amir: ${txt.substring(0,40)}` : `#${targetAgent}: ${txt.substring(0,40)}`,
+      text: txt,
+      priority: 'normal',
+      thread_id: isDM ? `dm_${targetAgent.toLowerCase()}` : `team_${targetAgent}`
+    })
+  }).then(r => r.ok ? r.json() : null).then(d => {
+    // Optimistic echo so it feels live
+    if(isDM){
+      setTimeout(() => {
+        const agent = AGENTS.find(a => a.name === to || (a.codename||'').toLowerCase() === targetAgent.toLowerCase());
+        const echo = `<div class="slack-msg">
+          <div class="avatar" style="background:${TEAM_COLORS[agent?.team]||'#6b7a90'}">${(agent?.codename||targetAgent||'?')[0]}</div>
+          <div class="bubble">
+            <div class="who"><span class="name" style="color:${TEAM_COLORS[agent?.team]||'var(--cyan)'}">${esc(agent?.codename||targetAgent)}</span><span class="time">${new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</span></div>
+            <div class="text">Got it — ${esc(txt.substring(0,80))}. On it. Will report back when done.</div>
+          </div>
+        </div>`;
+        msgs.insertAdjacentHTML('beforeend', echo);
+        msgs.scrollTop = msgs.scrollHeight;
+      }, 1200);
+    }
+  }).catch(()=>{});
 }
 
 // Rail uses same logic
@@ -1058,17 +1119,25 @@ function sendSlackMsg(){
 function renderRailSlack(){
   // Build the channel HTML fresh and write to rail (the full-page list is only created when nav('slack') runs)
   renderSlackChannelsFull();
-  // Render messages
+  // Render messages — REAL data from /api/team/messages/Amir
   const msgEl = $('slackMessages');
-  if(msgEl) msgEl.innerHTML = generateSlackHistory(currentSlackChannel).map(m => `
-    <div class="slack-msg">
-      <div class="avatar" style="background:${TEAM_COLORS[m.team]||'#6b7a90'}">${(m.name||'?')[0]}</div>
-      <div class="bubble">
-        <div class="who"><span class="name" style="color:${TEAM_COLORS[m.team]||'var(--cyan)'}">${esc(m.name)}</span><span class="time">${esc(m.time)}</span></div>
-        <div class="text">${esc(m.text)}</div>
-      </div>
-    </div>
-  `).join('');
+  if(msgEl){
+    const msgs = buildRealSlackMessages(currentSlackChannel, 30);
+    if(!msgs.length){
+      msgEl.innerHTML = `<div style="padding:20px;text-align:center;color:var(--dim);font-size:11px">No messages yet.<br><span style="font-size:9px">Agents post here as they work.</span></div>`;
+    } else {
+      msgEl.innerHTML = msgs.map(m => `
+        <div class="slack-msg" data-agent="${esc(m.name||'')}" data-text="${esc(m.text||'')}" onclick="openAgentChat(this.dataset.agent)" style="cursor:pointer" title="Open ${esc(m.name)} thread">
+          <div class="avatar" style="background:${TEAM_COLORS[m.team]||'#6b7a90'}">${(m.name||'?')[0]}</div>
+          <div class="bubble">
+            <div class="who"><span class="name" style="color:${TEAM_COLORS[m.team]||'var(--cyan)'}">${esc(m.name)}</span><span class="time">${esc(m.time)}</span>${m.priority==='high'?`<span class="unread" style="background:var(--red)">!</span>`:''}</div>
+            <div class="text">${esc(m.text)}</div>
+            <div class="actions" style="font-size:9px;color:var(--dim);margin-top:4px">💬 click to chat</div>
+          </div>
+        </div>
+      `).join('');
+    }
+  }
   // Update header
   const title = $('slackTitle');
   const topic = $('slackTopic');
@@ -1086,59 +1155,211 @@ function renderRailSlack(){
 function renderChannelMessages(ch){
   const el = $('slackMessages');
   if(!el) return;
-  el.innerHTML = generateSlackHistory(ch).map(m => `
+  const msgs = buildRealSlackMessages(ch, 30);
+  if(!msgs.length){
+    el.innerHTML = `<div style="padding:20px;text-align:center;color:var(--dim);font-size:11px">No messages in ${esc(ch)}.</div>`;
+    return;
+  }
+  el.innerHTML = msgs.map(m => `
     <div class="slack-msg">
       <div class="avatar" style="background:${TEAM_COLORS[m.team]||'#6b7a90'}">${(m.name||'?')[0]}</div>
       <div class="bubble">
-        <div class="who"><span class="name" style="color:${TEAM_COLORS[m.team]||'var(--cyan)'}">${esc(m.name)}</span><span class="time">${esc(m.time)}</span></div>
+        <div class="who"><span class="name" style="color:${TEAM_COLORS[m.team]||'var(--cyan)'}">${esc(m.name)}</span><span class="time">${esc(m.time)}</span>${m.priority==='high'?`<span class="unread" style="background:var(--red)">!</span>`:''}</div>
         <div class="text">${esc(m.text)}</div>
       </div>
     </div>
   `).join('');
 }
 
-function generateSlackHistory(channel){
-  const now = new Date();
-  const time = (m) => new Date(now - m*60000).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+// REAL message feed builder — pulls from agent-team /api/team/messages/Amir
+// and maps to per-channel view (so the same data drives #command, DMs, #engineering, etc.)
+function buildRealSlackMessages(channel, limit=30){
+  if(!Array.isArray(MESSAGES) || !MESSAGES.length) return [];
+  // MESSAGES shape: { id, type:'agent_message', title, message:{from_agent, to_agent, text, priority, thread_id, sent_at}, is_read, created_at }
+  const rows = MESSAGES.slice(0, 500).map(m => {
+    const msg = (typeof m.message === 'string') ? (() => { try { return JSON.parse(m.message); } catch { return {}; } })() : (m.message||{});
+    return {
+      id: m.id,
+      from: msg.from_agent || 'unknown',
+      to:   msg.to_agent   || 'unknown',
+      text: msg.text || m.title || '',
+      priority: msg.priority || 'normal',
+      thread_id: msg.thread_id,
+      sent_at: msg.sent_at || m.created_at,
+      is_perm: msg.priority === 'high' || /BLOCKER|request|approval/i.test(m.title||'')
+    };
+  });
+
+  // Filter by channel
+  let filtered;
   if(channel === '#command'){
-    return [
-      {name:'Kaneki',team:'leadership',time:time(2),text:'Command center online. All 63 agents reporting in. 🛰'},
-      {name:'Forge',team:'engineering',time:time(8),text:`Sprint status: ${TASKS.filter(t=>t.status==='in_progress').length} tasks in progress, ${TASKS.filter(t=>t.status==='done').length} done, ${TASKS.filter(t=>t.status==='blocked').length} blocked.`},
-      {name:'Quill',team:'content',time:time(15),text:'Content calendar updated. 5 posts scheduled this week.'},
-      {name:'Bridge',team:'client-success',time:time(22),text:'All clients healthy. 2 tickets pending. SLA: 96%.'},
-      {name:'Hunter',team:'leadgen',time:time(35),text:'Outreach engine status: '+Math.floor(Math.random()*200+50)+' emails queued. Bounce rate 2.1%.'},
-      {name:'Oracle',team:'research',time:time(48),text:'Trend scan complete — AI automation trending 247% this week. 12 new prospects flagged.'},
-      {name:'Sentinel',team:'operations',time:time(60),text:'All VPS nodes healthy. CPU avg 34%. Memory 58%.'}
-    ];
+    // Command center: all messages to Amir + system-wide pings
+    filtered = rows.filter(m => m.to === 'Amir' || m.from === 'Amir');
+  } else if(channel === '#approvals'){
+    filtered = rows.filter(m => m.is_perm);
+  } else if(channel.startsWith('#')){
+    // Team channel: route by team name embedded in from_agent (e.g. "C-01 (Scroll)" → content, "E-01 (Drift)" → engineering)
+    const teamName = channel.slice(1).toLowerCase();
+    const teamPrefixes = {
+      'engineering':['E-','L-','sys-'],
+      'content':['C-','L-03'],
+      'client-success':['CS-','L-06'],
+      'leadgen':['LG-','L-04'],
+      'operations':['O-','L-02'],
+      'research':['R-','L-07'],
+      'startups':['ST-','L-05'],
+      'leadership':['K-','AM-','L-']
+    };
+    const prefixes = teamPrefixes[teamName] || [];
+    filtered = rows.filter(m => prefixes.some(p => (m.from||'').toUpperCase().startsWith(p.toUpperCase())) || (m.to||'').toLowerCase().includes(teamName));
+  } else if(channel.startsWith('@')){
+    // DM: messages with that agent
+    const name = channel.slice(1).toLowerCase();
+    filtered = rows.filter(m => (m.from||'').toLowerCase().includes(name) || (m.to||'').toLowerCase().includes(name));
+  } else {
+    filtered = rows;
   }
-  const teamMap = {
-    '#engineering':'engineering','#content':'content','#client-success':'client-success',
-    '#leadgen':'leadgen','#operations':'operations','#research':'research',
-    '#startups':'startups','#leadership':'leadership'
-  };
-  const team = teamMap[channel] || 'engineering';
-  const teamAgents = AGENTS.filter(a => a.team === team).slice(0,5);
-  const lines = teamAgents.length ? teamAgents.map((a,i) => ({
-    name:a.codename,team:a.team,time:time(3+i*8),
-    text:`${a.specialization||'Agent active'}. Load ${a.current_load||0}/${a.max_load||10}. ${i===0?'Need anything?':'On it.'}`
-  })) : [];
-  if(channel === '#approvals'){
-    APPROVALS.filter(a=>a.status==='pending').forEach((a,i) => lines.push({
-      name:a.requested_by||'Agent',team:a.team||'engineering',time:time(2+i*5),
-      text:`Requesting approval: ${a.title||'access'}. ${a.description||''}`
-    }));
-    if(!lines.length) lines.push({name:'Kaneki',team:'leadership',time:time(2),text:'No pending approvals right now. Pipeline clear.'});
+  return filtered.slice(0, limit).map(m => {
+    const fromAgent = AGENTS.find(a => a.name === m.from || a.codename?.toLowerCase() === m.from?.toLowerCase() || a.name?.toLowerCase().includes(m.from?.toLowerCase()||'___'));
+    const team = fromAgent?.team || (m.from?.startsWith('C-') ? 'content' : m.from?.startsWith('E-') || m.from?.startsWith('sys-') ? 'engineering' : m.from?.startsWith('CS-') ? 'client-success' : m.from?.startsWith('LG-') ? 'leadgen' : m.from?.startsWith('O-') ? 'operations' : m.from?.startsWith('R-') ? 'research' : m.from?.startsWith('ST-') ? 'startups' : m.from?.startsWith('K-') || m.from?.startsWith('AM-') ? 'leadership' : 'general');
+    return {
+      name: m.from,
+      team,
+      time: new Date(m.sent_at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),
+      text: m.text,
+      priority: m.priority,
+      id: m.id,
+      is_perm: m.is_perm,
+      to: m.to
+    };
+  });
+}
+
+function buildActivityFromMessages(){
+  // Real activity: latest 20 messages where Amir is the recipient
+  if(!Array.isArray(MESSAGES) || !MESSAGES.length) return [];
+  return MESSAGES.slice(0, 30).map(m => {
+    const msg = (typeof m.message === 'string') ? (() => { try { return JSON.parse(m.message); } catch { return {}; } })() : (m.message||{});
+    const isPerm = msg.priority === 'high' || /BLOCKER|request|approval|need|please/i.test(m.title||'');
+    const isHigh = msg.priority === 'high';
+    return {
+      id: m.id,
+      cls: isPerm ? 'perm' : (isHigh ? 'ask' : ''),
+      icon: isPerm ? '🔐' : (isHigh ? '❓' : '💬'),
+      agent: msg.from_agent || 'Agent',
+      verb: isPerm ? 'requests permission / blocker' : (msg.to_agent === 'Amir' ? 'sent you' : 'updated'),
+      obj: m.title || 'message',
+      detail: msg.text || '',
+      time: timeAgo(m.created_at || msg.sent_at),
+      to: msg.to_agent,
+      priority: msg.priority,
+      actions: isPerm ? `<button class="btn green sm" onclick="approveNotif(${m.id})">✓</button><button class="btn red sm" onclick="denyNotif(${m.id})">✕</button><button class="btn sm" onclick="dmAgent('${esc((msg.from_agent||'').match(/\(([^)]+)\)/)?.[1] || msg.from_agent)}');closeModal()">💬</button>` : `<button class="btn sm" onclick="dmAgent('${esc((msg.from_agent||'').match(/\(([^)]+)\)/)?.[1] || msg.from_agent)}');closeModal()">💬</button>`
+    };
+  });
+}
+
+
+function slackMsgClick(el){
+  const agent = el.dataset.agent || "";
+  const text = el.dataset.text || "";
+  if(!agent) return;
+  // Open chat with that agent
+  currentSlackChannel = "@" + agent.toLowerCase().replace(/[^a-z0-9]/g, "");
+  renderRailSlack();
+  // Also open a modal with the message detail
+  showModal(agent + " — Message", `
+    <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.5">${esc(text)}</div>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button class="btn green" onclick="dmAgent('${esc(agent)}');closeModal()">💬 Open chat</button>
+      <button class="btn" onclick="closeModal()">Close</button>
+    </div>
+  `);
+}
+document.addEventListener("click", e => {
+  const m = e.target.closest(".slack-msg");
+  // 2026-06-30: open the agent chat thread instead of just a message modal
+  if (m && m.dataset.agent) { e.preventDefault(); e.stopPropagation(); openAgentChat(m.dataset.agent); }
+});
+
+
+
+async function renderInitiatives(){
+  const body = $('initiativesBody');
+  if(!body) return;
+  body.innerHTML = '<div style="color:var(--dim);font-size:11px;padding:20px;text-align:center">Loading initiatives...</div>';
+  try {
+    const res = await fetch('/api/initiatives').then(r => r.json());
+    const items = Array.isArray(res) ? res : [];
+    if(!items.length){
+      body.innerHTML = '<div style="color:var(--dim);font-size:11px;padding:20px;text-align:center">No initiatives yet.</div>';
+      return;
+    }
+    body.innerHTML = `<div style="font-family:Audiowide;font-size:18px;letter-spacing:.08em;text-transform:uppercase;color:var(--text);margin-bottom:14px"><span style="color:var(--cyan)">I</span> INITIATIVES · ${items.length} active</div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:10px">${items.map(i => `<div class="agent-card" onclick="openInitiative(${i.id})" style="border-left:3px solid var(--cyan);cursor:pointer"><div class="head"><div class="agent-avatar" style="background:var(--cyan);font-size:10px">${esc((i.project||'?').substring(0,2).toUpperCase())}</div><div style="flex:1;min-width:0"><div class="name" style="text-transform:capitalize">${esc(i.name)}</div><div class="role">${esc(i.project||'?')} · ${i.task_count||0} tasks · ${i.in_progress_tasks||0} wip</div></div></div><div style="font-size:10px;color:var(--muted);margin-top:6px;line-height:1.4">${esc((i.description||'').substring(0,140))}</div><div style="font-size:9px;color:var(--purple);margin-top:6px;font-family:Audiowide">GOAL: ${esc((i.goal_metric||'unspecified').substring(0,80))}</div><div style="font-size:9px;color:var(--dim);margin-top:4px;display:flex;gap:8px;flex-wrap:wrap">${(i.in_progress_tasks||0)?'<span style="color:var(--cyan)">'+i.in_progress_tasks+' wip</span>':''}${(i.done_tasks||0)?'<span style="color:var(--green)">'+i.done_tasks+' done</span>':''}${(i.failed_tasks||0)?'<span style="color:var(--red)">'+i.failed_tasks+' failed</span>':''}</div></div>`).join('')}</div>`;
+  } catch(e) {
+    body.innerHTML = '<div style="color:var(--red);font-size:11px;padding:20px">'+esc(String(e))+'</div>';
   }
-  if(channel.startsWith('@')){
-    const name = channel.slice(1);
-    const a = AGENTS.find(x => (x.codename||'').toLowerCase() === name);
-    return [
-      {name:a?.codename||name,team:a?.team||'engineering',time:time(1),text:`Hey Amir — I'm ${a?.codename||name}. ${a?.specialization||'Standing by'}.`},
-      {name:a?.codename||name,team:a?.team||'engineering',time:time(15),text:`Currently load ${a?.current_load||0}/${a?.max_load||10}. Ping me with tasks and I'll route them.`},
-      {name:'You',team:'leadership',time:time(30),text:`(this DM shows ${a?.codename||name}'s chain of thought — your messages route to its task queue)`}
-    ];
+}
+
+async function openInitiative(id){
+  try {
+    const init = await fetch('/api/initiatives/'+id).then(r => r.json());
+    const chat = init.chat || [];
+    const tasks = init.tasks || [];
+    showModal('🎯 ' + init.name, `<div style="font-size:11px;color:var(--muted);margin-bottom:8px">Project: <span style="color:var(--cyan)">${esc(init.project||'?')}</span> · Status: ${esc(init.status||'?')}</div><div style="font-size:12px;color:var(--text);margin-bottom:8px;line-height:1.5">${esc(init.description||'')}</div><div style="font-size:10px;color:var(--purple);margin-bottom:14px;padding:6px 10px;background:var(--bg2);border-radius:4px">🎯 GOAL: ${esc(init.goal_metric||'unspecified')}</div><div style="font-family:Audiowide;font-size:11px;color:var(--cyan);margin-bottom:6px;text-transform:uppercase">Tasks (${tasks.length})</div><div style="max-height:160px;overflow-y:auto;margin-bottom:14px;border:1px solid var(--line);border-radius:4px;padding:6px">${tasks.length ? tasks.slice(0,15).map(t => `<div style="display:flex;align-items:center;gap:6px;padding:4px 0;font-size:10px;border-bottom:1px solid var(--bg)"><span class="pri ${t.priority||'P3'}">${t.priority||'P3'}</span><span style="flex:1;color:var(--text)">${esc(t.title||'?')}</span><span style="color:var(--${t.status==='done'?'green':t.status==='in_progress'?'cyan':t.status==='failed'?'red':'muted'});font-size:9px">${t.status}</span></div>`).join('') : '<div style="color:var(--dim);font-size:10px;padding:8px">No tasks yet</div>'}</div><div style="font-family:Audiowide;font-size:11px;color:var(--green);margin-bottom:6px;text-transform:uppercase">💬 Initiative Chat (${chat.length})</div><div style="max-height:200px;overflow-y:auto;border:1px solid var(--line);border-radius:4px;padding:8px;background:var(--bg2);font-size:11px;font-family:monospace" id="initChatBox">${chat.length ? chat.map(c => `<div style="margin-bottom:8px;padding:6px;border-left:2px solid var(--cyan)"><div style="color:var(--cyan);font-size:9px">${esc(c.agent_name||c.from_agent||'?')} · ${esc((c.created_at||'').substring(11,19))}</div><div style="color:var(--text);margin-top:2px;white-space:pre-wrap">${esc((c.message||'').substring(0,500))}</div></div>`).join('') : '<div style="color:var(--dim);font-size:10px;padding:8px">No messages yet</div>'}</div><div style="display:flex;gap:6px;margin-top:10px"><input type="text" id="initChatInput" placeholder="Message the initiative team..." style="flex:1;padding:6px 10px;background:var(--bg2);border:1px solid var(--line);color:var(--text);border-radius:4px;font-size:11px" onkeydown="if(event.key==='Enter')sendInitChat(${id})"><button class="btn green" onclick="sendInitChat(${id})">Send</button></div>`);
+  } catch(e) { showModal('Error', '<div style="color:var(--red)">'+esc(String(e))+'</div>'); }
+}
+
+async function sendInitChat(initiativeId){
+  const input = $('initChatInput');
+  if(!input || !input.value.trim()) return;
+  const msg = input.value.trim();
+  try {
+    await fetch('/api/initiative_chat', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify({initiative_id: initiativeId, from_agent: 'Amir', agent_name: 'Amir', message: msg, is_from_amir: true})});
+    input.value = '';
+    openInitiative(initiativeId);
+  } catch(e) { console.error(e); }
+}
+
+async function renderRunning(){
+  const body = $('runningBody');
+  if(!body) return;
+  body.innerHTML = '<div style="color:var(--dim);padding:20px;text-align:center">Loading running tasks...</div>';
+  try {
+    const res = await fetch('/api/tasks/running').then(r => r.json());
+    const tasks = res.tasks || [];
+    if(!tasks.length){
+      body.innerHTML = '<div style="color:var(--dim);padding:20px;text-align:center">✨ No tasks currently running. Agents idle.</div>';
+      return;
+    }
+    body.innerHTML = `
+      <div style="font-family:'Audiowide';font-size:18px;letter-spacing:.08em;text-transform:uppercase;color:var(--text);margin-bottom:14px">
+        <span style="color:var(--cyan)">⚡</span> RUNNING · ${tasks.length} active
+      </div>
+      <div style="display:grid;gap:8px">
+        ${tasks.map(t => {
+          const mins = Math.floor((t.running_seconds||0) / 60);
+          const sec = (t.running_seconds||0) % 60;
+          return `
+          <div class="agent-card" onclick="projectDetail('${esc(t.project||"team")}')" style="border-left:3px solid var(--cyan);cursor:pointer">
+            <div class="head">
+              <div class="agent-avatar" style="background:var(--cyan);font-size:9px">${esc((t.agent_division||"??").substring(0,2).toUpperCase())}</div>
+              <div style="flex:1;min-width:0">
+                <div class="name" style="font-size:12px">${esc(t.title||"?")}</div>
+                <div class="role" style="font-size:10px">@${esc(t.agent_name||"unassigned")} · ${esc(t.project||"team")} · ${esc(t.initiative_name||"")} · ${mins}m${sec}s</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:4px">
+                <span style="display:inline-block;width:8px;height:8px;background:var(--green);border-radius:50%;animation:pulse 1.5s infinite"></span>
+                <span style="font-size:9px;color:var(--green);font-family:'Audiowide'">RUNNING</span>
+              </div>
+            </div>
+          </div>
+        `}).join('')}
+      </div>
+      <style>@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}</style>
+    `;
+  } catch(e) {
+    body.innerHTML = '<div style="color:var(--red);padding:20px">Error: '+esc(String(e))+'</div>';
   }
-  return lines;
 }
 
 // ═══ PROJECTS TAB (real, clickable) ═══
@@ -1176,6 +1397,9 @@ function renderProjects(){
 
 function projectDetail(key){
   const projTasks = TASKS.filter(t => t.project === key);
+  // 2026-06-30: Status ordering — failed first, then in_progress, then done
+  const statusOrder = {failed:0, in_progress:1, active:1, blocked:2, todo:3, review:4, done:5, backlog:6};
+  projTasks.sort((a,b) => (statusOrder[a.status]??9) - (statusOrder[b.status]??9));
   const statuses = {};
   projTasks.forEach(t => statuses[t.status] = (statuses[t.status]||0)+1);
   // Distinct agents working this project
@@ -1788,23 +2012,100 @@ function renderSkills(){
 
 // ═══ RAIL RENDERERS ═══
 function renderRailNotif(){
-  const items = buildActivity().slice(0,20);
+  // Real notifications = latest messages addressed to Amir + pending approvals
+  const items = buildActivityFromMessages().slice(0, 25);
+  const notifCount = items.length;
+  // Update the tab badge if present
+  const tab = document.querySelector('.rail-tab[data-rail="notif"]');
+  if(tab){
+    const blocked = items.filter(i => i.cls === 'perm').length;
+    tab.textContent = blocked ? `🔔 ${blocked}` : '🔔';
+    tab.style.color = blocked ? 'var(--red)' : '';
+  }
   $('railNotif').innerHTML = `
     <div style="padding:12px">
-      <div style="font-family:'Audiowide';font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">🔔 NOTIFICATIONS · ${items.length}</div>
-      <div style="font-size:11px;color:var(--text3);line-height:1.6">
+      <div style="font-family:'Audiowide';font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
+        <span>🔔 NOTIFICATIONS · ${notifCount}</span>
+        <span style="font-size:8px;color:var(--dim)">live · auto-refresh 30s</span>
+      </div>
+      <div style="font-size:9px;color:var(--text3);line-height:1.6;margin-bottom:6px;padding:4px 6px;background:var(--bg2);border-radius:4px">
+        <span style="color:var(--green)">✓ Approve</span> · <span style="color:var(--red)">✕ Deny</span> · <span style="color:var(--cyan)">💬 Chat with agent</span>
+      </div>
+      <div style="max-height:calc(100vh - 220px);overflow-y:auto">
         ${items.length ? items.map(a => `
-          <div class="feed-item ${a.cls||''}" style="padding:8px;margin-bottom:6px;border-radius:5px;background:var(--bg2);border-bottom:0">
+          <div class="feed-item ${a.cls||''}" style="padding:8px;margin-bottom:6px;border-radius:5px;background:var(--bg2);border:1px solid var(--line)">
             <div class="icon">${a.icon}</div>
             <div class="body">
-              <div class="verb"><em>${esc(a.agent||'System')}</em> ${esc(a.verb)} <span style="color:var(--pink)">${esc(a.obj||a.title||'').substring(0,40)}</span></div>
+              <div class="verb"><em>${esc(a.agent||'System')}</em> ${esc(a.verb)} <span style="color:var(--pink)">${esc(a.obj||'').substring(0,50)}</span></div>
+              <div class="obj" style="color:var(--text3);font-size:10px;margin-top:3px;line-height:1.3">${esc((a.detail||'').substring(0,140))}</div>
               <div class="time">${esc(a.time||'just now')}</div>
+              <div class="actions" style="display:flex;gap:4px;margin-top:6px">
+                <button class="btn green sm" title="Approve" onclick="approveNotif(${a.id})" style="padding:3px 8px;font-size:11px">✓</button>
+                <button class="btn red sm" title="Deny" onclick="denyNotif(${a.id})" style="padding:3px 8px;font-size:11px">✕</button>
+                <button class="btn sm" title="Open DM with ${esc(a.agent)}" onclick="dmFromNotif('${esc(a.agent)}','${esc(a.to||'')}')" style="padding:3px 8px;font-size:11px">💬</button>
+              </div>
             </div>
           </div>
-        `).join('') : '<div style="padding:14px;text-align:center;color:var(--dim);font-size:11px">No notifications</div>'}
+        `).join('') : '<div style="padding:20px;text-align:center;color:var(--dim);font-size:11px">No notifications.<br><span style="font-size:9px">All clear — agents are working.</span></div>'}
       </div>
     </div>
   `;
+}
+
+// Approve a notification (acknowledge the agent's request, send a reply)
+async function approveNotif(id){
+  try{
+    const m = (MESSAGES||[]).find(x => x.id === id);
+    if(m){
+      const msg = (typeof m.message === 'string') ? JSON.parse(m.message) : m.message;
+      // Reply to the agent saying approved
+      await fetch('/api/team/messages', {
+        method:'POST',
+        headers:{'content-type':'application/json'},
+        body: JSON.stringify({
+          from_agent: 'Amir',
+          to_agent: msg.from_agent || 'team',
+          subject: `✓ Approved: ${m.title || 'request'}`,
+          text: `Approved by @Amir — ${m.title || 'go ahead'}`,
+          priority: 'normal',
+          thread_id: msg.thread_id || 'approvals'
+        })
+      }).catch(()=>{});
+    }
+    // Mark as read (just remove from local list for now)
+    MESSAGES = (MESSAGES||[]).filter(x => x.id !== id);
+    renderRailNotif();
+  }catch(e){ console.warn('approve',e); }
+}
+async function denyNotif(id){
+  try{
+    const m = (MESSAGES||[]).find(x => x.id === id);
+    if(m){
+      const msg = (typeof m.message === 'string') ? JSON.parse(m.message) : m.message;
+      await fetch('/api/team/messages', {
+        method:'POST',
+        headers:{'content-type':'application/json'},
+        body: JSON.stringify({
+          from_agent: 'Amir',
+          to_agent: msg.from_agent || 'team',
+          subject: `✕ Denied: ${m.title || 'request'}`,
+          text: `Denied by @Amir — ${m.title || 'blocked'}`,
+          priority: 'normal',
+          thread_id: msg.thread_id || 'approvals'
+        })
+      }).catch(()=>{});
+    }
+    MESSAGES = (MESSAGES||[]).filter(x => x.id !== id);
+    renderRailNotif();
+  }catch(e){}
+}
+// Open DM with the agent who sent the notification
+function dmFromNotif(agentName, _to){
+  if(!agentName){ return; }
+  // Extract codename from "E-S01 (Kernel)" or just use the name
+  const m = agentName.match(/\(([^)]+)\)/);
+  const codename = m ? m[1] : agentName;
+  dmAgent(codename);
 }
 
 function renderRailAgents(){
@@ -1849,18 +2150,131 @@ function showModal(title, body){
   $('modalOverlay').classList.add('open');
 }
 function closeModal(){ $('modalOverlay').classList.remove('open'); }
+
+function openAgentChat(name){
+  if(!name) return;
+  showModal('💬 ' + name + ' · Thread', `
+    <div style="display:flex;flex-direction:column;gap:10px;height:420px">
+      <div id="agentChatBox" style="flex:1;overflow-y:auto;border:1px solid var(--line);border-radius:4px;padding:10px;background:var(--bg2);font-family:monospace;font-size:11px"></div>
+      <div style="display:flex;gap:6px">
+        <input type="text" id="agentChatInput" data-agent="${name.replace(/[\(\)]/g,'_')}" placeholder="${name}" style="flex:1;padding:8px;background:var(--bg2);border:1px solid var(--line);color:var(--text);border-radius:4px;font-size:11px" onkeydown="if(event.key==='Enter')sendAgentMsg(this.placeholder)">
+        <button class="btn green" onclick="sendAgentMsg(this.previousElementSibling.placeholder)">Send</button>
+      </div>
+    </div>
+  `);
+  // Load existing thread
+  fetch('/api/messages?agent=' + encodeURIComponent(name)).then(r=>r.json()).then(msgs=>{
+    const box = $('agentChatBox');
+    if(!msgs.length) { box.innerHTML = '<div style="color:var(--dim);padding:20px;text-align:center">No prior messages with this agent.</div>'; return; }
+    box.innerHTML = msgs.map(m => '<div style="margin-bottom:6px;padding:4px 0;border-bottom:1px solid var(--bg)"><span style="color:var(--' + (m.is_from_amir?'amber':'cyan') + ')">' + esc(m.from_agent||'agent') + ':</span> ' + esc((m.message||'').substring(0,500)) + ' <span style="color:var(--dim);font-size:9px">[' + esc((m.created_at||'').substring(11,19)) + ']</span></div>').join('');
+    box.scrollTop = box.scrollHeight;
+  });
+}
+function sendAgentMsg(name){
+  const input = $('agentChatInput');
+  if(!input || !input.value.trim()) return;
+  if(!name) name = input.placeholder;
+  const msg = input.value.trim();
+  input.value = '';
+  fetch('/api/messages', {
+    method: 'POST',
+    headers: {'content-type':'application/json'},
+    body: JSON.stringify({to_agent: name, from_agent: 'Amir', is_from_amir: true, message: msg})
+  }).then(r=>r.json()).then(()=>{
+    const box = $('agentChatBox');
+    box.innerHTML += '<div style="margin-bottom:6px;padding:4px 0;border-bottom:1px solid var(--bg)"><span style="color:var(--amber)">You:</span> ' + esc(msg) + ' <span style="color:var(--dim);font-size:9px">[just now]</span></div>';
+    box.scrollTop = box.scrollHeight;
+  });
+}
 $('modalOverlay').addEventListener('click', closeModal);
 
 // ═══ DATA FETCHERS ═══
+// API base — dashboard's own server at 1702 (most things) + agent-team proxied via /api/team/ → :1707
+// All agents live at /api/team/agents (real) — /api/galaxy/* was a placeholder that 404s.
+const API = {
+  agents:   '/api/team/agents',          // real: 122 agents on :1707
+  tasks:    '/api/tasks',                  // real: 21K+ tasks
+  messages: (id) => `/api/team/messages/${encodeURIComponent(id||'Amir')}`,  // real agent inbox
+  notify:   '/api/team/notify',           // POST new notification
+  heartbeat:(id) => `/api/team/agents/${id}/heartbeat`,
+  stats:    '/api/team/stats',            // real counts
+  approvals:'/api/approvals',             // local dashboard
+  leads:    '/api/leads/',                // local dashboard
+  calendar: '/api/calendar',
+  threads:  '/api/threads',
+  kb_stats: '/api/stats',
+  kb_topics:'/api/training/topics',
+  gallery:  '/api/gallery',
+  files:    '/api/files',
+  skills:   '/api/skills-catalog',
+};
+
+// Normalize raw agent-team agent into the shape the UI expects.
+// DB field: { id, name:"E-S01 (Kernel)", division:"Engineering", status:"idle", ... }
+// UI wants: { id, codename, name, team, specialization, current_load, max_load, ... }
+function normalizeAgent(a){
+  // Extract codename from "E-S01 (Kernel)" → "Kernel", fallback to name
+  let codename = a.name;
+  const m = (a.name||'').match(/\(([^)]+)\)/);
+  if(m) codename = m[1];
+  return {
+    id: a.id,
+    name: a.name,
+    codename,
+    title: a.title || a.role_description || a.agent_type,
+    team: (a.division||'general').toLowerCase().replace(/[\s_-]+/g,'-'),
+    division: a.division,
+    agent_type: a.agent_type,
+    status: a.status,
+    is_active: a.is_active,
+    specialization: a.role_description || `${a.division||'team'} · ${a.agent_type||'agent'}`,
+    current_load: a.current_load || 0,
+    max_load: a.max_load || a.max_concurrent_tasks || 7,
+    last_active_at: a.last_active_at,
+    level: a.level,
+    model: a.model
+  };
+}
+function normalizeTask(t){
+  // DB: { id, title, status, agent_type, assigned_agent_id, assigned_agents:[], project_id, ... }
+  // UI wants: { id, title, status, project, assigned_to, ... }
+  return {
+    id: t.id,
+    title: t.title,
+    description: t.description,
+    status: t.status,
+    priority: t.priority,
+    agent_type: t.agent_type,
+    assigned_to: t.assigned_agent_id ? String(t.assigned_agent_id) : (t.assigned_agents && t.assigned_agents.length ? String(t.assigned_agents[0]) : null),
+    assigned_agents: t.assigned_agents || [],
+    // 2026-06-30 fix: prefer the real venture name (t.project) over the FK-based label
+    project: t.project || t.lane || 'team',
+    project_id: t.project_id,
+    created_by: t.created_by,
+    created_at: t.created_at,
+    started_at: t.started_at,
+    completed_at: t.completed_at,
+    tags: t.tags||[],
+    retry_count: t.retry_count||0
+  };
+}
+
 async function api(path){
   try{ const r = await fetch(path); return await r.json(); }catch(e){ return null; }
 }
 
 async function fetchApprovals(){
-  try{ const d = await api('/api/approvals'); APPROVALS = (d?.items)||[]; return APPROVALS; }catch{ APPROVALS=[]; return []; }
+  try{ const d = await api('/api/approvals'); APPROVALS = (d?.items)||d||[]; return APPROVALS; }catch{ APPROVALS=[]; return []; }
 }
 async function fetchLeads(){
   try{ const d = await api('/api/leads/'); return { people: d?.counts?.people||0, biz: d?.counts?.businesses||0, pros: d?.counts?.professionals||0 }; }catch{ return {people:0,biz:0,pros:0}; }
+}
+// Real agent inbox — returns messages where to_agent=Amir OR from_agent=Amir
+async function fetchMessages(agentId){
+  try{ const d = await api(API.messages(agentId||'Amir')); return Array.isArray(d) ? d : (d?.messages||[]); }catch{ return []; }
+}
+async function fetchStats(){
+  try{ return await api(API.stats); }catch{ return null; }
 }
 async function fetchKB(){
   try{
@@ -1903,15 +2317,33 @@ async function fetchDocs(){
 async function init(){
   setInterval(() => { $('clock').textContent = new Date().toLocaleTimeString(); }, 1000);
 
-  // Parallel fetch
-  const [agentsRes, tasksRes, skillsRes] = await Promise.all([
-    fetch('/api/galaxy/agents').then(r=>r.json()).catch(()=>[]),
-    fetch('/api/galaxy/tasks').then(r=>r.json()).catch(()=>[]),
-    fetch('/api/skills-catalog').then(r=>r.json()).catch(()=>null)
+  // Parallel fetch from REAL endpoints (port 1707 proxied through /api/team/*)
+  const [agentsRes, tasksRes, skillsRes, messagesRes, statsRes] = await Promise.all([
+    fetch(API.agents).then(r=>r.json()).catch(()=>[]),
+    fetch(API.tasks).then(r=>r.json()).catch(()=>({tasks:[]})),
+    fetch(API.skills).then(r=>r.json()).catch(()=>null),
+    fetchMessages('Amir').catch(()=>[]),
+    fetchStats().catch(()=>null)
   ]);
-  AGENTS = Array.isArray(agentsRes) ? agentsRes : [];
-  TASKS = Array.isArray(tasksRes) ? tasksRes : [];
+
+  // Normalize agent data
+  const rawAgents = Array.isArray(agentsRes) ? agentsRes : (agentsRes?.agents||[]);
+  AGENTS = rawAgents.map(normalizeAgent);
+
+  // Normalize task data — handle both {tasks:[]} and [] shapes
+  const rawTasks = Array.isArray(tasksRes) ? tasksRes : (tasksRes?.tasks||[]);
+  TASKS = rawTasks.map(normalizeTask);
+
   SKILLS = skillsRes?.skills || skillsRes?.categories || [];
+
+  // Real messages from agent-team (to or from Amir)
+  MESSAGES = messagesRes || [];
+  if(statsRes){
+    // Update topbar with real counts
+    $('topbarStatus').textContent = `${statsRes.agents?.total||AGENTS.length} agents · ${statsRes.agents?.active||'?'} active · ${statsRes.tasks?.total||TASKS.length} tasks · ${MESSAGES.length} msgs`;
+  } else {
+    $('topbarStatus').textContent = `${AGENTS.length} agents · ${TASKS.length} tasks · ${MESSAGES.length} messages`;
+  }
 
   // Background fetches
   fetchApprovals();
@@ -1926,22 +2358,36 @@ async function init(){
   TASKS.forEach(t => { const p = t.project || 'team'; if(!projMap[p]) projMap[p] = {key:p,count:0,ships:0}; projMap[p].count++; if(t.status==='in_progress') projMap[p].ships++; });
   PROJECTS = Object.values(projMap).sort((a,b)=>b.count-a.count);
 
-  $('topbarStatus').textContent = `${AGENTS.length} agents · ${TASKS.length} tasks · ${KB_STATS.total||'—'} KB chunks`;
-
   renderOverview();
   renderRailSlack();
+  renderRailNotif();
 
-  // Auto-refresh every 30s
+  // Auto-refresh every 30s — pulls real agents, tasks, messages
   setInterval(async () => {
     try{
-      const [a,t] = await Promise.all([fetch('/api/galaxy/agents').then(r=>r.json()), fetch('/api/galaxy/tasks').then(r=>r.json())]);
-      if(Array.isArray(a)) AGENTS = a;
-      if(Array.isArray(t)) TASKS = t;
-      $('topbarStatus').textContent = `${AGENTS.length} agents · ${TASKS.length} tasks`;
+      const [a, t, m] = await Promise.all([
+        fetch(API.agents).then(r=>r.json()).catch(()=>[]),
+        fetch(API.tasks).then(r=>r.json()).catch(()=>({tasks:[]})),
+        fetchMessages('Amir').catch(()=>[])
+      ]);
+      const rawA = Array.isArray(a) ? a : (a?.agents||[]);
+      const rawT = Array.isArray(t) ? t : (t?.tasks||[]);
+      AGENTS = rawA.map(normalizeAgent);
+      TASKS = rawT.map(normalizeTask);
+      MESSAGES = m;
+      $('topbarStatus').textContent = `${AGENTS.length} agents · ${TASKS.length} tasks · ${MESSAGES.length} msgs`;
+      // Rebuild project list
+      const pm = {};
+      TASKS.forEach(tt => { const p = tt.project || 'team'; if(!pm[p]) pm[p] = {key:p,count:0,ships:0}; pm[p].count++; if(tt.status==='in_progress') pm[p].ships++; });
+      PROJECTS = Object.values(pm).sort((x,y)=>y.count-x.count);
       if(currentPage==='overview') renderOverview();
       if(currentPage==='activity') renderActivity();
       if(currentPage==='board') renderBoard();
-    }catch(e){}
+      if(currentPage==='agents') renderAgents();
+      // Always refresh rails so live activity shows
+      if(currentRail==='slack') renderRailSlack();
+      if(currentRail==='notif') renderRailNotif();
+    }catch(e){ console.warn('auto-refresh',e); }
   }, 30000);
 }
 
