@@ -49,9 +49,9 @@ def load_skills(max_chars=800):
                 pass
     return "\n\n---\n\n".join(skills) if skills else ""
 
-def load_kb(query, limit=3):
+def load_kb(query, limit=5):
     """Search KB for relevant chunks."""
-    url = f"{KB_API}/api/search?q={urllib.parse.quote(query)}&limit={limit}&collection=knowledge"
+    url = f"{KB_API}/api/search?q={urllib.parse.quote(query)}&limit={limit}&collection=all"
     d = http_get(url)
     chunks = []
     for r in d.get("results", []):
