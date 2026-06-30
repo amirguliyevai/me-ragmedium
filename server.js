@@ -1073,10 +1073,11 @@ async function route(req,res){
     return;
   }
 
-  // 2026-06-30: forward /api/initiatives, /api/initiative_chat, /api/tasks/running to :1707
-  if(u.pathname === '/api/initiatives' || u.pathname.startsWith('/api/initiatives/')
-     || u.pathname === '/api/initiative_chat' || u.pathname.startsWith('/api/initiative_chat/')
-     || u.pathname === '/api/tasks/running' || u.pathname.startsWith('/api/tasks/running/')){
+  // 2026-06-30: forward /api/initiatives, /api/initiative_chat, /api/tasks/running, /api/notifications to :1707
+  if(u.pathname.startsWith('/api/initiatives')
+     || u.pathname.startsWith('/api/initiative_chat')
+     || u.pathname.startsWith('/api/tasks/running')
+     || u.pathname.startsWith('/api/notifications')){
     const target = u.pathname + (u.search||'');
     const proxyReq = http.request({
       hostname: '127.0.0.1', port: 1707, path: target,

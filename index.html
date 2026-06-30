@@ -78,6 +78,39 @@ input,select,textarea{font-family:inherit}
 #railResizer{grid-column:3;width:4px;cursor:col-resize;background:transparent;position:relative;z-index:25;height:100%;flex-shrink:0;align-self:stretch}
 #railResizer:hover,#railResizer.dragging{background:var(--cyan);box-shadow:0 0 8px var(--cyan-glow)}
 
+/* ─── Side nav overlay (PWA-friendly) ─── */
+.navOverlayToggle{display:none;position:fixed;top:10px;left:10px;z-index:200;width:40px;height:40px;border-radius:50%;background:rgba(24,224,255,0.18);border:1px solid var(--cyan);color:var(--cyan);font-size:20px;cursor:pointer;align-items:center;justify-content:center;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);transition:all .15s}
+.navOverlayToggle:hover{background:rgba(24,224,255,0.32);transform:scale(1.08)}
+.navOverlayBackdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:140;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
+.navOverlayBackdrop.open{display:block}
+.sideRail-overlay{position:fixed;left:0;top:0;bottom:0;width:240px;background:rgba(8,11,18,0.96);border-right:1px solid var(--cyan-glow);z-index:160;transform:translateX(-100%);transition:transform .22s ease;overflow-y:auto;padding:18px 8px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:8px 0 40px rgba(0,0,0,0.6)}
+.sideRail-overlay.open{transform:translateX(0)}
+.sideRail-overlay .nav-side-btn{width:100%;flex-direction:row;justify-content:flex-start;padding:10px 14px;margin-bottom:4px;font-size:11px;gap:10px;border-radius:8px;color:var(--text)}
+.sideRail-overlay .nav-side-btn .ico{font-size:16px}
+.sideRail-overlay .nav-side-btn .lbl{font-size:10px;text-transform:none;letter-spacing:0}
+.sideRail-overlay .nav-side-btn.active{background:linear-gradient(135deg,rgba(24,224,255,0.22),rgba(255,92,200,0.10))}
+.sideRail-overlay .nav-section-title{font-family:Audiowide;font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;padding:14px 14px 4px;opacity:.7}
+.sideRail-overlay .nav-close{position:absolute;top:8px;right:8px;width:32px;height:32px;border-radius:50%;background:rgba(255,92,200,0.15);border:1px solid var(--pink);color:var(--pink);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+
+/* ─── Subscribe button + push UI ─── */
+.push-sub{display:flex;align-items:center;gap:8px;padding:10px 14px;margin:6px 8px 8px;border-radius:10px;background:rgba(24,224,255,0.06);border:1px solid rgba(24,224,255,0.25);color:var(--text);font-family:'Audiowide';font-size:10px;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;width:calc(100% - 16px);text-align:left;transition:all .15s}
+.push-sub:hover{background:rgba(24,224,255,0.18);border-color:var(--cyan)}
+.push-sub.subscribed{background:rgba(0,200,140,0.12);border-color:var(--green)}
+.push-sub.unsupported{opacity:0.5;cursor:not-allowed}
+.push-sub .dot{width:8px;height:8px;border-radius:50%;background:var(--muted);animation:pulse 2s infinite}
+.push-sub.subscribed .dot{background:var(--green);animation:none}
+.push-sub.unsupported .dot{background:var(--red);animation:none}
+
+@media (max-width:768px){
+  .navOverlayToggle{display:flex !important}
+  #sideRail{position:fixed !important;left:-300px;top:0;height:100vh;z-index:160;background:rgba(8,11,18,0.96);box-shadow:8px 0 40px rgba(0,0,0,0.6);transition:left .22s ease}
+  #sideRail.mobileOpen{left:0}
+  .fab-call{bottom:14px !important;right:14px !important}
+}
+
+/* ─── Pulse animation ─── */
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.35}}
+
 /* ═══ RIGHT RAIL ═══ */
 #rightRail{grid-column:4;border-left:1px solid var(--line);background:linear-gradient(180deg,#080b12,#06080d);display:flex;flex-direction:column;overflow:hidden;min-width:300px;min-height:0}
 .rail-tabs{display:flex;border-bottom:1px solid var(--line);background:rgba(8,11,18,0.5)}
@@ -279,6 +312,162 @@ input:focus,select:focus,textarea:focus{border-color:var(--cyan);box-shadow:0 0 
 </style>
 </head>
 <body>
+<!-- ─── PWA OVERLAY NAV (mobile) ─── -->
+<button class="navOverlayToggle" id="navOverlayToggle" onclick="openOverlayNav()" aria-label="Menu">≡</button>
+
+<!-- Backdrop click-outside to close -->
+<div class="navOverlayBackdrop" id="navOverlayBackdrop" onclick="closeOverlayNav()"></div>
+
+<!-- Side rail as overlay on mobile (workaround for PWA stuck in 74px) -->
+<aside class="sideRail-overlay" id="sideRailOverlay">
+  <button class="nav-close" onclick="closeOverlayNav()" aria-label="Close">×</button>
+  <div class="nav-section-title">📂 NAVIGATION</div>
+  <button class="nav-side-btn" onclick="closeOverlayNav();nav('todo')"          title="Todo">        <span class="ico">✅</span><span class="lbl">Todo</span></button>
+  <button class="nav-side-btn" onclick="closeOverlayNav();nav('calendar')"      title="Calendar">    <span class="ico">📅</span><span class="lbl">Calendar</span></button>
+  <button class="nav-side-btn" onclick="closeOverlayNav();nav('initiatives')"   title="Initiatives"> <span class="ico">🎯</span><span class="lbl">Initiatives</span></button>
+  <button class="nav-side-btn" onclick="closeOverlayNav();nav('projects')"      title="Projects">    <span class="ico">📂</span><span class="lbl">Projects</span></button>
+  <button class="nav-side-btn" onclick="closeOverlayNav();nav('leads')"         title="Leads">       <span class="ico">👥</span><span class="lbl">Leads</span></button>
+  <button class="nav-side-btn" onclick="closeOverlayNav();nav('ragx')"          title="RAGx">        <span class="ico">⚡</span><span class="lbl">RAGx</span></button>
+  <button class="nav-side-btn" onclick="closeOverlayNav();nav('content')"       title="Content">     <span class="ico">🎬</span><span class="lbl">Content</span></button>
+  <button class="nav-side-btn" onclick="closeOverlayNav();nav('studio')"        title="Studio">      <span class="ico">🧪</span><span class="lbl">Studio</span></button>
+  <button class="nav-side-btn" onclick="closeOverlayNav();nav('workspace')"     title="Workspace">   <span class="ico">💻</span><span class="lbl">Workspace</span></button>
+  <button class="nav-side-btn" onclick="closeOverlayNav();nav('docs')"          title="Docs">        <span class="ico">📄</span><span class="lbl">Docs</span></button>
+  <button class="nav-side-btn" onclick="closeOverlayNav();nav('gallery')"       title="Gallery">     <span class="ico">🖼️</span><span class="lbl">Gallery</span></button>
+  <button class="nav-side-btn" onclick="closeOverlayNav();nav('skills')"        title="Skills">      <span class="ico">🧠</span><span class="lbl">Skills</span></button>
+  <button class="nav-side-btn" onclick="closeOverlayNav();nav('kb')"            title="Knowledge Base"><span class="ico">🕸️</span><span class="lbl">KB</span></button>
+  <button class="nav-side-btn" onclick="closeOverlayNav();nav('running')"       title="Running Tasks"><span class="ico">⚡</span><span class="lbl">Run</span></button>
+  <button class="nav-side-btn" onclick="closeOverlayNav();nav('inbox')"         title="Inbox">       <span class="ico">📥</span><span class="lbl">Inbox</span></button>
+  <div class="nav-section-title">🔔 PUSH</div>
+  <div id="pushSubWrap"></div>
+</aside>
+
+<!-- Hidden markup template for desktop-side subscribe -->
+<div id="pushSubDesktop" style="display:none">
+  <button id="pushSubBtnDesktop" class="push-sub" onclick="subscribePush(event)">
+    <span class="dot"></span>
+    <span style="flex:1">Enable Push</span>
+  </button>
+</div>
+
+<script>
+// ─── Mobile overlay nav ───
+function openOverlayNav(){
+  $('sideRailOverlay').classList.add('open');
+  $('navOverlayBackdrop').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeOverlayNav(){
+  $('sideRailOverlay').classList.remove('open');
+  $('navOverlayBackdrop').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// ─── Push Notification subscribe (works on PWA + desktop) ───
+async function subscribePush(evt){
+  evt?.preventDefault(); evt?.stopPropagation();
+  const btn = evt?.currentTarget || $('pushSubWrap')?.querySelector('button');
+  if (!('serviceWorker' in navigator)) return alert('Service worker not supported');
+  if (!('PushManager' in window))    return alert('Push not supported on this browser');
+  if (Notification.permission === 'denied') return alert('Notification permission denied');
+
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    if (Notification.permission === 'default') {
+      const perm = await Notification.requestPermission();
+      if (perm !== 'granted') return alert('Permission not granted');
+    }
+    const vapidResp = await fetch('/api/notifications/vapid-key');
+    const vapidData = await vapidResp.json();
+    if (!vapidData.vapidKey) return alert('No VAPID key from server');
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlB64ToUint8Array(vapidData.vapidKey),
+    });
+    const save = await fetch('/api/notifications/subscribe', {
+      method: 'POST',
+      headers: {'content-type':'application/json'},
+      body: JSON.stringify(sub),
+    });
+    const ok = save.ok;
+    if (btn) btn.classList.add('subscribed');
+    updatePushSubButton();
+    if (ok) {
+      // Show confirmation using the SAME push infrastructure
+      new Notification('🛎️ Push Enabled', {body: 'You will now receive agent updates on this device. Tag: agent-notification'});
+    }
+    return ok;
+  } catch (e) {
+    console.error('subscribePush error:', e);
+    alert('Subscribe failed: ' + e.message);
+    return false;
+  }
+}
+
+function urlB64ToUint8Array(b64){
+  const padding = '='.repeat((4 - b64.length % 4) % 4);
+  const base64 = (b64 + padding).replace(/\-/g, '+').replace(/_/g, '/');
+  const raw = atob(base64);
+  const out = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; ++i) out[i] = raw.charCodeAt(i);
+  return out;
+}
+
+async function updatePushSubButton(){
+  const wrap = $('pushSubWrap');
+  if (!wrap) return;
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    wrap.innerHTML = `<button class="push-sub unsupported" title="Not supported" style="cursor:help"><span class="dot"></span><span style="flex:1">Push unsupported</span></button>`;
+    return;
+  }
+  let exists = null;
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    exists = await reg.pushManager.getSubscription();
+  } catch(e) {}
+  const isSubscribed = !!exists;
+  const perm = Notification.permission;
+  let label, cls;
+  if (perm === 'denied') { label = 'Push blocked'; cls = 'unsupported'; }
+  else if (perm === 'granted' && !isSubscribed) { label = 'Enable Push'; cls = ''; }
+  else if (isSubscribed) { label = 'Push ON'; cls = 'subscribed'; }
+  else { label = 'Enable Push'; cls = ''; }
+  wrap.innerHTML = `<button class="push-sub ${cls}" onclick="subscribePush(event)" style="cursor:pointer"><span class="dot"></span><span style="flex:1">${label}</span></button>`;
+}
+
+// ─── Also inject the subscribe button inside the existing left rail ───
+function injectDesktopSubscribe(){
+  const rail = document.querySelector('.nav-side') || document.querySelectorAll('.nav-side-btn')[0]?.parentElement;
+  if (!rail) return;
+  const existing = document.getElementById('pushSubDesktopRail');
+  if (existing) return;
+  const div = document.createElement('div');
+  div.id = 'pushSubDesktopRail';
+  div.style.padding = '10px 6px';
+  div.innerHTML = '<button class="push-sub" onclick="subscribePush(event)" title="Push notifications to this device" style="cursor:pointer"><span class="dot"></span><span style="flex:1;font-size:9px">PUSH</span></button>';
+  rail.appendChild(div);
+  setTimeout(updatePushSubButton, 500);
+}
+
+// Fire on DOMContentLoaded (faster) instead of window.load which can be delayed forever
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(updatePushSubButton, 100);
+  setTimeout(injectDesktopSubscribe, 100);
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js').catch(e=>console.error('SW err',e));
+  }
+});
+// Also fire periodically in case load was missed
+if (document.readyState === 'complete') {
+  setTimeout(updatePushSubButton, 200);
+  setTimeout(injectDesktopSubscribe, 200);
+}
+
+// ESC closes overlay
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeOverlayNav();
+});
+</script>
+
 <div id="app">
   <!-- LEFT RAIL -->
   <div id="leftRail">
