@@ -373,40 +373,64 @@ async function subscribePush(evt){
   evt?.preventDefault(); evt?.stopPropagation();
   const btn = evt?.currentTarget || document.getElementById('pushSubWrap')?.querySelector('button');
   if (!('serviceWorker' in navigator)) return alert('Service worker not supported');
-  if (!('PushManager' in window))    return alert('Push not supported on this browser');
-  if (Notification.permission === 'denied') return alert('Notification permission denied');
+  if (!('PushManager' in window))    return alert('Push not supported');
 
+  // Step 0 — ensure SW is registered before anything else
+  let reg = null;
   try {
-    const reg = await navigator.serviceWorker.ready;
-    if (Notification.permission === 'default') {
-      const perm = await Notification.requestPermission();
-      if (perm !== 'granted') return alert('Permission not granted');
+    let existing = await navigator.serviceWorker.getRegistration('/');
+    if (!existing) existing = await navigator.serviceWorker.register('/sw.js');
+    reg = await navigator.serviceWorker.ready;
+    console.log('SW ready:', reg.scope);
+  } catch(e) {
+    console.error('SW fail:', e);
+    return alert('Service worker failed: ' + e.message);
+  }
+
+  // Step 1 — permission gate
+  if (Notification.permission === 'denied') {
+    return alert('Notifications blocked. In Chrome address bar click lock icon → allow Notifications.');
+  }
+  if (Notification.permission === 'default') {
+    btn && (btn.innerHTML = '<span class="dot"></span><span style="flex:1">Asking permission…</span>');
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') {
+      updatePushSubButton();
+      return alert('Permission denied. You can re-enable in browser settings.');
     }
-    const vapidResp = await fetch('/api/notifications/vapid-key');
-    const vapidData = await vapidResp.json();
-    const vapidKey = vapidData.vapidKey || vapidData.publicKey;
-    if (!vapidKey) return alert('No VAPID key from server (response: ' + JSON.stringify(vapidData) + ')');
+  }
+  btn && (btn.innerHTML = '<span class="dot"></span><span style="flex:1">Subscribing…</span>');
+
+  // Step 2 — VAPID
+  try {
+    const resp = await fetch('/api/notifications/vapid-key');
+    const data = await resp.json();
+    const vapidKey = data.vapidKey || data.publicKey;
+    if (!vapidKey) throw new Error('No vapidKey in ' + JSON.stringify(data));
+
+    // Step 3 — subscribe
     const sub = await reg.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: urlB64ToUint8Array(vapidKey),
     });
+
+    // Step 4 — register with server (saved to PG)
     const save = await fetch('/api/notifications/subscribe', {
       method: 'POST',
       headers: {'content-type':'application/json'},
       body: JSON.stringify(sub),
     });
-    const ok = save.ok;
-    if (btn) btn.classList.add('subscribed');
+    const saveJson = await save.json();
+    console.log('subscribed server response:', save.status, saveJson);
+
+    btn && btn.classList.add('subscribed');
     updatePushSubButton();
-    if (ok) {
-      // Show confirmation using the SAME push infrastructure
-      new Notification('🛎️ Push Enabled', {body: 'You will now receive agent updates on this device. Tag: agent-notification'});
-    }
-    return ok;
+    setTimeout(() => alert('✅ Push ENABLED!\n\nYou will now receive agent updates on this device.'), 50);
+    return true;
   } catch (e) {
-    console.error('subscribePush error:', e);
-    alert('Subscribe failed: ' + e.message);
-    return false;
+    console.error('subscribePush err:', e);
+    updatePushSubButton();
+    return alert('Subscribe failed: ' + (e.message || JSON.stringify(e)));
   }
 }
 
