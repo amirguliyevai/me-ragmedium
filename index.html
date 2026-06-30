@@ -266,15 +266,21 @@ input:focus,select:focus,textarea:focus{border-color:var(--cyan);box-shadow:0 0 
 
 /* ═══ RESPONSIVE ═══ */
 @media (max-width:900px){
-  #app{grid-template-columns:60px 1fr}
-  #rightRail{position:absolute;right:0;top:0;bottom:0;width:300px;z-index:30;background:var(--bg2);border-left:1px solid var(--line);transform:translateX(100%);transition:transform .25s}
+  /* Single column for the app grid: leftRail uses overlay (240px) so it doesn't
+     take grid space; main fills remaining; rightRail collapses to 0 (toggle via overlay) */
+  #app{grid-template-columns:1fr; --rail-w: 0px}
+  #leftRail{display:none}            /* hide the desktop 74px sidebar on mobile (overlay handles it) */
+  #rightRail{position:absolute;right:0;top:0;bottom:0;width:min(420px,90vw);z-index:30;background:var(--bg2);border-left:1px solid var(--line);transform:translateX(100%);transition:transform .25s}
   .rightRailOpen #rightRail{transform:translateX(0)}
   #railResizer{display:none}
   .fab-call{right:24px}
-}
-@media (max-width:600px){
-  #app{grid-template-columns:1fr}
-  #leftRail{display:none}
+  /* Give page divs a real visible size on mobile */
+  .page{width:100%;left:0;right:0}
+  /* Center content within 390px viewport */
+  #main{width:100%}
+  #content{width:100%}
+  /* Make sure pages have visual padding on small screens */
+  .page-padded{padding:14px}
 }
 
 /* ═══ EMPTY STATE ═══ */
