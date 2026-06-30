@@ -1,8 +1,8 @@
 // ─── Agent Team Dashboard — Service Worker ───
 // Handles push notifications and notification clicks
 
-const CACHE = 'agent-team-v32';
-const ASSETS = ['/'];
+const CACHE = 'agent-team-v33';
+const ASSETS = ['/', '/subscribe.html'];
 
 self.addEventListener('install', e => {
   self.skipWaiting();

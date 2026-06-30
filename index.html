@@ -343,20 +343,12 @@ input:focus,select:focus,textarea:focus{border-color:var(--cyan);box-shadow:0 0 
   <button class="nav-side-btn" onclick="closeOverlayNav();nav('kb')"            title="Knowledge Base"><span class="ico">🕸️</span><span class="lbl">KB</span></button>
   <button class="nav-side-btn" onclick="closeOverlayNav();nav('running')"       title="Running Tasks"><span class="ico">⚡</span><span class="lbl">Run</span></button>
   <button class="nav-side-btn" onclick="closeOverlayNav();nav('inbox')"         title="Inbox">       <span class="ico">📥</span><span class="lbl">Inbox</span></button>
-  <div class="nav-section-title">🔔 PUSH</div>
-  <div id="pushSubWrap"></div>
-  <button class="push-sub" onclick="forceResubscribe(event)" style="margin-top:8px;cursor:pointer"><span class="dot"></span><span style="flex:1">Force re-register</span></button>
-  <button class="push-sub" onclick="showPushDebug(event)" style="margin-top:4px;cursor:pointer;background:rgba(255,92,200,0.1);border-color:rgba(255,92,200,0.3)"><span class="dot"></span><span style="flex:1">Debug push</span></button>
+  <div class="nav-section-title">🔔 NOTIFICATIONS</div>
+  <a class="push-sub" href="/subscribe.html" target="_blank" style="text-decoration:none;display:flex"><span class="dot"></span><span style="flex:1">Subscribe (PWA)</span></a>
+  <a class="push-sub" href="/subscribe.html" target="_blank" style="text-decoration:none;display:flex;margin-top:4px;background:rgba(0,200,140,0.06);border-color:rgba(0,200,140,0.3)"><span class="dot"></span><span style="flex:1">Test push now</span></a>
 </aside>
 
 <!-- Hidden markup template for desktop-side subscribe -->
-<div id="pushSubDesktop" style="display:none">
-  <button id="pushSubBtnDesktop" class="push-sub" onclick="subscribePush(event)">
-    <span class="dot"></span>
-    <span style="flex:1">Enable Push</span>
-  </button>
-</div>
-
 <script>
 // ─── Mobile overlay nav ───
 function openOverlayNav(){
@@ -371,95 +363,6 @@ function closeOverlayNav(){
 }
 
 // ─── Push Notification subscribe (works on PWA + desktop) ───
-async function subscribePush(evt){
-  evt?.preventDefault(); evt?.stopPropagation();
-  const btn = evt?.currentTarget || document.getElementById('pushSubWrap')?.querySelector('button');
-  if (!('serviceWorker' in navigator)) return alert('Service worker not supported on this browser. Use Chrome / Edge.');
-  if (!('PushManager' in window))    return alert('Push not supported on this browser.');
-  const setBtn = (txt) => { if (btn) btn.innerHTML = `<span class="dot"></span><span style="flex:1">${txt}</span>`; };
-  const fail = (msg) => { try { setBtn('Retry Push'); alert('Push failed: ' + msg); console.warn('[push]', msg); } catch(e) {} };
-  const success = () => { try { btn && btn.classList.add('subscribed'); updatePushSubButton(); setTimeout(() => alert('✅ Push ENABLED!\\n\\nYou will now receive agent updates on this device.'), 50); } catch(e) {} };
-
-  try {
-    // ── Step 1: register the SW (do NOT wait indefinitely for .ready) ──
-    setBtn('Registering SW…');
-    let reg = await navigator.serviceWorker.getRegistration('/');
-    if (!reg) reg = await navigator.serviceWorker.register('/sw.js');
-    // Race: use either the existing reg OR the registered one
-    // (no await for .ready — that promise can hang forever if SW is controlled elsewhere)
-    if (!reg.active) {
-      // Give it 4s to come alive, then proceed anyway
-      await Promise.race([
-        navigator.serviceWorker.ready,
-        new Promise(r => setTimeout(r, 4000))
-      ]);
-    }
-    // Re-grab the registration after potential activation
-    reg = await navigator.serviceWorker.getRegistration('/') || reg;
-    console.log('[push] SW reg:', reg && reg.scope, 'active:', reg && reg.active && reg.active.state);
-
-    // ── Step 2: permission ──
-    if (Notification.permission === 'denied') {
-      return fail('Notifications blocked. In Chrome address bar → click lock icon → allow notifications for this site.');
-    }
-    if (Notification.permission === 'default') {
-      setBtn('Asking permission…');
-      const perm = await Notification.requestPermission();
-      if (perm !== 'granted') {
-        updatePushSubButton();
-        return alert('Permission denied. Enable notifications in site settings to subscribe.');
-      }
-    }
-    setBtn('Subscribing…');
-
-    // ── Step 3: VAPID ──
-    const vapidResp = await Promise.race([
-      fetch('/api/notifications/vapid-key'),
-      new Promise((_, r) => setTimeout(() => r(new Error('VAPID fetch timeout')), 8000))
-    ]);
-    const vapidData = await vapidResp.json();
-    const vapidKey = vapidData.vapidKey || vapidData.publicKey;
-    if (!vapidKey) throw new Error('VAPID key missing in ' + JSON.stringify(vapidData));
-
-    // ── Step 4: PushManager subscribe ──
-    // Use the reg.active worker if available, else fall back to reg (modern Chrome accepts this)
-    const sub = await Promise.race([
-      reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlB64ToUint8Array(vapidKey),
-      }),
-      new Promise((_, r) => setTimeout(() => r(new Error('pushManager.subscribe timeout (SW not active)')), 12000))
-    ]);
-
-    // ── Step 5: register on server (PG) ──
-    const save = await fetch('/api/notifications/subscribe', {
-      method: 'POST',
-      headers: {'content-type':'application/json'},
-      body: JSON.stringify(sub),
-    });
-    const saveJson = await save.json();
-    console.log('[push] server saved:', save.status, saveJson);
-    success();
-    return true;
-  } catch (e) {
-    console.error('[push] err:', e);
-    fail(e.message || String(e));
-    return false;
-  }
-}
-
-
-// 2026-06-30: Force re-register — unregister ALL SWs and start fresh
-async function forceResubscribe(evt){
-  evt?.preventDefault?.(); evt?.stopPropagation?.();
-  const btn = document.getElementById('pushSubWrap')?.querySelector('button');
-  const show = (txt) => btn && (btn.innerHTML = `<span class="dot"></span><span style="flex:1">${txt}</span>`);
-  show('Unregistering…');
-  try {
-    // Unregister all SWs
-    const regs = await navigator.serviceWorker.getRegistrations();
-    for (const r of regs) {
-      try { await r.unregister(); } catch(e){}
     }
     // Clear caches
     if (window.caches) {
@@ -480,33 +383,6 @@ async function forceResubscribe(evt){
     show('Try Enable Push');
   }
 }
-
-// 2026-06-30: Debug — show what's wrong with push setup
-async function showPushDebug(evt){
-  evt?.preventDefault?.(); evt?.stopPropagation?.();
-  const out = {
-    sw_supported: 'serviceWorker' in navigator,
-    pm_supported: 'PushManager' in window,
-    notif_permission: Notification.permission,
-    secure_context: window.isSecureContext,
-    protocol: location.protocol,
-    host: location.host,
-    href: location.href,
-    sw_registrations: [],
-    cached_caches: [],
-  };
-  try {
-    const regs = await navigator.serviceWorker.getRegistrations();
-    out.sw_registrations = regs.map(r => ({
-      scope: r.scope,
-      active: r.active && r.active.state,
-      scriptURL: r.active && r.active.scriptURL,
-      pushManager_exists: !!r.pushManager,
-    }));
-    const reg = await navigator.serviceWorker.getRegistration('/');
-    if (reg) {
-      out.sub = await reg.pushManager.getSubscription();
-    }
   } catch(e) { out.sw_error = e.message; }
   if (window.caches) {
     try { out.cached_caches = await caches.keys(); } catch(e) {}
@@ -519,64 +395,9 @@ async function showPushDebug(evt){
   alert('Push debug:\n\n' + JSON.stringify(out, null, 2).substring(0, 2000));
 }
 
-function urlB64ToUint8Array(b64){
-  const padding = '='.repeat((4 - b64.length % 4) % 4);
-  const base64 = (b64 + padding).replace(/\-/g, '+').replace(/_/g, '/');
-  const raw = atob(base64);
-  const out = new Uint8Array(raw.length);
-  for (let i = 0; i < raw.length; ++i) out[i] = raw.charCodeAt(i);
-  return out;
-}
-
-async function updatePushSubButton(){
-  const wrap = document.getElementById('pushSubWrap');
-  if (!wrap) return;
-  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-    wrap.innerHTML = `<button class="push-sub unsupported" title="Not supported" style="cursor:help"><span class="dot"></span><span style="flex:1">Push unsupported</span></button>`;
-    return;
-  }
-  let exists = null;
-  try {
-    const reg = await navigator.serviceWorker.ready;
-    exists = await reg.pushManager.getSubscription();
-  } catch(e) {}
-  const isSubscribed = !!exists;
-  const perm = Notification.permission;
-  let label, cls;
-  if (perm === 'denied') { label = 'Push blocked'; cls = 'unsupported'; }
-  else if (perm === 'granted' && !isSubscribed) { label = 'Enable Push'; cls = ''; }
-  else if (isSubscribed) { label = 'Push ON'; cls = 'subscribed'; }
-  else { label = 'Enable Push'; cls = ''; }
-  wrap.innerHTML = `<button class="push-sub ${cls}" onclick="subscribePush(event)" style="cursor:pointer"><span class="dot"></span><span style="flex:1">${label}</span></button>`;
-}
-
 // ─── Also inject the subscribe button inside the existing left rail ───
-function injectDesktopSubscribe(){
-  const rail = document.querySelector('.nav-side') || document.querySelectorAll('.nav-side-btn')[0]?.parentElement;
-  if (!rail) return;
-  const existing = document.getElementById('pushSubDesktopRail');
-  if (existing) return;
-  const div = document.createElement('div');
-  div.id = 'pushSubDesktopRail';
-  div.style.padding = '10px 6px';
-  div.innerHTML = '<button class="push-sub" onclick="subscribePush(event)" title="Push notifications to this device" style="cursor:pointer"><span class="dot"></span><span style="flex:1;font-size:9px">PUSH</span></button>';
-  rail.appendChild(div);
-  setTimeout(updatePushSubButton, 500);
-}
 
-// Fire on DOMContentLoaded (faster) instead of window.load which can be delayed forever
-document.addEventListener('DOMContentLoaded', () => {
-  setTimeout(updatePushSubButton, 100);
-  setTimeout(injectDesktopSubscribe, 100);
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js').catch(e=>console.error('SW err',e));
-  }
-});
-// Also fire periodically in case load was missed
-if (document.readyState === 'complete') {
-  setTimeout(updatePushSubButton, 200);
-  setTimeout(injectDesktopSubscribe, 200);
-}
+
 
 // ESC closes overlay
 document.addEventListener('keydown', e => {

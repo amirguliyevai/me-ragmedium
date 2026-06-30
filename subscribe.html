@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Subscribe — Agent Command</title>
+<style>
+  :root { color-scheme: dark; --cyan: #18e0ff; --pink: #ff5cc8; --green: #00d68f; --red: #ff4d6d; --bg: #07090f; --bg2: #0d1320; --text: #e9ecf2; --muted: #6b7a90; }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro', system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 24px 18px 64px; min-height: 100vh; }
+  h1 { font-size: 22px; font-weight: 800; letter-spacing: -.02em; margin: 0 0 4px; }
+  .sub { color: var(--muted); font-size: 13px; margin-bottom: 22px; }
+  .card { background: var(--bg2); border: 1px solid rgba(255,255,255,.08); border-radius: 14px; padding: 16px 18px; margin-bottom: 14px; }
+  .btn { display: block; width: 100%; padding: 16px 20px; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; border: 0; background: linear-gradient(135deg, var(--cyan), var(--pink)); color: #fff; margin-top: 12px; box-shadow: 0 4px 18px rgba(24,224,255,.35); }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+  .btn-secondary { background: transparent; border: 1px solid rgba(255,255,255,.15); color: var(--text); padding: 12px; font-size: 13px; box-shadow: none; }
+  .status { padding: 12px 16px; border-radius: 10px; font-size: 14px; margin: 14px 0; font-weight: 600; text-align: center; }
+  .status.pending { background: rgba(255,200,80,.1); border: 1px solid rgba(255,200,80,.3); color: #ffc850; }
+  .status.success { background: rgba(0,214,143,.1); border: 1px solid rgba(0,214,143,.3); color: var(--green); }
+  .status.error { background: rgba(255,77,109,.1); border: 1px solid rgba(255,77,109,.3); color: var(--red); }
+  .status.info { background: rgba(24,224,255,.1); border: 1px solid rgba(24,224,255,.3); color: var(--cyan); }
+  .small { font-size: 12px; color: var(--muted); line-height: 1.55; }
+  .row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; margin-bottom: 6px; font-size: 13px; }
+  .row.b { background: rgba(0,0,0,.25); }
+  .row .k { color: var(--muted); font-family: monospace; font-size: 12px; min-width: 130px; }
+  .row .v { color: var(--text); font-family: monospace; font-size: 12px; word-break: break-all; }
+  details { margin-top: 12px; }
+  details summary { font-size: 12px; color: var(--muted); cursor: pointer; padding: 8px 0; }
+  details[open] summary { color: var(--cyan); }
+  pre { background: #000; padding: 10px; border-radius: 8px; font-size: 11px; overflow-x: auto; max-height: 240px; color: var(--cyan); white-space: pre-wrap; word-break: break-all; }
+  .home-link { display: inline-block; margin-bottom: 14px; padding: 8px 14px; border-radius: 8px; background: rgba(255,255,255,.05); color: var(--muted); text-decoration: none; font-size: 12px; }
+</style>
+</head>
+<body>
+  <a href="/" class="home-link">← Back to dashboard</a>
+  <h1>🔔 Push notifications</h1>
+  <p class="sub">Get alerts on this device when agents complete work, fail tasks, or need input.</p>
+
+  <div id="status" class="status info">Checking your browser…</div>
+
+  <button id="subscribeBtn" class="btn">Subscribe this device</button>
+  <button id="testBtn" class="btn btn-secondary" style="display:none">Send test notification</button>
+
+  <details>
+    <summary>Show browser details</summary>
+    <div class="card">
+      <div class="row b"><span class="k">serviceWorker:</span><span class="v" id="d-sw">–</span></div>
+      <div class="row"><span class="k">PushManager:</span><span class="v" id="d-pm">–</span></div>
+      <div class="row b"><span class="k">permission:</span><span class="v" id="d-perm">–</span></div>
+      <div class="row"><span class="k">secureContext:</span><span class="v" id="d-sc">–</span></div>
+      <div class="row b"><span class="k">SW scope:</span><span class="v" id="d-scope">–</span></div>
+      <div class="row"><span class="k">SW state:</span><span class="v" id="d-state">–</span></div>
+    </div>
+  </details>
+
+<script>
+// Plain, simple, no deps.
+const $=id=>document.getElementById(id);
+const fmt=o=>JSON.stringify(o,null,2);
+const setStatus=(msg,cls)=>{const s=$('status');s.textContent=msg;s.className='status '+cls;};
+
+async function checkBrowser(){
+  $('d-sw').textContent = 'serviceWorker' in window ? 'YES' : 'NO';
+  $('d-pm').textContent = 'PushManager' in window ? 'YES' : 'NO';
+  $('d-perm').textContent = Notification.permission;
+  $('d-sc').textContent = window.isSecureContext ? 'YES' : 'NO ('+location.protocol+')';
+  try{
+    const reg=await navigator.serviceWorker.getRegistration('/');
+    if(reg){
+      $('d-scope').textContent = reg.scope || '(no scope)';
+      $('d-state').textContent = reg.active?.state || 'installing';
+    } else {
+      $('d-scope').textContent = '(none registered)';
+      $('d-state').textContent = '–';
+    }
+    return reg;
+  }catch(e){
+    $('d-scope').textContent = 'error: '+e.message;
+    return null;
+  }
+}
+
+function urlB64ToUint8Array(b64){
+  const padding='='.repeat((4-b64.length%4)%4);
+  const base64=(b64+padding).replace(/-/g,'+').replace(/_/g,'/');
+  const raw=atob(base64);
+  const out=new Uint8Array(raw.length);
+  for(let i=0;i<raw.length;++i) out[i]=raw.charCodeAt(i);
+  return out;
+}
+
+async function subscribe(){
+  setStatus('Asking permission…','pending');
+  try{
+    if(Notification.permission==='denied'){
+      setStatus('Notifications are BLOCKED. Tap the lock icon in the address bar → allow notifications.','error');
+      return;
+    }
+    if(!('PushManager' in window)){
+      setStatus('Push not supported in this browser.','error');
+      return;
+    }
+    if(!('serviceWorker' in window)){
+      setStatus('Service workers not supported (need HTTPS or localhost).','error');
+      return;
+    }
+    // 1) Register SW
+    setStatus('Registering service worker…','pending');
+    let reg=await navigator.serviceWorker.getRegistration('/');
+    if(!reg) reg=await navigator.serviceWorker.register('/sw.js');
+    if(!reg.active){
+      // Wait up to 8s for it to become active
+      await Promise.race([
+        navigator.serviceWorker.ready,
+        new Promise((_,r)=>setTimeout(()=>r(new Error('SW activation timeout')),8000))
+      ]);
+    }
+    // Re-grab in case active state is the only valid handle
+    reg=await navigator.serviceWorker.getRegistration('/') || reg;
+
+    // 2) Permission
+    let perm=Notification.permission;
+    if(perm==='default'){
+      perm=await Notification.requestPermission();
+      if(perm!=='granted'){
+        setStatus('Permission denied.','error');
+        return;
+      }
+    }
+
+    // 3) VAPID
+    setStatus('Getting encryption keys…','pending');
+    const r=await fetch('/api/notifications/vapid-key');
+    if(!r.ok){setStatus('VAPID endpoint returned '+r.status,'error');return;}
+    const data=await r.json();
+    const vapidKey = data.vapidKey || data.publicKey;
+    if(!vapidKey){setStatus('Server has no vapidKey.','error');return;}
+
+    // 4) Subscribe
+    setStatus('Subscribing to push server…','pending');
+    const sub=await reg.pushManager.subscribe({
+      userVisibleOnly:true,
+      applicationServerKey:urlB64ToUint8Array(vapidKey),
+    });
+
+    // 5) Send to server
+    setStatus('Saving to server…','pending');
+    const resp=await fetch('/api/notifications/subscribe', {
+      method:'POST',
+      headers:{'content-type':'application/json'},
+      body: JSON.stringify(sub)
+    });
+    if(!resp.ok){setStatus('Server returned '+resp.status,'error');return;}
+
+    setStatus('✅ Push enabled! You will get notifications on this device.','success');
+    $('testBtn').style.display='block';
+  }catch(e){
+    setStatus('Failed: '+(e.message||e),'error');
+  }
+}
+
+async function testPush(){
+  setStatus('Sending test notification…','pending');
+  try{
+    const r=await fetch('/api/notifications/notify', {
+      method:'POST',
+      headers:{'content-type':'application/json'},
+      body: JSON.stringify({
+        title:'🧪 Test push',
+        message:'If you can see this notification on your home screen, push is working.',
+        priority:'high',
+        source:'subscribe-test'
+      })
+    });
+    if(!r.ok){setStatus('Notify endpoint '+r.status,'error');return;}
+    setStatus('Test sent! Check your device notifications panel.','success');
+  }catch(e){
+    setStatus('Test failed: '+e.message,'error');
+  }
+}
+
+$('subscribeBtn').addEventListener('click', subscribe);
+$('testBtn').addEventListener('click', testPush);
+
+(async()=>{
+  const reg=await checkBrowser();
+  const ok='serviceWorker' in window && 'PushManager' in window && Notification.permission!=='denied' && window.isSecureContext;
+  if(Notification.permission==='granted'){
+    setStatus('You are already subscribed.','success');
+    $('testBtn').style.display='block';
+  }else if(Notification.permission==='denied'){
+    setStatus('Notifications are blocked. Tap the lock icon in the address bar → allow.','error');
+  }else if(!ok){
+    setStatus('Browser not supported (need HTTPS or localhost + Chrome/Edge).','error');
+  }else{
+    setStatus('Ready. Tap the button to subscribe.','info');
+  }
+})();
+</script>
+</body>
+</html>
