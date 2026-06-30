@@ -26,19 +26,15 @@
   --blue:#7b9bff;
   --rail-w:420px;
 }
-html,body{height:100%;background:var(--bg);color:var(--text);font-family:'IBM Plex Sans',system-ui,sans-serif;overflow:hidden}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Audiowide','IBM Plex Sans',system-ui,sans-serif;overflow:hidden}
 ::-webkit-scrollbar{width:6px;height:6px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.08);border-radius:3px}
 ::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,0.15)}
 button{font-family:inherit;cursor:pointer}
 input,select,textarea{font-family:inherit}
-
-@font-face{font-family:'Chakra Petch';font-weight:500;src:url('https://fonts.gstatic.com/s/chakrapetch/v11/cIflMaTr_PQbQTypK-acs4m6SrME77u9Qo8.woff2')}
-@font-face{font-family:'Chakra Petch';font-weight:600;src:url('https://fonts.gstatic.com/s/chakrapetch/v11/cIflMaTr_PQbQTypK-acs4m6SrME77u9Qo8.woff2')}
-@font-face{font-family:'Chakra Petch';font-weight:700;src:url('https://fonts.gstatic.com/s/chakrapetch/v11/cIflMaTr_PQbQTypK-acs4m6SrME77u9Qo8.woff2')}
-@font-face{font-family:'IBM Plex Mono';font-weight:400;src:url('https://fonts.gstatic.com/s/ibmplexmono/v19/-F63fjptAgt5VM-kVkqdyU8n5igg1l9kn-s.woff2')}
-@font-face{font-family:'IBM Plex Sans';font-weight:400;src:url('https://fonts.gstatic.com/s/ibmplexsans/v19/zYX9KVElMYYaJe8bpLHnCwDKjW87aD51_eM.woff2')}
+/* FONTS */
+@import url('https://fonts.googleapis.com/css2?family=Audiowide&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
 
 /* ═══ APP LAYOUT (resizable right rail) ═══ */
 #app{display:grid;grid-template-columns:74px 1fr 4px var(--rail-w);height:100vh;background:var(--bg);position:relative;overflow:hidden;min-width:0}
@@ -49,14 +45,14 @@ input,select,textarea{font-family:inherit}
 
 /* ═══ LEFT RAIL ═══ */
 #leftRail{grid-column:1;border-right:1px solid var(--line);background:linear-gradient(180deg,#080b12,#06080d);display:flex;flex-direction:column;align-items:center;padding:14px 0;overflow-y:auto;z-index:20}
-.brand-mark{width:38px;height:38px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(24,224,255,0.4);color:var(--cyan);font-family:'Chakra Petch';font-weight:700;font-size:15px;box-shadow:0 0 18px rgba(24,224,255,0.25);clip-path:polygon(0 0,calc(100% - 8px) 0,100% 8px,100% 100%,0 100%);margin-bottom:18px;cursor:pointer}
-.nav-main-btn{appearance:none;width:58px;padding:7px 0 5px;margin-bottom:4px;background:transparent;border:0;border-left:2px solid transparent;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--dim);font-family:'IBM Plex Mono';transition:.15s}
+.brand-mark{width:38px;height:38px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(24,224,255,0.4);color:var(--cyan);font-family:'Audiowide';font-weight:700;font-size:15px;box-shadow:0 0 18px rgba(24,224,255,0.25);clip-path:polygon(0 0,calc(100% - 8px) 0,100% 8px,100% 100%,0 100%);margin-bottom:18px;cursor:pointer}
+.nav-main-btn{appearance:none;width:58px;padding:7px 0 5px;margin-bottom:4px;background:transparent;border:0;border-left:2px solid transparent;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--dim);font-family:'Audiowide';transition:.15s}
 .nav-main-btn:hover{color:var(--text2);background:rgba(24,224,255,0.05)}
 .nav-main-btn.active{color:var(--cyan);border-left-color:var(--cyan);background:rgba(24,224,255,0.08)}
 .nav-main-btn .glyph{font-size:17px;line-height:1}
 .nav-main-btn .lbl{font-size:8.5px;letter-spacing:.06em;text-transform:uppercase}
 .nav-divider{width:34px;height:1px;background:rgba(24,224,255,0.14);margin:10px 0}
-.nav-side-btn{appearance:none;width:58px;padding:8px 0 6px;margin-bottom:3px;background:rgba(255,255,255,0.02);border:1px solid transparent;border-radius:8px;color:#ffffff;font-family:'IBM Plex Sans';font-size:10px;font-weight:600;letter-spacing:.02em;display:flex;flex-direction:column;align-items:center;gap:3px;transition:all .15s}
+.nav-side-btn{appearance:none;width:58px;padding:8px 0 6px;margin-bottom:3px;background:rgba(255,255,255,0.02);border:1px solid transparent;border-radius:8px;color:#ffffff;font-family:'Audiowide';font-size:10px;font-weight:600;letter-spacing:.02em;display:flex;flex-direction:column;align-items:center;gap:3px;transition:all .15s}
 .nav-side-btn:hover{color:#ffffff;background:rgba(24,224,255,0.12);border-color:rgba(24,224,255,0.3);transform:translateX(1px)}
 .nav-side-btn.active{color:#ffffff;background:linear-gradient(135deg,rgba(24,224,255,0.18),rgba(255,92,200,0.12));border-color:rgba(24,224,255,0.5);box-shadow:0 0 14px rgba(24,224,255,0.25)}
 .nav-side-btn .ico{font-size:18px;line-height:1;display:block}
@@ -65,10 +61,10 @@ input,select,textarea{font-family:inherit}
 /* ═══ MAIN ═══ */
 #main{grid-column:2;overflow:hidden;display:flex;flex-direction:column;background:var(--bg);position:relative}
 .topbar{height:48px;border-bottom:1px solid var(--line);background:rgba(8,11,18,0.8);display:flex;align-items:center;padding:0 16px;gap:12px;flex-shrink:0;backdrop-filter:blur(10px)}
-.topbar .title{font-family:'Chakra Petch';font-weight:700;font-size:14px;letter-spacing:.1em;text-transform:uppercase;color:var(--text)}
+.topbar .title{font-family:'Audiowide';font-weight:700;font-size:14px;letter-spacing:.1em;text-transform:uppercase;color:var(--text)}
 .topbar .title em{color:var(--cyan);font-style:normal}
-.topbar .clock{margin-left:auto;font-family:'IBM Plex Mono';font-size:11px;color:var(--text3)}
-.topbar .status{display:flex;align-items:center;gap:6px;font-family:'IBM Plex Mono';font-size:10px;color:var(--green);text-transform:uppercase;letter-spacing:.06em}
+.topbar .clock{margin-left:auto;font-family:'Audiowide';font-size:11px;color:var(--text3)}
+.topbar .status{display:flex;align-items:center;gap:6px;font-family:'Audiowide';font-size:10px;color:var(--green);text-transform:uppercase;letter-spacing:.06em}
 .topbar .status::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:acPulse 1.6s infinite}
 
 #content{flex:1;overflow:hidden;position:relative;min-height:0}
@@ -83,7 +79,7 @@ input,select,textarea{font-family:inherit}
 /* ═══ RIGHT RAIL ═══ */
 #rightRail{grid-column:4;border-left:1px solid var(--line);background:linear-gradient(180deg,#080b12,#06080d);display:flex;flex-direction:column;overflow:hidden;min-width:300px;min-height:0}
 .rail-tabs{display:flex;border-bottom:1px solid var(--line);background:rgba(8,11,18,0.5)}
-.rail-tab{flex:1;padding:10px 8px;background:transparent;border:0;color:var(--muted);font-family:'IBM Plex Mono';font-size:10px;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent}
+.rail-tab{flex:1;padding:10px 8px;background:transparent;border:0;color:var(--muted);font-family:'Audiowide';font-size:10px;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent}
 .rail-tab.active{color:var(--cyan);border-bottom-color:var(--cyan);background:rgba(24,224,255,0.05)}
 .rail-content{flex:1;overflow:hidden;display:flex;flex-direction:column;min-height:0}
 
@@ -91,8 +87,8 @@ input,select,textarea{font-family:inherit}
 .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
 .stat-card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px;clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,0 100%);position:relative;overflow:hidden}
 .stat-card::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;background:var(--accent,var(--cyan))}
-.stat-card .lbl{font-family:'IBM Plex Mono';font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
-.stat-card .val{font-family:'Chakra Petch';font-weight:700;font-size:24px;color:var(--text);margin-top:4px;letter-spacing:.04em}
+.stat-card .lbl{font-family:'Audiowide';font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.stat-card .val{font-family:'Audiowide';font-weight:700;font-size:24px;color:var(--text);margin-top:4px;letter-spacing:.04em}
 .stat-card .sub{font-size:10px;color:var(--dim);margin-top:2px}
 
 /* ═══ PROGRESS BARS ═══ */
@@ -100,7 +96,7 @@ input,select,textarea{font-family:inherit}
 .prog-row:hover{border-color:var(--cyan);background:rgba(24,224,255,0.05)}
 .prog-row .prog-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;gap:8px}
 .prog-row .prog-name{font-size:12px;font-weight:600;color:var(--text);text-transform:capitalize;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.prog-row .prog-count{font-size:9px;color:var(--muted);font-family:'IBM Plex Mono';white-space:nowrap}
+.prog-row .prog-count{font-size:9px;color:var(--muted);font-family:'Audiowide';white-space:nowrap}
 .prog-row .prog-bar{height:6px;background:rgba(255,255,255,0.04);border-radius:3px;overflow:hidden;display:flex}
 .prog-row .prog-bar .seg{height:100%;transition:width .4s}
 .prog-row .prog-bar .seg.done{background:var(--green)}
@@ -109,7 +105,7 @@ input,select,textarea{font-family:inherit}
 .prog-row .prog-bar .seg.todo{background:var(--purple)}
 .prog-row .prog-bar .seg.blocked{background:var(--red);animation:acPulse 1.6s infinite}
 .prog-row .prog-bar .seg.backlog{background:var(--dim)}
-.prog-row .prog-leg{display:flex;gap:8px;margin-top:6px;font-size:9px;font-family:'IBM Plex Mono';color:var(--muted)}
+.prog-row .prog-leg{display:flex;gap:8px;margin-top:6px;font-size:9px;font-family:'Audiowide';color:var(--muted)}
 .prog-row .prog-leg .dot{width:6px;height:6px;border-radius:50%;display:inline-block;margin-right:3px;vertical-align:middle}
 .prog-row .alert-flag{margin-left:auto;background:var(--red);color:#fff;padding:1px 6px;border-radius:8px;font-size:9px;font-weight:700;animation:acPulse 1.6s infinite}
 
@@ -118,12 +114,12 @@ input,select,textarea{font-family:inherit}
 .agent-card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px;cursor:pointer;transition:all .15s;clip-path:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,0 100%);position:relative;overflow:hidden}
 .agent-card:hover{border-color:var(--cyan);background:rgba(24,224,255,0.05)}
 .agent-card .head{display:flex;align-items:center;gap:10px;margin-bottom:8px}
-.agent-avatar{width:32px;height:32px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:'Chakra Petch';font-weight:700;font-size:13px;color:#fff;flex-shrink:0}
+.agent-avatar{width:32px;height:32px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:'Audiowide';font-weight:700;font-size:13px;color:#fff;flex-shrink:0}
 .agent-card .name{font-size:13px;font-weight:700;color:var(--text);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.agent-card .role{font-size:10px;color:var(--text3);margin-top:1px;font-family:'IBM Plex Sans'}
-.agent-card .team{font-size:9px;color:var(--muted);font-family:'IBM Plex Mono';text-transform:uppercase;letter-spacing:.06em}
+.agent-card .role{font-size:10px;color:var(--text3);margin-top:1px;font-family:'Audiowide'}
+.agent-card .team{font-size:9px;color:var(--muted);font-family:'Audiowide';text-transform:uppercase;letter-spacing:.06em}
 .agent-card .actions{display:flex;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
-.agent-card .actions button{flex:1;padding:5px 8px;background:transparent;border:1px solid var(--line);border-radius:5px;color:var(--text3);font-size:10px;font-family:'IBM Plex Mono';text-transform:uppercase;letter-spacing:.05em;cursor:pointer}
+.agent-card .actions button{flex:1;padding:5px 8px;background:transparent;border:1px solid var(--line);border-radius:5px;color:var(--text3);font-size:10px;font-family:'Audiowide';text-transform:uppercase;letter-spacing:.05em;cursor:pointer}
 .agent-card .actions button:hover{border-color:var(--cyan);color:var(--cyan)}
 .agent-card .actions button.call{border-color:rgba(24,224,255,0.4);background:linear-gradient(90deg,rgba(24,224,255,0.1),rgba(255,92,200,0.1));color:var(--cyan)}
 .status-dot{width:6px;height:6px;border-radius:50%;display:inline-block;flex-shrink:0}
@@ -135,13 +131,13 @@ input,select,textarea{font-family:inherit}
 /* ═══ KANBAN ═══ */
 .kanban{display:flex;gap:10px;overflow-x:auto;padding:14px;height:100%}
 .kanban-col{min-width:222px;background:var(--bg2);border:1px solid var(--line);border-radius:8px;padding:10px;display:flex;flex-direction:column}
-.kanban-col h3{font-family:'IBM Plex Mono';font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+.kanban-col h3{font-family:'Audiowide';font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
 .kanban-col .count{font-size:11px;color:var(--text);background:rgba(255,255,255,0.05);padding:1px 6px;border-radius:8px}
 .kanban-list{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:6px}
 .task-card{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:8px 10px;cursor:pointer;transition:all .15s;border-left:3px solid var(--project-color,var(--cyan))}
 .task-card:hover{border-color:var(--cyan)}
 .task-card .title{font-size:11px;font-weight:600;color:var(--text);margin-bottom:4px;line-height:1.3}
-.task-card .meta{display:flex;align-items:center;gap:6px;font-size:9px;color:var(--muted);font-family:'IBM Plex Mono'}
+.task-card .meta{display:flex;align-items:center;gap:6px;font-size:9px;color:var(--muted);font-family:'Audiowide'}
 .task-card .meta .pri{padding:1px 5px;border-radius:3px;font-weight:700}
 .task-card .meta .pri.P0{background:rgba(255,77,94,0.2);color:var(--red)}
 .task-card .meta .pri.P1{background:rgba(255,176,32,0.2);color:var(--amber)}
@@ -159,13 +155,13 @@ input,select,textarea{font-family:inherit}
 .feed-item .verb{font-size:12px;color:var(--text);font-weight:500}
 .feed-item .verb em{color:var(--cyan);font-style:normal}
 .feed-item .obj{color:var(--pink);font-size:11px;margin-top:2px}
-.feed-item .time{font-size:9px;color:var(--dim);font-family:'IBM Plex Mono';margin-top:4px;text-transform:uppercase}
+.feed-item .time{font-size:9px;color:var(--dim);font-family:'Audiowide';margin-top:4px;text-transform:uppercase}
 .feed-item .actions{margin-top:6px;display:flex;gap:6px}
 
 /* ═══ SLACK ═══ */
 .slack-wrap{display:flex;height:100%;min-height:0}
 .slack-channels{width:160px;border-right:1px solid var(--line);background:rgba(8,11,18,0.5);overflow-y:auto;padding:10px 0;flex-shrink:0}
-.slack-ch{font-family:'IBM Plex Mono';font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;padding:4px 14px;margin-top:8px}
+.slack-ch{font-family:'Audiowide';font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;padding:4px 14px;margin-top:8px}
 .slack-item{display:flex;align-items:center;gap:8px;padding:5px 14px;cursor:pointer;font-size:11px;color:var(--text3);transition:all .1s}
 .slack-item:hover{background:rgba(24,224,255,0.05);color:var(--text)}
 .slack-item.active{background:rgba(24,224,255,0.1);color:var(--cyan);border-left:2px solid var(--cyan)}
@@ -173,25 +169,25 @@ input,select,textarea{font-family:inherit}
 .slack-item .unread{margin-left:auto;background:var(--pink);color:#fff;font-size:9px;padding:0 5px;border-radius:8px;font-weight:700}
 .slack-main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
 .slack-header{padding:10px 14px;border-bottom:1px solid var(--line);background:rgba(8,11,18,0.5);display:flex;align-items:center;gap:10px;flex-shrink:0}
-.slack-header .name{font-family:'Chakra Petch';font-weight:700;font-size:13px;color:var(--text)}
+.slack-header .name{font-family:'Audiowide';font-weight:700;font-size:13px;color:var(--text)}
 .slack-header .topic{font-size:10px;color:var(--muted)}
 .slack-messages{flex:1;overflow-y:auto;padding:12px;min-height:0}
 .slack-msg{display:flex;gap:10px;padding:6px 8px;border-radius:6px;margin-bottom:6px;transition:background .15s}
 .slack-msg:hover{background:rgba(255,255,255,0.02)}
-.slack-msg .avatar{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:'Chakra Petch';font-weight:700;font-size:11px;color:#fff;flex-shrink:0}
+.slack-msg .avatar{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:'Audiowide';font-weight:700;font-size:11px;color:#fff;flex-shrink:0}
 .slack-msg .bubble{flex:1;min-width:0}
 .slack-msg .who{display:flex;align-items:baseline;gap:8px}
 .slack-msg .who .name{font-size:12px;font-weight:700;color:var(--cyan)}
-.slack-msg .who .time{font-size:9px;color:var(--dim);font-family:'IBM Plex Mono'}
+.slack-msg .who .time{font-size:9px;color:var(--dim);font-family:'Audiowide'}
 .slack-msg .text{font-size:12px;color:var(--text);line-height:1.4;margin-top:2px;white-space:pre-wrap}
 .slack-input-wrap{padding:8px 10px;border-top:1px solid var(--line);background:rgba(8,11,18,0.5);display:flex;gap:6px;flex-shrink:0}
 .slack-input-wrap input{flex:1;background:var(--bg2);border:1px solid var(--line);color:var(--text);padding:7px 10px;border-radius:5px;font-size:11px;outline:none}
 .slack-input-wrap input:focus{border-color:var(--cyan)}
-.slack-input-wrap button{background:rgba(24,224,255,0.15);border:1px solid var(--cyan);color:var(--cyan);padding:7px 12px;border-radius:5px;font-size:10px;font-family:'IBM Plex Mono';text-transform:uppercase;letter-spacing:.05em;font-weight:700;cursor:pointer}
+.slack-input-wrap button{background:rgba(24,224,255,0.15);border:1px solid var(--cyan);color:var(--cyan);padding:7px 12px;border-radius:5px;font-size:10px;font-family:'Audiowide';text-transform:uppercase;letter-spacing:.05em;font-weight:700;cursor:pointer}
 .slack-input-wrap button:hover{background:rgba(24,224,255,0.3)}
 
 /* ═══ BUTTONS ═══ */
-.btn{padding:6px 12px;background:rgba(24,224,255,0.1);border:1px solid rgba(24,224,255,0.3);color:var(--cyan);border-radius:6px;font-size:11px;font-family:'IBM Plex Mono';text-transform:uppercase;letter-spacing:.06em;cursor:pointer}
+.btn{padding:6px 12px;background:rgba(24,224,255,0.1);border:1px solid rgba(24,224,255,0.3);color:var(--cyan);border-radius:6px;font-size:11px;font-family:'Audiowide';text-transform:uppercase;letter-spacing:.06em;cursor:pointer}
 .btn:hover{background:rgba(24,224,255,0.2)}
 .btn.alt{background:transparent;border-color:var(--line);color:var(--text3)}
 .btn.alt:hover{border-color:var(--cyan);color:var(--cyan)}
@@ -208,7 +204,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--cyan);box-shadow:0 0 
 .overlay.open{display:flex}
 .modal{background:var(--bg2);border:1px solid var(--line);border-radius:12px;clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,0 100%);max-width:600px;width:90%;max-height:80vh;overflow:auto}
 .modal .head{padding:14px 18px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
-.modal .head h2{font-family:'Chakra Petch';font-size:14px;letter-spacing:.08em;text-transform:uppercase;color:var(--cyan)}
+.modal .head h2{font-family:'Audiowide';font-size:14px;letter-spacing:.08em;text-transform:uppercase;color:var(--cyan)}
 .modal .body{padding:18px}
 
 /* ═══ KB GRAPHENE ═══ */
@@ -217,10 +213,10 @@ input:focus,select:focus,textarea:focus{border-color:var(--cyan);box-shadow:0 0 
 .kb-node:hover{transform:scale(1.05);z-index:2}
 .kb-node .name{font-size:10px;font-weight:600;color:#eaf6ff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .kb-node .count{font-size:9px;color:#9fb3c8;margin-top:2px}
-.kb-node .edge-count{position:absolute;top:2px;right:4px;font-size:8px;color:var(--dim);font-family:'IBM Plex Mono'}
+.kb-node .edge-count{position:absolute;top:2px;right:4px;font-size:8px;color:var(--dim);font-family:'Audiowide'}
 
 /* ═══ ORG TREE ═══ */
-.org-tree{padding:14px;overflow:auto;height:100%;font-family:'IBM Plex Mono';font-size:11px}
+.org-tree{padding:14px;overflow:auto;height:100%;font-family:'Audiowide';font-size:11px}
 .org-node{display:inline-block;padding:6px 12px;background:var(--surface);border:1px solid var(--line);border-radius:6px;margin:4px;color:var(--text);text-align:center;min-width:90px;cursor:pointer;transition:.15s}
 .org-node:hover{border-color:var(--cyan);background:rgba(24,224,255,0.08)}
 .org-node .org-name{font-weight:700;font-size:11px}
@@ -253,8 +249,8 @@ input:focus,select:focus,textarea:focus{border-color:var(--cyan);box-shadow:0 0 
 /* ═══ CALENDAR / INBOX WIDGETS ═══ */
 .mini-cal{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px;clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,0 100%)}
 .mini-cal .cal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
-.mini-cal .cal-title{font-family:'Chakra Petch';font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--text)}
-.mini-cal .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;font-family:'IBM Plex Mono';font-size:10px}
+.mini-cal .cal-title{font-family:'Audiowide';font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--text)}
+.mini-cal .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;font-family:'Audiowide';font-size:10px}
 .mini-cal .cal-dow{text-align:center;color:var(--muted);padding:4px 0;font-size:9px;text-transform:uppercase}
 .mini-cal .cal-day{text-align:center;padding:5px 0;border-radius:4px;color:var(--text3);cursor:pointer;position:relative}
 .mini-cal .cal-day:hover{background:rgba(24,224,255,0.1)}
@@ -267,13 +263,13 @@ input:focus,select:focus,textarea:focus{border-color:var(--cyan);box-shadow:0 0 
 .inbox-row{padding:8px;background:var(--bg2);border:1px solid var(--line);border-radius:5px;border-left:3px solid var(--accent,var(--cyan));font-size:11px}
 .inbox-row .ib-from{font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .inbox-row .ib-subj{color:var(--text2);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.inbox-row .ib-meta{display:flex;justify-content:space-between;margin-top:4px;font-size:9px;color:var(--muted);font-family:'IBM Plex Mono'}
+.inbox-row .ib-meta{display:flex;justify-content:space-between;margin-top:4px;font-size:9px;color:var(--muted);font-family:'Audiowide'}
 .inbox-row .ib-tag{background:rgba(155,123,255,0.15);color:var(--purple);padding:1px 5px;border-radius:3px;font-size:8px;text-transform:uppercase}
 .inbox-row .ib-ai{background:rgba(24,224,255,0.05);border:1px dashed var(--line);border-radius:4px;padding:6px 8px;margin-top:4px;font-size:10px;color:var(--text3);line-height:1.4}
 
 /* ═══ FILTER PILLS ═══ */
 .filter-pills{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px}
-.filter-pill{padding:3px 10px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid var(--line);font-size:10px;font-family:'IBM Plex Mono';text-transform:uppercase;letter-spacing:.04em;color:var(--muted);cursor:pointer;transition:.15s}
+.filter-pill{padding:3px 10px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid var(--line);font-size:10px;font-family:'Audiowide';text-transform:uppercase;letter-spacing:.04em;color:var(--muted);cursor:pointer;transition:.15s}
 .filter-pill:hover{border-color:var(--cyan);color:var(--cyan)}
 .filter-pill.active{background:rgba(24,224,255,0.1);border-color:var(--cyan);color:var(--cyan)}
 .filter-pill .count{color:var(--dim);margin-left:4px}
@@ -704,7 +700,7 @@ function renderBoard(){
   TASKS.forEach(t => { if(!grouped[t.status]) grouped.backlog.push(t); });
 
   body.innerHTML = `
-    <div style="font-family:'IBM Plex Mono';font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">5-COLUMN KANBAN · LIVE FROM /api/galaxy/tasks</div>
+    <div style="font-family:'Audiowide';font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">5-COLUMN KANBAN · LIVE FROM /api/galaxy/tasks</div>
     <div style="display:flex;gap:10px;overflow-x:auto;padding-bottom:14px">
       ${Object.entries(cols).map(([key,col]) => `
         <div class="kanban-col" style="border-top:2px solid ${col.color};max-height:calc(100vh - 180px)">
@@ -740,7 +736,7 @@ function renderAgents(){
   const grouped = agentsViewFilter==='all' ? teams : {[agentsViewFilter]:teams[agentsViewFilter]||[]};
   body.innerHTML = `
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap">
-      <div style="font-family:'Chakra Petch';font-size:18px;letter-spacing:.08em;text-transform:uppercase;color:var(--text)">
+      <div style="font-family:'Audiowide';font-size:18px;letter-spacing:.08em;text-transform:uppercase;color:var(--text)">
         <span style="color:var(--cyan)">◉</span> AGENTS · <span id="agentCount">${AGENTS.length}</span> live
       </div>
       <div style="margin-left:auto;display:flex;gap:6px">
@@ -753,7 +749,7 @@ function renderAgents(){
     <div style="overflow-y:auto;flex:1;padding-right:6px">
       ${Object.entries(grouped).sort().map(([team, agents]) => `
         <div style="margin-bottom:18px">
-          <div style="font-family:'IBM Plex Mono';font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;display:flex;align-items:center;gap:8px;position:sticky;top:0;background:var(--bg);padding:6px 0;z-index:5">
+          <div style="font-family:'Audiowide';font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;display:flex;align-items:center;gap:8px;position:sticky;top:0;background:var(--bg);padding:6px 0;z-index:5">
             <span style="font-size:14px">${TEAM_EMOJI[team]||'🤖'}</span>
             <span style="color:${TEAM_COLORS[team]||'var(--text)'}">${team.replace(/-/g,' ')}</span>
             <span style="color:var(--dim)">· ${agents.length} agents</span>
@@ -779,7 +775,7 @@ function agentCard(a){
         </div>
         <div class="status-dot ${a.status||'idle'}"></div>
       </div>
-      <div style="display:flex;align-items:center;gap:8px;font-size:9px;color:var(--muted);font-family:'IBM Plex Mono'">
+      <div style="display:flex;align-items:center;gap:8px;font-size:9px;color:var(--muted);font-family:'Audiowide'">
         <span style="text-transform:uppercase">${a.tier||'worker'}</span>
         <span>·</span>
         <span>APS ${a.aps_score||'50'}</span>
@@ -845,10 +841,10 @@ function renderActivity(){
   const body = $('activityBody');
   const items = buildActivity();
   body.innerHTML = `
-    <div style="font-family:'Chakra Petch';font-size:18px;letter-spacing:.08em;text-transform:uppercase;color:var(--text);margin-bottom:14px">
+    <div style="font-family:'Audiowide';font-size:18px;letter-spacing:.08em;text-transform:uppercase;color:var(--text);margin-bottom:14px">
       <span style="color:var(--amber)">⟁</span> ACTIVITY · ${items.length} events
     </div>
-    <div style="font-size:10px;color:var(--muted);margin-bottom:8px;font-family:'IBM Plex Mono';text-transform:uppercase;letter-spacing:.06em">
+    <div style="font-size:10px;color:var(--muted);margin-bottom:8px;font-family:'Audiowide';text-transform:uppercase;letter-spacing:.06em">
       <span style="color:var(--amber)">🟡 Question</span> · <span style="color:var(--red)">🔴 Permission/Blocker</span> · <span style="color:var(--green)">🟢 Done</span> · <span style="color:var(--cyan)">🔵 Progress</span>
     </div>
     <div class="feed" style="background:var(--bg2);border:1px solid var(--line);border-radius:8px;padding:0;max-height:calc(100vh - 220px)">
@@ -1150,7 +1146,7 @@ function renderProjects(){
   TASKS.forEach(t => { const p = t.project||'team'; if(!projMap[p]) projMap[p] = {key:p,total:0,statuses:{},tasks:[]}; projMap[p].total++; projMap[p].statuses[t.status]=(projMap[p].statuses[t.status]||0)+1; projMap[p].tasks.push(t); });
   PROJECTS = Object.values(projMap).sort((a,b)=>b.total-a.total);
   body.innerHTML = `
-    <div style="font-family:'Chakra Petch';font-size:18px;letter-spacing:.08em;text-transform:uppercase;color:var(--text);margin-bottom:14px">
+    <div style="font-family:'Audiowide';font-size:18px;letter-spacing:.08em;text-transform:uppercase;color:var(--text);margin-bottom:14px">
       <span style="color:var(--pink)">P</span> PROJECTS · ${PROJECTS.length} live
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:10px">
@@ -1163,7 +1159,7 @@ function renderProjects(){
               <div class="role">${p.total} tasks</div>
             </div>
           </div>
-          <div style="font-size:10px;color:var(--muted);font-family:'IBM Plex Mono';display:flex;gap:8px;flex-wrap:wrap">
+          <div style="font-size:10px;color:var(--muted);font-family:'Audiowide';display:flex;gap:8px;flex-wrap:wrap">
             ${(p.statuses.in_progress||0)?`<span style="color:var(--cyan)">${p.statuses.in_progress} wip</span>`:''}
             ${(p.statuses.review||0)?`<span style="color:var(--pink)">${p.statuses.review} review</span>`:''}
             ${(p.statuses.todo||0)?`<span style="color:var(--purple)">${p.statuses.todo} todo</span>`:''}
@@ -1186,7 +1182,7 @@ function projectDetail(key){
         <div style="font-size:12px;font-weight:600;color:var(--text);flex:1;min-width:0">${esc(t.title)}</div>
         <span class="pri ${t.priority||'P3'}" style="font-size:9px;padding:1px 5px;border-radius:3px;font-weight:700;background:rgba(24,224,255,0.15);color:var(--cyan);white-space:nowrap">${t.priority||'P3'}</span>
       </div>
-      <div style="display:flex;gap:8px;margin-top:4px;font-size:9px;color:var(--muted);font-family:'IBM Plex Mono'">
+      <div style="display:flex;gap:8px;margin-top:4px;font-size:9px;color:var(--muted);font-family:'Audiowide'">
         <span>${esc(t.status)}</span>
         ${t.assigned_to?`<span>@${esc(t.assigned_to)}</span>`:''}
         ${t.created_by?`<span>by ${esc(t.created_by)}</span>`:''}
@@ -1195,7 +1191,7 @@ function projectDetail(key){
     </div>
   `).join('') : '<div style="color:var(--dim);font-size:11px;padding:20px;text-align:center">No tasks for this project yet</div>';
   showModal('Project · '+key, `
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;font-size:10px;font-family:'IBM Plex Mono'">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;font-size:10px;font-family:'Audiowide'">
       ${Object.entries(statuses).map(([s,n]) => `<span style="background:rgba(255,255,255,0.05);padding:3px 8px;border-radius:4px;color:${s==='in_progress'?'var(--cyan)':s==='done'?'var(--green)':s==='blocked'?'var(--red)':'var(--muted)'}">${s}: ${n}</span>`).join('')}
     </div>
     <div style="font-size:9px;color:var(--muted);text-transform:uppercase;margin-bottom:6px">Tasks (${projTasks.length})</div>
@@ -1219,7 +1215,7 @@ function showAgentDetail(agentId){
       <div><div style="font-size:9px;color:var(--muted);text-transform:uppercase">Status</div><div style="color:var(--text)"><span class="status-dot ${a.status}"></span> ${esc(a.status)}</div></div>
       <div><div style="font-size:9px;color:var(--muted);text-transform:uppercase">APS</div><div style="color:var(--text)">${esc(a.aps_score||'50')}</div></div>
       <div><div style="font-size:9px;color:var(--muted);text-transform:uppercase">Load</div><div style="color:var(--text)">${a.current_load||0}/${a.max_load||10}</div></div>
-      <div><div style="font-size:9px;color:var(--muted);text-transform:uppercase">ID</div><div style="color:var(--text);font-family:'IBM Plex Mono'">${esc(a.agent_id)}</div></div>
+      <div><div style="font-size:9px;color:var(--muted);text-transform:uppercase">ID</div><div style="color:var(--text);font-family:'Audiowide'">${esc(a.agent_id)}</div></div>
     </div>
     <div style="margin-bottom:14px">
       <div style="font-size:9px;color:var(--muted);text-transform:uppercase;margin-bottom:4px">Specialization</div>
@@ -1230,7 +1226,7 @@ function showAgentDetail(agentId){
         <div style="font-size:9px;color:var(--cyan);text-transform:uppercase;margin-bottom:6px">⚡ Currently Working On (${inProgress.length})</div>
         ${inProgress.map(t => `<div style="padding:8px;background:rgba(24,224,255,0.08);border:1px solid var(--cyan);border-radius:5px;margin-bottom:4px">
           <div style="font-size:12px;font-weight:600;color:var(--text)">${esc(t.title)}</div>
-          <div style="font-size:9px;color:var(--muted);font-family:'IBM Plex Mono';margin-top:2px">${esc(t.project||'')} · ${esc(t.priority||'P3')}</div>
+          <div style="font-size:9px;color:var(--muted);font-family:'Audiowide';margin-top:2px">${esc(t.project||'')} · ${esc(t.priority||'P3')}</div>
         </div>`).join('')}
       </div>
     ` : ''}
@@ -1239,7 +1235,7 @@ function showAgentDetail(agentId){
         <div style="font-size:9px;color:var(--red);text-transform:uppercase;margin-bottom:6px">⛔ Blocked / Needs You (${blocked.length})</div>
         ${blocked.map(t => `<div style="padding:8px;background:rgba(255,77,94,0.08);border:1px solid var(--red);border-radius:5px;margin-bottom:4px">
           <div style="font-size:12px;font-weight:600;color:var(--text)">${esc(t.title)}</div>
-          <div style="font-size:9px;color:var(--muted);font-family:'IBM Plex Mono';margin-top:2px">${esc(t.project||'')}</div>
+          <div style="font-size:9px;color:var(--muted);font-family:'Audiowide';margin-top:2px">${esc(t.project||'')}</div>
           <div style="margin-top:6px;display:flex;gap:6px">
             <button class="btn green sm" onclick="void(0)">Unblock</button>
             <button class="btn amber sm" onclick="void(0)">Reassign</button>
@@ -1275,7 +1271,7 @@ function dmAgent(name){ switchChannelFull('@'+(name||'').toLowerCase()); nav('sl
 function renderKB(){
   const body = $('kbBody');
   body.innerHTML = `
-    <div style="font-family:'Chakra Petch';font-size:18px;letter-spacing:.08em;text-transform:uppercase;color:var(--text);margin-bottom:14px">
+    <div style="font-family:'Audiowide';font-size:18px;letter-spacing:.08em;text-transform:uppercase;color:var(--text);margin-bottom:14px">
       <span style="color:var(--purple)">K</span> KNOWLEDGE BASE
     </div>
     <div class="stats-grid">
@@ -1287,7 +1283,7 @@ function renderKB(){
     <div style="margin-bottom:14px">
       <input type="text" id="kbSearchInput" placeholder="Search knowledge base… (Enter to search)" onkeydown="if(event.key==='Enter')searchKB()">
     </div>
-    <div style="font-family:'IBM Plex Mono';font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">🕸️ Topic Graph · click a node to load chunks</div>
+    <div style="font-family:'Audiowide';font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">🕸️ Topic Graph · click a node to load chunks</div>
     <div class="kb-graph" id="kbGraph">${renderKBGraph()}</div>
     <div id="kbResults" style="margin-top:14px"></div>
   `;
@@ -1322,7 +1318,7 @@ async function searchKB(){
       <div style="padding:10px;background:var(--bg2);border:1px solid var(--line);border-radius:6px;margin-bottom:6px">
         <div style="font-size:12px;font-weight:600;color:var(--text)">${esc(x.title||x.topic||x.filename||'Result')}</div>
         <div style="font-size:11px;color:var(--text3);margin-top:4px;line-height:1.4">${esc((x.text||x.content||x.chunk||'').substring(0,240))}${(x.text||x.content||'').length>240?'…':''}</div>
-        ${x.score?`<div style="font-size:9px;color:var(--muted);font-family:'IBM Plex Mono';margin-top:4px">relevance: ${(x.score*100).toFixed(0)}%</div>`:''}
+        ${x.score?`<div style="font-size:9px;color:var(--muted);font-family:'Audiowide';margin-top:4px">relevance: ${(x.score*100).toFixed(0)}%</div>`:''}
       </div>
     `).join('') : '<div style="padding:10px;color:var(--dim);font-size:11px">No results.</div>');
   }catch(e){
@@ -1340,7 +1336,7 @@ async function searchTopic(name){
     $('kbResults').innerHTML = `<div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">${chunks.length} chunks in "${esc(name)}"</div>` + (chunks.length ? chunks.slice(0,12).map(c => `
       <div style="padding:10px;background:var(--bg2);border:1px solid var(--line);border-radius:6px;margin-bottom:6px">
         <div style="font-size:11px;color:var(--text);line-height:1.5;white-space:pre-wrap">${esc((c.text||c.content||'').substring(0,400))}${(c.text||'').length>400?'…':''}</div>
-        ${c.source?`<div style="font-size:9px;color:var(--muted);font-family:'IBM Plex Mono';margin-top:4px">→ ${esc(c.source)}</div>`:''}
+        ${c.source?`<div style="font-size:9px;color:var(--muted);font-family:'Audiowide';margin-top:4px">→ ${esc(c.source)}</div>`:''}
       </div>
     `).join('') : '<div style="padding:10px;color:var(--dim);font-size:11px">No chunks yet for this topic.</div>');
   }catch(e){
@@ -1363,7 +1359,7 @@ function renderTodo(){
     </div>
   `).join('') : '<div class="empty"><div class="ico">📋</div>No open tasks</div>';
   $('todoBody').innerHTML = `
-    <div style="font-family:'Chakra Petch';font-size:18px;letter-spacing:.08em;text-transform:uppercase;color:var(--text);margin-bottom:14px">
+    <div style="font-family:'Audiowide';font-size:18px;letter-spacing:.08em;text-transform:uppercase;color:var(--text);margin-bottom:14px">
       <span style="color:var(--cyan)">T</span> TODO · ${tasks.length} open
     </div>
     <div class="agent-grid">${list}</div>
@@ -1375,7 +1371,7 @@ function renderCalendar(){
   if(!CALENDAR_EVENTS.length){
     const calErr = (window._stateBrain && window._stateBrain.calendar_error) || '';
     body.innerHTML = `
-      <div style="font-family:'Chakra Petch';font-size:18px;letter-spacing:.08em;text-transform:uppercase;color:var(--text);margin-bottom:14px">
+      <div style="font-family:'Audiowide';font-size:18px;letter-spacing:.08em;text-transform:uppercase;color:var(--text);margin-bottom:14px">
         <span style="color:var(--amber)">C</span> CALENDAR
       </div>
       <div class="empty">
@@ -1388,13 +1384,13 @@ function renderCalendar(){
         <a href="https://console.developers.google.com/apis/api/calendar-json.googleapis.com/overview?project=737696784465" target="_blank" class="btn" style="text-decoration:none;display:inline-block">🔓 Enable Calendar API</a>
         <br><br>
         <div style="font-size:11px;color:var(--dim)">Once enabled, the cron job (every 15 min) will pull events automatically. Gmail sync is already running.</div>
-        ${calErr?`<div style="font-size:10px;color:var(--red);margin-top:10px;font-family:'IBM Plex Mono'">${esc(calErr)}</div>`:''}
+        ${calErr?`<div style="font-size:10px;color:var(--red);margin-top:10px;font-family:'Audiowide'">${esc(calErr)}</div>`:''}
       </div>
     `;
     return;
   }
   body.innerHTML = `
-    <div style="font-family:'Chakra Petch';font-size:18px;letter-spacing:.08em;text-transform:uppercase;color:var(--text);margin-bottom:14px">
+    <div style="font-family:'Audiowide';font-size:18px;letter-spacing:.08em;text-transform:uppercase;color:var(--text);margin-bottom:14px">
       <span style="color:var(--amber)">C</span> CALENDAR · ${CALENDAR_EVENTS.length} events
     </div>
     ${CALENDAR_EVENTS.map(e => `
@@ -1412,7 +1408,7 @@ function renderInbox(){
   const body = $('inboxBody');
   if(!INBOX.length){
     body.innerHTML = `
-      <div style="font-family:'Chakra Petch';font-size:18px;letter-spacing:.08em;text-transform:uppercase;color:var(--text);margin-bottom:14px">
+      <div style="font-family:'Audiowide';font-size:18px;letter-spacing:.08em;text-transform:uppercase;color:var(--text);margin-bottom:14px">
         <span style="color:var(--purple)">I</span> INBOX · AI-attributed
       </div>
       <div class="empty">
@@ -1428,7 +1424,7 @@ function renderInbox(){
   INBOX.forEach(m => { const p = m.project || m.context?.businessIds?.[0] || 'general'; if(!groups[p]) groups[p]=[]; groups[p].push(m); });
   const totalProjects = Object.keys(groups).length;
   body.innerHTML = `
-    <div style="font-family:'Chakra Petch';font-size:18px;letter-spacing:.08em;text-transform:uppercase;color:var(--text);margin-bottom:14px">
+    <div style="font-family:'Audiowide';font-size:18px;letter-spacing:.08em;text-transform:uppercase;color:var(--text);margin-bottom:14px">
       <span style="color:var(--purple)">I</span> INBOX · ${INBOX.length} messages · ${totalProjects} projects
     </div>
     ${Object.entries(groups).sort((a,b)=>b[1].length-a[1].length).map(([project, msgs]) => `
@@ -1457,7 +1453,7 @@ function renderInbox(){
 function renderDocs(){
   const body = $('docsBody');
   body.innerHTML = `
-    <div style="font-family:'Chakra Petch';font-size:18px;letter-spacing:.08em;text-transform:uppercase;color:var(--text);margin-bottom:14px">
+    <div style="font-family:'Audiowide';font-size:18px;letter-spacing:.08em;text-transform:uppercase;color:var(--text);margin-bottom:14px">
       <span style="color:var(--blue)">D</span> DOCS · ${DOCS.length} files
     </div>
     <div style="margin-bottom:14px;display:flex;gap:8px">
@@ -1492,14 +1488,14 @@ function renderGallery(){
   const body = $('galleryBody');
   const imgs = GALLERY_IMAGES;
   body.innerHTML = `
-    <div style="font-family:'Chakra Petch';font-size:18px;letter-spacing:.08em;text-transform:uppercase;color:var(--text);margin-bottom:14px">
+    <div style="font-family:'Audiowide';font-size:18px;letter-spacing:.08em;text-transform:uppercase;color:var(--text);margin-bottom:14px">
       <span style="color:var(--pink)">G</span> GALLERY · ${imgs.length} images
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px">
       ${imgs.length ? imgs.slice(0,60).map(img => `
         <div style="aspect-ratio:1;background:var(--bg2);border:1px solid var(--line);border-radius:6px;overflow:hidden;cursor:pointer;position:relative" onclick="showImage('${esc(img.id||img.file)}')">
           <img src="/api/gallery/file/${esc(img.id||img.file)}" style="width:100%;height:100%;object-fit:cover" loading="lazy" onerror="this.style.display='none'">
-          <div style="position:absolute;bottom:0;left:0;right:0;padding:4px;background:linear-gradient(0deg,rgba(0,0,0,0.8),transparent);font-size:9px;color:var(--text2);font-family:'IBM Plex Mono'">${esc((img.file||img.id||'').substring(0,20))}</div>
+          <div style="position:absolute;bottom:0;left:0;right:0;padding:4px;background:linear-gradient(0deg,rgba(0,0,0,0.8),transparent);font-size:9px;color:var(--text2);font-family:'Audiowide'">${esc((img.file||img.id||'').substring(0,20))}</div>
         </div>
       `).join('') : '<div class="empty"><div class="ico">🖼️</div>Gallery empty</div>'}
     </div>
@@ -1510,7 +1506,7 @@ function showImage(id){ showModal('Image: '+id, `<img src="/api/gallery/file/${e
 function renderSkills(){
   const skills = SKILLS.length ? SKILLS : SKILL_DATA;
   $('skillsBody').innerHTML = `
-    <div style="font-family:'Chakra Petch';font-size:18px;letter-spacing:.08em;text-transform:uppercase;color:var(--text);margin-bottom:14px">
+    <div style="font-family:'Audiowide';font-size:18px;letter-spacing:.08em;text-transform:uppercase;color:var(--text);margin-bottom:14px">
       <span style="color:var(--cyan)">S</span> SKILLS · ${skills.length} loaded
     </div>
     <div class="agent-grid">${skills.map(s => `
@@ -1523,7 +1519,7 @@ function renderSkills(){
           </div>
         </div>
         <div style="font-size:11px;color:var(--text3);line-height:1.4">${esc(s.d||s.description||'')}</div>
-        ${s.gh?`<div style="margin-top:6px;font-size:9px;color:var(--dim);font-family:'IBM Plex Mono'">→ github.com/${esc(s.gh)}</div>`:''}
+        ${s.gh?`<div style="margin-top:6px;font-size:9px;color:var(--dim);font-family:'Audiowide'">→ github.com/${esc(s.gh)}</div>`:''}
       </div>
     `).join('')}</div>
   `;
@@ -1534,7 +1530,7 @@ function renderRailNotif(){
   const items = buildActivity().slice(0,20);
   $('railNotif').innerHTML = `
     <div style="padding:12px">
-      <div style="font-family:'IBM Plex Mono';font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">🔔 NOTIFICATIONS · ${items.length}</div>
+      <div style="font-family:'Audiowide';font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">🔔 NOTIFICATIONS · ${items.length}</div>
       <div style="font-size:11px;color:var(--text3);line-height:1.6">
         ${items.length ? items.map(a => `
           <div class="feed-item ${a.cls||''}" style="padding:8px;margin-bottom:6px;border-radius:5px;background:var(--bg2);border-bottom:0">
