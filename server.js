@@ -1073,11 +1073,14 @@ async function route(req,res){
     return;
   }
 
-  // 2026-06-30: forward /api/initiatives, /api/initiative_chat, /api/tasks/running, /api/notifications to :1707
-  if(u.pathname.startsWith('/api/initiatives')
+  // 2026-06-30: forward to :1707 — EXCEPT sim-* (debug) which lives on :1702
+  // 2026-06-30: forward /api/initiatives, /api/initiative_chat, /api/tasks/running to :1707
+  const isSim = u.pathname.startsWith('/api/notifications/sim-');
+  if((u.pathname.startsWith('/api/initiatives')
      || u.pathname.startsWith('/api/initiative_chat')
      || u.pathname.startsWith('/api/tasks/running')
-     || u.pathname.startsWith('/api/notifications')){
+     || (u.pathname.startsWith('/api/notifications') && !isSim))
+     && !isSim){
     const target = u.pathname + (u.search||'');
     const proxyReq = http.request({
       hostname: '127.0.0.1', port: 1707, path: target,
@@ -1964,6 +1967,27 @@ async function route(req,res){
   if(u.pathname==='/api/goals/'+goalDetail+'/start'&&req.method==='POST'){ const s=readState(),b=await body(req); const g=(s.brain.goals||[]).find(x=>x.id===goalDetail[1]); if(!g)return send(res,404,{error:'goal_not_found'}); g.status='running'; g.tasks=b.tasks||g.tasks||[]; g.currentTaskIdx=0; g.lastRunAt=nowISO(); g.errorCount=0; writeState(s); runGoalEngine(goalDetail[1]); return send(res,200,{ok:true,goal:g,state:s}); }
   // Goal: reset
   if(u.pathname==='/api/goals/'+goalDetail+'/reset'&&req.method==='POST'){ const s=readState(); const g=(s.brain.goals||[]).find(x=>x.id===goalDetail[1]); if(!g)return send(res,404,{error:'goal_not_found'}); g.status='clarifying'; g.tasks=[]; g.questions=[]; g.plan=''; g.currentTaskIdx=0; g.errorCount=0; writeState(s); return send(res,200,{ok:true,goal:g,state:s}); }
+
+  // ─── SIMULATOR (debug): register any endpoint as a push sub so we can test
+  if(u.pathname === '/api/notifications/sim-subscribe' && req.method === 'POST') {
+    const b = await body(req);
+    const s = readState();
+    s.pushSubscriptions = s.pushSubscriptions || [];
+    const sub = { endpoint: b.endpoint, keys: b.keys || {}, source: 'simulator', createdAt: nowISO(), lastActive: nowISO() };
+    const idx = s.pushSubscriptions.findIndex(x => x.endpoint === b.endpoint);
+    if(idx >= 0) s.pushSubscriptions[idx] = sub; else s.pushSubscriptions.push(sub);
+    fs.writeFileSync(DATA, JSON.stringify(s, null, 2));
+    send(res,200,{ok:true, count: s.pushSubscriptions.length});
+    return;
+  }
+  // ─── SIMULATOR (debug): trigger a push notification immediately
+  if(u.pathname === '/api/notifications/sim-push' && req.method === 'POST') {
+    const b = await body(req);
+    sendPushToAll(readState(), b.title || 'Sim Push', b.body || 'Test notification', b.tag || 'sim', { url: '/' });
+    const subs = (readState().pushSubscriptions || []).filter(s => s.endpoint);
+    send(res,200, {ok:true, fanout_count: subs.length});
+    return;
+  }
 
   // ─── Push Notification Subscription API ───
   if(u.pathname==='/api/notifications/vapid-key'&&req.method==='GET'){

@@ -345,6 +345,8 @@ input:focus,select:focus,textarea:focus{border-color:var(--cyan);box-shadow:0 0 
   <button class="nav-side-btn" onclick="closeOverlayNav();nav('inbox')"         title="Inbox">       <span class="ico">📥</span><span class="lbl">Inbox</span></button>
   <div class="nav-section-title">🔔 PUSH</div>
   <div id="pushSubWrap"></div>
+  <button class="push-sub" onclick="forceResubscribe(event)" style="margin-top:8px;cursor:pointer"><span class="dot"></span><span style="flex:1">Force re-register</span></button>
+  <button class="push-sub" onclick="showPushDebug(event)" style="margin-top:4px;cursor:pointer;background:rgba(255,92,200,0.1);border-color:rgba(255,92,200,0.3)"><span class="dot"></span><span style="flex:1">Debug push</span></button>
 </aside>
 
 <!-- Hidden markup template for desktop-side subscribe -->
@@ -444,6 +446,77 @@ async function subscribePush(evt){
     fail(e.message || String(e));
     return false;
   }
+}
+
+
+// 2026-06-30: Force re-register — unregister ALL SWs and start fresh
+async function forceResubscribe(evt){
+  evt?.preventDefault?.(); evt?.stopPropagation?.();
+  const btn = document.getElementById('pushSubWrap')?.querySelector('button');
+  const show = (txt) => btn && (btn.innerHTML = `<span class="dot"></span><span style="flex:1">${txt}</span>`);
+  show('Unregistering…');
+  try {
+    // Unregister all SWs
+    const regs = await navigator.serviceWorker.getRegistrations();
+    for (const r of regs) {
+      try { await r.unregister(); } catch(e){}
+    }
+    // Clear caches
+    if (window.caches) {
+      const keys = await caches.keys();
+      for (const k of keys) { try { await caches.delete(k); } catch(e){} }
+    }
+    // Unregister existing subscription
+    show('Removing old sub…');
+    const reg2 = await navigator.serviceWorker.getRegistration('/');
+    if (reg2) {
+      const sub = await reg2.pushManager.getSubscription();
+      if (sub) await sub.unsubscribe();
+    }
+    show('Reloading…');
+    setTimeout(() => location.reload(), 1500);
+  } catch(e) {
+    alert('Force re-register failed: ' + e.message);
+    show('Try Enable Push');
+  }
+}
+
+// 2026-06-30: Debug — show what's wrong with push setup
+async function showPushDebug(evt){
+  evt?.preventDefault?.(); evt?.stopPropagation?.();
+  const out = {
+    sw_supported: 'serviceWorker' in navigator,
+    pm_supported: 'PushManager' in window,
+    notif_permission: Notification.permission,
+    secure_context: window.isSecureContext,
+    protocol: location.protocol,
+    host: location.host,
+    href: location.href,
+    sw_registrations: [],
+    cached_caches: [],
+  };
+  try {
+    const regs = await navigator.serviceWorker.getRegistrations();
+    out.sw_registrations = regs.map(r => ({
+      scope: r.scope,
+      active: r.active && r.active.state,
+      scriptURL: r.active && r.active.scriptURL,
+      pushManager_exists: !!r.pushManager,
+    }));
+    const reg = await navigator.serviceWorker.getRegistration('/');
+    if (reg) {
+      out.sub = await reg.pushManager.getSubscription();
+    }
+  } catch(e) { out.sw_error = e.message; }
+  if (window.caches) {
+    try { out.cached_caches = await caches.keys(); } catch(e) {}
+  }
+  try {
+    const r = await fetch('/api/notifications/vapid-key');
+    out.vapid = { status: r.status, body: await r.json() };
+  } catch(e) { out.vapid_error = e.message; }
+  console.log('[push-debug]', out);
+  alert('Push debug:\n\n' + JSON.stringify(out, null, 2).substring(0, 2000));
 }
 
 function urlB64ToUint8Array(b64){
