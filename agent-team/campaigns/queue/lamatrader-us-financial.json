@@ -1,0 +1,110 @@
+[
+  {
+    "email": "kevin@educatorstax.com",
+    "company": "Educators Tax Management Inc",
+    "industry": "Financial advisor",
+    "city": "Blue Point",
+    "state": "NY",
+    "country": "US",
+    "employee_count": null,
+    "website": "http://www.educatorstax.com/",
+    "vertical": "lamatrader",
+    "campaign_variant": "B1"
+  },
+  {
+    "email": "aweichselbaum@wexusllc.com",
+    "company": "The Wexus Group LLC",
+    "industry": "Financial Advisor",
+    "city": "Cedarhurst",
+    "state": "NY",
+    "country": "US",
+    "employee_count": null,
+    "website": "http://wexusllc.com/",
+    "vertical": "lamatrader",
+    "campaign_variant": "B1"
+  },
+  {
+    "email": "tom@groupifs.com",
+    "company": "Integrated Financial Services",
+    "industry": "Financial planner",
+    "city": "Jersey City",
+    "state": "NY",
+    "country": "US",
+    "employee_count": null,
+    "website": "http://www.groupifs.com/",
+    "vertical": "lamatrader",
+    "campaign_variant": "B1"
+  },
+  {
+    "email": "mgrant@nygms.com",
+    "company": "Grant Management Services",
+    "industry": "Financial Advising",
+    "city": "Greenvale",
+    "state": "NY",
+    "country": "US",
+    "employee_count": null,
+    "website": "http://www.nygms.com",
+    "vertical": "lamatrader",
+    "campaign_variant": "B1"
+  },
+  {
+    "email": "info@reliablepayrollservices.com",
+    "company": "Reliable Payroll Services",
+    "industry": "Financial Services",
+    "city": "Little Neck",
+    "state": "NY",
+    "country": "US",
+    "employee_count": null,
+    "website": "https://www.reliablepayrollservices.com/",
+    "vertical": "lamatrader",
+    "campaign_variant": "B1"
+  },
+  {
+    "email": "info@pleeco.ru",
+    "company": "Pleeco",
+    "industry": "Financial planner",
+    "city": "New York",
+    "state": "NY",
+    "country": "US",
+    "employee_count": null,
+    "website": "http://pleeco.com/",
+    "vertical": "lamatrader",
+    "campaign_variant": "B1"
+  },
+  {
+    "email": "karen.knox@raymondjames.com",
+    "company": "George Brown - Raymond James",
+    "industry": "Financial planner",
+    "city": "Albany",
+    "state": "NY",
+    "country": "US",
+    "employee_count": null,
+    "website": "https://www.raymondjames.com/george/",
+    "vertical": "lamatrader",
+    "campaign_variant": "B1"
+  },
+  {
+    "email": "jaime@fingerlakeswm.com",
+    "company": "Fingerlakes Wealth Management",
+    "industry": "Financial planner",
+    "city": "Ithaca",
+    "state": "NY",
+    "country": "US",
+    "employee_count": null,
+    "website": "https://www.fingerlakeswm.com/",
+    "vertical": "lamatrader",
+    "campaign_variant": "B1"
+  },
+  {
+    "email": "eugenio.x.carrillo@ampf.com",
+    "company": "Gordon S Shalek - Private Wealth Advisor Ameriprise Financial Services LLC",
+    "industry": "Financial planner",
+    "city": "Boca Raton",
+    "state": "NY",
+    "country": "US",
+    "employee_count": null,
+    "website": "https://www.ameripriseadvisors.com/gordon.s.shalek/",
+    "vertical": "lamatrader",
+    "campaign_variant": "B1"
+  }
+]
