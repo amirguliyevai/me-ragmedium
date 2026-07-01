@@ -6,8 +6,11 @@ node_modules/
 android/app/build/
 android/build/
 android/.gradle/
+android/keystore/
 *.apk
 *.aab
+*.jks
+*.keystore
 
 # State backups (rotating, not source)
 data/backups/
