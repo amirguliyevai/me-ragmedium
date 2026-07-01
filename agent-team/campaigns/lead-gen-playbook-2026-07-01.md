@@ -149,3 +149,17 @@ ri_add_leads_to_campaign(campaign_id='abc123', leads=[{...}, {...}])
 - 6 campaigns created in ReachInbox UI (3 per vertical)
 - 400 leads queued for import (when API recovers)
 - 50 personalized outreach responses/day
+
+---
+
+## Activation Status (2026-07-01)
+
+🟡 **PREPPED but NOT ACTIVATED.**
+
+Full team activation is gated on Amir's confirmation. Run `bash /home/admin/67 - AI/activate-team.sh` when ready.
+
+Blockers that affect activation:
+1. Gmail OAuth expired 72h+ — affects outreach-head + rema-exteriors-lead
+2. LinkedIn account not created — affects content-director + outreach-head
+3. X account not created — affects content-director
+4. ReachInbox API 500 — workaround: create campaigns in UI, paste IDs into processed/JSON

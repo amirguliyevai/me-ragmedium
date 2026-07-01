@@ -1,0 +1,84 @@
+{
+  "version": "1.0",
+  "created": "2026-07-01",
+  "activated": false,
+  "activated_at": null,
+  "owner": "Amir G",
+  "prep_completed_by": "agent-chief-of-staff",
+  "prep_timestamp": "2026-07-01T14:00:00Z",
+
+  "checklist": {
+    "folder_structure":         {"status": "DONE",  "evidence": "/home/admin/67 - AI/ has project × ICP × pipeline dirs"},
+    "lead_db_audit":            {"status": "DONE",  "evidence": "67 - AI/LEAD-DB-AUDIT.md"},
+    "drive_folders_documented": {"status": "DONE",  "evidence": "67 - AI/LEAD-DB-AUDIT.md (Drive links)"},
+    "oauth_instructions":       {"status": "DONE",  "evidence": "67 - AI/OAUTH-REFRESH-NEEDED.md"},
+    "content_calendar_dashboard": {"status": "DONE", "evidence": "me.ragmedium.com Calendar page"},
+    "production_pipeline_ui":   {"status": "DONE",  "evidence": "Content Hub Production tab"},
+    "platforms_pinterest_bluesky": {"status": "DONE", "evidence": "Content Hub platforms.json + auth stubs"},
+    "agent_charters_present":   {"status": "DONE",  "evidence": "/home/admin/.openclaw/workspace/team/ (11 charters)"},
+    "work_queue_present":       {"status": "DONE",  "evidence": "/home/admin/.openclaw/workspace/team-updates/WORK-QUEUE.md"},
+    "dispatcher_protocol":      {"status": "DONE",  "evidence": "/home/admin/.openclaw/workspace/team-updates/DISPATCHER-PROTOCOL.md"},
+    "agent_souls_present":      {"status": "DONE",  "evidence": "/home/admin/.openclaw/workspace/agent-team/agent-souls/ (10 souls)"},
+    "activation_script_written":{"status": "DONE",  "evidence": "67 - AI/activate-team.sh"}
+  },
+
+  "blockers_for_activation": [
+    {
+      "id": "B1",
+      "description": "Gmail OAuth expired 72h+",
+      "fix": "Run: gog auth add amirg@ragmedium.com --services gmail,drive",
+      "blocks": ["outreach-head", "rema-exteriors-lead"],
+      "severity": "P0"
+    },
+    {
+      "id": "B2",
+      "description": "LinkedIn account not created (blocks all social outreach + PriPitch marketing)",
+      "fix": "Create LinkedIn account, then run: gog auth add linkedin --services w_member_social,r_liteprofile",
+      "blocks": ["content-director", "outreach-head"],
+      "severity": "P0"
+    },
+    {
+      "id": "B3",
+      "description": "X account not created (blocks X content posting)",
+      "fix": "Create X account, save cookies to /home/admin/.openclaw/workspace/content-hub/x_cookies.json",
+      "blocks": ["content-director"],
+      "severity": "P0"
+    },
+    {
+      "id": "B4",
+      "description": "Pinterest + Bluesky accounts not created",
+      "fix": "Pinterest: business.pinterest.com → developer app. Bluesky: bsky.app → app password. Save to content-hub/auth/.",
+      "blocks": ["content-director"],
+      "severity": "P1"
+    },
+    {
+      "id": "B5",
+      "description": "ReachInbox /v1/campaigns returns 500 (their server-side bug)",
+      "fix": "Wait for ReachInbox to fix. Workaround: create campaigns in ReachInbox UI, paste campaign_ids into /home/admin/67 - AI/RAGmedium/*/processed/*.json",
+      "blocks": ["outreach-head (LamaTrader + RAGmedium campaigns)"],
+      "severity": "P2"
+    },
+    {
+      "id": "B6",
+      "description": "PriPitch Sprint 1/2/3 awaiting Amir approval (CORS vuln, CI/CD, refactor)",
+      "fix": "Approve in /home/admin/.openclaw/workspace/team-updates/inbox/ for dev-director to action",
+      "blocks": ["pripitch sprints"],
+      "severity": "P1"
+    }
+  ],
+
+  "agents_to_spawn_on_activation": [
+    {"id": "lamatrader-lead",     "soul": "/home/admin/.openclaw/workspace/agent-team/agent-souls/team-lead.soul.md", "scope": "LamaTrader + LamaBroker (grouped)"},
+    {"id": "outreach-head",        "soul": "/home/admin/.openclaw/workspace/agent-team/agent-souls/team-lead.soul.md", "scope": "RAGmedium email/LinkedIn outreach"},
+    {"id": "content-director",     "soul": "/home/admin/.openclaw/workspace/agent-team/agent-souls/team-lead.soul.md", "scope": "Content Empire (all platforms)"},
+    {"id": "grademy-lead",         "soul": "/home/admin/.openclaw/workspace/agent-team/agent-souls/team-lead.soul.md", "scope": "Grademy.work"},
+    {"id": "rema-exteriors-lead",  "soul": "/home/admin/.openclaw/workspace/agent-team/agent-souls/team-lead.soul.md", "scope": "RimaExteriors FL homeowners"},
+    {"id": "ventures-pm",          "soul": "/home/admin/.openclaw/workspace/agent-team/agent-souls/team-lead.soul.md", "scope": "Client projects (SyneticX, Halalbooking, PriPitch)"},
+    {"id": "dev-director",         "soul": "/home/admin/.openclaw/workspace/agent-team/agent-souls/team-lead.soul.md", "scope": "Infra (servers, dashboard, db)"},
+    {"id": "chief-of-staff",       "soul": "/home/admin/.openclaw/workspace/team/charter-chief-of-staff.md", "scope": "Cross-department coordination + Telegram updates"}
+  ],
+
+  "telegram_update_cadence": "every_15_min_during_work_hours",
+  "first_telegram_update_at": null,
+  "expected_first_outputs_in": "5_minutes_post_activation"
+}

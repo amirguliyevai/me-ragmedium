@@ -110,3 +110,19 @@
 | Grademy students | ❌ No |
 | **Generic "London businesses with email"** | ✅ Useful for broad funnel (current 2,500) |
 | **Generic "AI in business name"** | ✅ Useful for AI consultancy broad outreach (730k globally) |
+
+
+---
+
+## Activation
+
+The team is **PREPPED but NOT YET ACTIVATED**.
+
+When Amir confirms, run:
+```bash
+bash /home/admin/67 - AI/activate-team.sh
+```
+
+This fires all 8 standing agents (lamatrader-lead, outreach-head, content-director, grademy-lead, rema-exteriors-lead, ventures-pm, dev-director, chief-of-staff) + starts the continuous work queue.
+
+See `/home/admin/67 - AI/ACTIVATION.md` for the full guide + blocker list.
