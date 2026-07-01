@@ -1,0 +1,245 @@
+[
+  {
+    "id": "x",
+    "name": "X / Twitter",
+    "tier": 1,
+    "category": "text",
+    "oauth_required": true,
+    "status": "connected",
+    "auth": {
+      "type": "manual_cookie",
+      "file": "x_cookies.json"
+    },
+    "config": {
+      "posting_limit_per_day": 10,
+      "warming_required": true,
+      "automation_via": "x-farm (100 accounts warming)"
+    },
+    "queue_dir": "/home/admin/x-farm/",
+    "notes": "100 accounts on local proxies; Day 5 warmup in progress"
+  },
+  {
+    "id": "linkedin",
+    "name": "LinkedIn",
+    "tier": 1,
+    "category": "text",
+    "oauth_required": true,
+    "status": "needs-setup",
+    "auth": {
+      "type": "oauth2",
+      "scopes": [
+        "w_member_social",
+        "r_liteprofile"
+      ]
+    },
+    "config": {
+      "connection_limit_per_day": 20,
+      "message_limit_per_day": 50,
+      "automation_via": "ai.ragmedium LinkedIn campaigns"
+    },
+    "notes": "BLOCKED 5+ days: Amir needs to create his LinkedIn account"
+  },
+  {
+    "id": "medium",
+    "name": "Medium",
+    "tier": 1,
+    "category": "text",
+    "oauth_required": false,
+    "status": "manual",
+    "config": {
+      "via": "manual-publish (token integration optional)"
+    },
+    "notes": "Long-form article distribution"
+  },
+  {
+    "id": "substack",
+    "name": "Substack",
+    "tier": 1,
+    "category": "text",
+    "oauth_required": false,
+    "status": "manual",
+    "config": {
+      "via": "email-import or manual-publish"
+    },
+    "notes": "Newsletter distribution"
+  },
+  {
+    "id": "reddit",
+    "name": "Reddit",
+    "tier": 1,
+    "category": "text",
+    "oauth_required": true,
+    "status": "needs-setup",
+    "auth": {
+      "type": "oauth2",
+      "scopes": [
+        "identity",
+        "submit",
+        "edit"
+      ]
+    },
+    "config": {
+      "karma_threshold": 100,
+      "subreddits": []
+    },
+    "notes": "Comment + post distribution; needs karma to avoid spam filter"
+  },
+  {
+    "id": "quora",
+    "name": "Quora",
+    "tier": 1,
+    "category": "text",
+    "oauth_required": true,
+    "status": "needs-setup",
+    "auth": {
+      "type": "oauth2"
+    },
+    "config": {
+      "question_targeting": true
+    },
+    "notes": "Q&A answer distribution"
+  },
+  {
+    "id": "instagram",
+    "name": "Instagram",
+    "tier": 2,
+    "category": "visual",
+    "oauth_required": true,
+    "status": "needs-setup",
+    "auth": {
+      "type": "oauth2_fb",
+      "scopes": [
+        "instagram_basic",
+        "instagram_content_publish"
+      ]
+    },
+    "config": {
+      "post_types": [
+        "image",
+        "carousel",
+        "reel",
+        "story"
+      ],
+      "media_via": "Content Studio + MuAPI"
+    },
+    "notes": "Same as Facebook \u2014 Business account required"
+  },
+  {
+    "id": "facebook",
+    "name": "Facebook",
+    "tier": 2,
+    "category": "visual",
+    "oauth_required": true,
+    "status": "needs-setup",
+    "auth": {
+      "type": "oauth2_fb"
+    },
+    "config": {
+      "page_required": true
+    },
+    "notes": "Cross-post from Instagram"
+  },
+  {
+    "id": "tiktok",
+    "name": "TikTok",
+    "tier": 2,
+    "category": "visual",
+    "oauth_required": true,
+    "status": "needs-setup",
+    "auth": {
+      "type": "oauth2_tiktok"
+    },
+    "config": {
+      "video_max_duration": 60,
+      "media_via": "Content Studio + MoneyPrinterTurbo"
+    },
+    "notes": "Same format as IG Reels"
+  },
+  {
+    "id": "pinterest",
+    "name": "Pinterest",
+    "tier": 2,
+    "category": "visual",
+    "oauth_required": true,
+    "status": "NEEDS-SETUP",
+    "auth": {
+      "type": "oauth2_pinterest",
+      "scopes": [
+        "boards:read",
+        "boards:write",
+        "pins:read",
+        "pins:write"
+      ]
+    },
+    "config": {
+      "pin_format": "1000x1500 (2:3 ratio)",
+      "boards": []
+    },
+    "setup_steps": [
+      "1. Create Pinterest Business account (https://business.pinterest.com)",
+      "2. Create a Pinterest App at https://developers.pinterest.com/apps/",
+      "3. Get OAuth client_id + client_secret",
+      "4. Set redirect URI to https://me.ragmedium.com/api/content-auth/pinterest/callback",
+      "5. Run: gog auth add pinterest --services boards:read,boards:write,pins:read,pins:write",
+      "6. Save token to /home/admin/.openclaw/workspace/content-hub/auth/pinterest.json"
+    ],
+    "notes": "NEW: not yet wired. Same workflow as X accounts warming."
+  },
+  {
+    "id": "youtube",
+    "name": "YouTube",
+    "tier": 3,
+    "category": "video",
+    "oauth_required": true,
+    "status": "needs-setup",
+    "auth": {
+      "type": "oauth2_youtube",
+      "scopes": [
+        "youtube.upload",
+        "youtube.readonly"
+      ]
+    },
+    "config": {
+      "video_via": "MoneyPrinterTurbo",
+      "shorts_supported": true
+    },
+    "notes": "Long-form + Shorts"
+  },
+  {
+    "id": "bluesky",
+    "name": "Bluesky",
+    "tier": 3,
+    "category": "text",
+    "oauth_required": false,
+    "status": "NEEDS-SETUP",
+    "auth": {
+      "type": "app_password",
+      "host": "https://bsky.social"
+    },
+    "config": {
+      "post_char_limit": 300,
+      "rate_limit_per_hour": 300,
+      "formatting": "plain text + links + mentions"
+    },
+    "setup_steps": [
+      "1. Create Bluesky account at https://bsky.app",
+      "2. Go to Settings \u2192 App Passwords \u2192 Create app password",
+      "3. Save handle + app password to /home/admin/.openclaw/workspace/content-hub/auth/bluesky.json:",
+      "   { \"handle\": \"amir.ragmedium.com\", \"app_password\": \"xxxx-xxxx-xxxx\" }",
+      "4. Posting API: POST https://bsky.social/xrpc/com.atproto.repo.createRecord"
+    ],
+    "notes": "NEW: not yet wired. No OAuth dance needed \u2014 just app password."
+  },
+  {
+    "id": "youtube_shorts",
+    "name": "YouTube Shorts",
+    "tier": 3,
+    "category": "video",
+    "oauth_required": true,
+    "status": "needs-setup",
+    "auth": {
+      "inherits": "youtube"
+    },
+    "notes": "Same auth as YouTube"
+  }
+]

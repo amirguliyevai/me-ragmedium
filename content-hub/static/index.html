@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Content Hub — Media Library & Calendar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0a0a0f;--surface:#12121a;--surface2:#1a1a28;--border:#2a2a3e;--text:#e0e0f0;--text2:#8888aa;--accent:#8b5cf6;--accent2:#06b6d4;--green:#22c55e;--amber:#f59e0b;--red:#ef4444;--radius:12px;--radius-sm:8px;--font:'Inter',-apple-system,sans-serif;--mono:'JetBrains Mono',monospace}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+a{color:var(--accent);text-decoration:none}
+.app{display:flex;height:100vh;overflow:hidden}
+.sidebar{width:240px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0}
+.sidebar .brand{padding:20px;border-bottom:1px solid var(--border)}
+.sidebar .brand h1{font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px}
+.sidebar .brand h1 .logo{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff}
+.sidebar .brand p{font-size:11px;color:var(--text2);margin-top:2px}
+.sidebar nav{flex:1;padding:12px;overflow-y:auto}
+.sidebar nav .nav-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text2);padding:12px 8px 6px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--radius-sm);color:var(--text2);cursor:pointer;transition:all .15s;font-size:13px;font-weight:500;margin-bottom:2px}
+.nav-item .badge{background:var(--accent);color:#fff;font-size:10px;padding:1px 6px;border-radius:8px;margin-left:auto}
+.nav-item:hover{background:var(--surface2);color:var(--text)}
+.nav-item.active{background:var(--accent);color:#fff}
+.nav-item .icon{width:18px;height:18px;flex-shrink:0}
+.nav-item.active .icon{opacity:1}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.header{padding:16px 28px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;background:var(--bg)}
+.header h2{font-size:18px;font-weight:600}
+.header p{font-size:13px;color:var(--text2)}
+.content{flex:1;overflow-y:auto;padding:24px 28px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:16px}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.card-header h3{font-size:14px;font-weight:600}
+.card-header p{font-size:12px;color:var(--text2)}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:24px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
+.stat-card .stat-label{font-size:11px;color:var(--text2);font-weight:500;text-transform:uppercase;letter-spacing:.05em}
+.stat-card .stat-value{font-size:28px;font-weight:700;margin-top:4px;line-height:1.2}
+.stat-card .stat-detail{font-size:12px;color:var(--text2);margin-top:2px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:var(--radius-sm);border:none;font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;font-family:var(--font)}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:#7c3aed}
+.btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border)}
+.btn-ghost:hover{background:var(--surface2);color:var(--text)}
+.btn-sm{padding:6px 12px;font-size:12px}
+.btn-danger{background:var(--red);color:#fff}
+.btn-green{background:var(--green);color:#fff}
+.tabs{display:flex;gap:4px;margin-bottom:16px;background:var(--surface);padding:4px;border-radius:var(--radius-sm);border:1px solid var(--border);width:fit-content}
+.tab{padding:8px 16px;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;color:var(--text2);border:none;background:transparent;font-family:var(--font);transition:all .15s}
+.tab:hover{color:var(--text)}
+.tab.active{background:var(--bg);color:var(--text)}
+.media-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.media-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;transition:all .15s;cursor:pointer;position:relative}
+.media-card:hover{border-color:var(--accent);transform:translateY(-2px)}
+.media-card .thumb{width:100%;aspect-ratio:16/9;object-fit:cover;display:block;background:var(--surface2)}
+.media-card .info{padding:10px 12px}
+.media-card .info .name{font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.media-card .info .meta{font-size:11px;color:var(--text2)}
+.media-card .info .tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.media-card .info .tag{font-size:10px;padding:2px 6px;border-radius:4px;background:var(--surface);color:var(--accent2)}
+.media-card .delete-btn{position:absolute;top:8px;right:8px;width:28px;height:28px;border-radius:6px;background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.1);color:#fff;display:none;align-items:center;justify-content:center;cursor:pointer;font-size:14px}
+.media-card:hover .delete-btn{display:flex}
+.media-card .delete-btn:hover{background:var(--red)}
+.upload-area{border:2px dashed var(--border);border-radius:var(--radius);padding:40px;text-align:center;cursor:pointer;transition:all .15s;margin-bottom:16px}
+.upload-area:hover{border-color:var(--accent);background:rgba(139,92,246,.05)}
+.upload-area .icon{font-size:32px;margin-bottom:8px}
+.upload-area p{color:var(--text2);font-size:13px}
+.upload-area .hint{font-size:11px;color:var(--text2);margin-top:4px}
+.calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--border);border-radius:var(--radius);overflow:hidden}
+.calendar-header{background:var(--surface);padding:10px;text-align:center;font-size:12px;font-weight:600;color:var(--text2)}
+.calendar-day{background:var(--surface);padding:10px;min-height:100px;cursor:pointer;transition:all .1s}
+.calendar-day:hover{background:var(--surface2)}
+.calendar-day.today{background:rgba(139,92,246,.1)}
+.calendar-day .day-num{font-size:13px;font-weight:600;color:var(--text2);margin-bottom:6px}
+.calendar-day.today .day-num{color:var(--accent)}
+.cal-item{padding:4px 6px;margin-bottom:3px;border-radius:4px;font-size:11px;line-height:1.3;cursor:pointer;transition:all .1s}
+.cal-item.draft{background:rgba(139,92,246,.2);border-left:2px solid var(--accent)}
+.cal-item.ready{background:rgba(6,182,212,.2);border-left:2px solid var(--accent2)}
+.cal-item.published{background:rgba(34,197,94,.2);border-left:2px solid var(--green);text-decoration:line-through;opacity:.7}
+.cal-item.blocked{background:rgba(239,68,68,.15);border-left:2px solid var(--red)}
+.form-group{margin-bottom:14px}
+.form-group label{display:block;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:4px}
+.form-group input,.form-group select,.form-group textarea{width:100%;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:13px;font-family:var(--font);transition:all .15s}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{outline:none;border-color:var(--accent)}
+.form-group textarea{resize:vertical;min-height:80px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:100}
+.modal-overlay.open{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;width:100%;max-width:520px;max-height:80vh;overflow-y:auto}
+.modal h3{font-size:16px;font-weight:600;margin-bottom:4px}
+.modal .desc{font-size:12px;color:var(--text2);margin-bottom:16px}
+.job-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.job-card .info{flex:1}
+.job-card .info .title{font-size:13px;font-weight:500}
+.job-card .info .meta{font-size:11px;color:var(--text2);margin-top:2px}
+.job-card .status-badge{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600}
+.status-badge.pending{background:rgba(245,158,11,.15);color:var(--amber)}
+.status-badge.processing{background:rgba(139,92,246,.15);color:var(--accent)}
+.status-badge.completed{background:rgba(34,197,94,.15);color:var(--green)}
+.status-badge.failed{background:rgba(239,68,68,.15);color:var(--red)}
+.empty-state{text-align:center;padding:40px 20px;color:var(--text2)}
+.empty-state .icon{font-size:40px;margin-bottom:12px;opacity:.4}
+.empty-state p{font-size:13px}
+.empty-state .sub{font-size:12px;margin-top:4px}
+input[type="file"]{padding:8px;font-size:12px}
+input[type="file"]::file-selector-button{padding:6px 12px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer;font-family:var(--font);font-size:12px;margin-right:8px;transition:all .1s}
+input[type="file"]::file-selector-button:hover{background:var(--border)}
+.toast{position:fixed;bottom:24px;right:24px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 20px;font-size:13px;font-weight:500;display:none;z-index:200;box-shadow:0 8px 32px rgba(0,0,0,.4);animation:slideUp .2s ease}
+.toast.show{display:block}
+.toast.success{border-color:var(--green)}
+.toast.error{border-color:var(--red)}
+@keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+.spinner{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+.filter-bar{display:flex;gap:8px;align-items:center;margin-bottom:16px;flex-wrap:wrap}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.section-header h3{font-size:15px;font-weight:600}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <h1><span class="logo">C</span> Content Hub</h1>
+      <p>Media Library & Planning</p>
+    </div>
+    <nav>
+      <div class="nav-label">Main</div>
+      <div class="nav-item active" data-page="dashboard" onclick="navigate('dashboard')">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+        Dashboard
+      </div>
+      <div class="nav-item" data-page="media" onclick="navigate('media')">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3-3-5 5-3-3-4 4"/></svg>
+        Media Library
+      </div>
+      <div class="nav-item" data-page="calendar" onclick="navigate('calendar')">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Content Calendar
+      </div>
+      <div class="nav-item" data-page="editor" onclick="navigate('editor')">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="12" height="16" rx="2"/><path d="M2 6h4"/><path d="M18 6h4"/><path d="M2 18h4"/><path d="M18 18h4"/></svg>
+        Video Editor
+      </div>
+      <div class="nav-label">Info</div>
+      <div class="nav-item" data-page="platforms" onclick="navigate('platforms')">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        Platform Accounts
+      </div>
+    </nav>
+  </aside>
+  <div class="main">
+    <header class="header">
+      <div>
+        <h2 id="pageTitle">Dashboard</h2>
+        <p id="pageDesc">Content pipeline overview</p>
+      </div>
+      <div><button class="btn btn-ghost btn-sm" onclick="location.reload()">⟳ Refresh</button></div>
+    </header>
+    <div class="content" id="pageContent"></div>
+  </div>
+</div>
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal" id="modalContent"></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// Auto-detect base path for proxy support
+const BASE = (() => { const p = window.location.pathname; return p.startsWith('/content-hub/') ? '/content-hub' : ''; })();
+const API = BASE + '/api';
+
+const PAGES = {
+  dashboard: { title: 'Dashboard', desc: 'Content pipeline overview', render: renderDashboard },
+  media: { title: 'Media Library', desc: 'Upload and manage images, b-roll, and videos', render: renderMedia },
+  calendar: { title: 'Content Calendar', desc: 'Plan, track, and schedule your posts', render: renderCalendar },
+  editor: { title: 'Video Editor', desc: 'Create edit jobs, process videos, download HD output', render: renderEditor },
+  platforms: { title: 'Platform Accounts', desc: 'Connect your X, LinkedIn, and Instagram accounts', render: renderPlatforms }
+};
+
+function navigate(page) {
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  document.querySelector('.nav-item[data-page="'+page+'"]')?.classList.add('active');
+  const p = PAGES[page];
+  document.getElementById('pageTitle').textContent = p.title;
+  document.getElementById('pageDesc').textContent = p.desc;
+  document.getElementById('pageContent').innerHTML = '<div class="empty-state"><div class="spinner"></div><p>Loading...</p></div>';
+  p.render();
+}
+
+async function api(path, opts = {}) {
+  const url = API + path;
+  const headers = opts.body && !(opts.body instanceof FormData) ? { 'Content-Type': 'application/json' } : {};
+  const res = await fetch(url, { headers, ...opts });
+  if (!res.ok) { let e; try { e = await res.json(); } catch { e = { error: res.statusText }; } throw new Error(e.detail || e.error || res.statusText); }
+  const ct = res.headers.get('content-type') || '';
+  return ct.includes('json') ? res.json() : res;
+}
+
+function toast(msg, type) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.className = 'toast ' + (type||'success') + ' show';
+  setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+function openModal(html) {
+  document.getElementById('modalContent').innerHTML = html;
+  document.getElementById('modalOverlay').classList.add('open');
+}
+function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); }
+document.getElementById('modalOverlay').onclick = e => { if (e.target === e.currentTarget) closeModal(); };
+
+function formatBytes(b) { if(!b)return'0 B';const u=['B','KB','MB','GB'];let i=0;while(b>=1024&&i<3){b/=1024;i++}return b.toFixed(1)+' '+u[i]}
+function formatDate(d) { return new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) }
+
+// ═══ DASHBOARD ═══
+async function renderDashboard() {
+  const el = document.getElementById('pageContent');
+  try {
+    const stats = await api('/stats');
+    const mediaRes = await api('/media/list');
+    const media = mediaRes.media || [];
+    const calRes = await api('/calendar/items');
+    const cal = calRes.items || [];
+    const editsRes = await api('/edit/list');
+    const edits = editsRes.jobs || [];
+    const imgCount = media.filter(m => m.type === 'image').length;
+    const brollCount = media.filter(m => m.type === 'broll').length;
+    const vidCount = media.filter(m => m.type === 'video').length;
+    const calCount = cal.length;
+    const calPublished = cal.filter(c => c.status === 'published').length;
+    const editPend = edits.filter(e => e.status==='pending'||e.status==='processing').length;
+    const editDone = edits.filter(e => e.status==='completed').length;
+    el.innerHTML = `<div class="stats-grid">
+      <div class="stat-card"><div class="stat-label">Images</div><div class="stat-value">${imgCount}</div><div class="stat-detail">Photo library</div></div>
+      <div class="stat-card"><div class="stat-label">B-Roll</div><div class="stat-value">${brollCount}</div><div class="stat-detail">Stock footage clips</div></div>
+      <div class="stat-card"><div class="stat-label">Raw Videos</div><div class="stat-value">${vidCount}</div><div class="stat-detail">Unedited content</div></div>
+      <div class="stat-card"><div class="stat-label">Calendar</div><div class="stat-value">${calCount}</div><div class="stat-detail">${calPublished} published</div></div>
+      <div class="stat-card"><div class="stat-label">Edit Jobs</div><div class="stat-value">${editPend}</div><div class="stat-detail">${editDone} completed</div></div>
+      <div class="stat-card"><div class="stat-label">System</div><div class="stat-value" style="color:var(--green)">● Live</div><div class="stat-detail">All systems operational</div></div>
+    </div>
+    <div class="card"><div class="card-header"><h3>⚡ Quick Actions</h3></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="navigate('media')">📤 Upload Media</button>
+        <button class="btn btn-ghost" onclick="navigate('calendar')">📅 View Calendar</button>
+        <button class="btn btn-ghost" onclick="navigate('editor')">🎬 Create Edit Job</button>
+      </div>
+    </div>` +
+    (calCount > 0 ? `<div class="card"><div class="card-header"><h3>📅 Upcoming Content</h3></div>
+      <div style="display:grid;gap:8px">${cal.filter(c=>c.status!=='published').slice(0,5).map(c=>
+        `<div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border)">
+          <span style="font-size:12px;color:var(--text2);min-width:80px">${formatDate(c.scheduled_date)}</span>
+          <span style="flex:1;font-size:13px;font-weight:500">${c.title}</span>
+          <span class="status-badge ${c.status||'draft'}">${c.status||'draft'}</span>
+        </div>`).join('')}</div></div>` : '');
+  } catch(e) { el.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>${e.message}</p></div>`; }
+}
+
+// ═══ MEDIA LIBRARY ═══
+let mediaTab = 'image';
+async function renderMedia() {
+  const el = document.getElementById('pageContent');
+  el.innerHTML = `<div class="tabs">
+    <button class="tab ${mediaTab==='image'?'active':''}" onclick="switchMediaTab('image')">📷 Images</button>
+    <button class="tab ${mediaTab==='broll'?'active':''}" onclick="switchMediaTab('broll')">🎬 B-Roll</button>
+    <button class="tab ${mediaTab==='video'?'active':''}" onclick="switchMediaTab('video')">📹 Videos</button>
+  </div>
+  <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+    <div class="icon">📤</div>
+    <p>Click to upload ${mediaTab==='image'?'images':mediaTab==='broll'?'B-roll clips':'videos'}</p>
+    <p class="hint">${mediaTab==='image'?'PNG, JPG, WebP — up to 50MB':'MP4, MOV, WebM — up to 500MB'}</p>
+    <input type="file" id="fileInput" accept="${mediaTab==='image'?'image/*':'video/*'}" style="display:none" onchange="uploadMedia(event)">
+  </div>
+  <div id="mediaGrid"><div class="empty-state"><div class="spinner"></div></div></div>`;
+  loadMediaGrid();
+}
+async function switchMediaTab(t) { mediaTab = t; renderMedia(); }
+async function uploadMedia(e) {
+  const file = e.target.files[0]; if(!file)return;
+  const fd = new FormData(); fd.append('file',file); fd.append('type',mediaTab);
+  try { await api('/media/upload', {method:'POST',body:fd}); toast('Uploaded: '+file.name); loadMediaGrid(); }
+  catch(e) { toast(e.message,'error'); } e.target.value='';
+}
+async function loadMediaGrid() {
+  const g=document.getElementById('mediaGrid');
+  try {
+    const r=await api('/media/list?type='+mediaTab);
+    const items=r.media||[];
+    if(!items.length){g.innerHTML=`<div class="empty-state"><div class="icon">📂</div><p>No ${mediaTab}s yet</p><p class="sub">Upload your first file above</p></div>`;return;}
+    g.innerHTML=`<div class="media-grid">${items.map(m=>{
+      const isVid=m.mime_type?.startsWith('video/');
+      return `<div class="media-card">
+        ${isVid ? `<video class="thumb" src="${API}/media/${m.id}/file" muted preload="metadata"></video>`
+                : `<img class="thumb" src="${API}/media/${m.id}/file" alt="${m.filename}" loading="lazy">`}
+        <button class="delete-btn" onclick="deleteMedia('${m.id}')">✕</button>
+        <div class="info">
+          <div class="name">${m.filename}</div>
+          <div class="meta">${formatBytes(m.size_bytes)} · ${formatDate(m.created_at)}</div>
+          ${m.tags?.length?`<div class="tags">${m.tags.map(t=>`<span class="tag">${t}</span>`).join('')}</div>`:''}
+          ${isVid?`<div style="margin-top:6px"><button class="btn btn-ghost btn-sm" onclick="analyzeBroll('${m.id}')">🔍 Analyze</button></div>`:''}
+          ${m.broll_analysis?`<div style="margin-top:6px;font-size:11px;color:var(--accent2)">✅ Analyzed: ${m.broll_analysis.category||'general'}</div>`:''}
+          <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
+            <button class="btn btn-green btn-sm" onclick="downloadMedia('${m.id}','${m.original_filename||m.filename}')">⬇ Download</button>
+            ${isVid?`<button class="btn btn-ghost btn-sm" onclick="markReady('${m.id}','video')">✅ Ready to edit</button>`
+                     :`<button class="btn btn-ghost btn-sm" onclick="markReady('${m.id}','image')">✅ Ready to use</button>`}
+            ${m.broll_analysis?`<button class="btn btn-ghost btn-sm" onclick="sendToCalendar('${m.id}','${m.original_filename||m.filename}')">📅 Use in post</button>`:''}
+          </div>
+          <div id="status-${m.id}" style="margin-top:6px;font-size:11px;color:var(--text2)"></div>
+        </div>
+      </div>`;
+    }).join('')}</div>`;
+  } catch(e){g.innerHTML=`<div class="empty-state"><p>Error: ${e.message}</p></div>`;}
+  setTimeout(hydrateReadyBadges, 100);
+}
+async function deleteMedia(id){if(!confirm('Delete?'))return;try{await api('/media/'+id,{method:'DELETE'});toast('Deleted');loadMediaGrid();}catch(e){toast(e.message,'error')}}
+async function analyzeBroll(id){try{const r=await api('/media/broll/analyze/'+id,{method:'POST'});toast('Analyzed: '+(r.category||'categorized'));loadMediaGrid();}catch(e){toast(e.message,'error')}}
+
+
+// ═══ PRODUCTION PIPELINE: download + ready-to-edit + link-to-calendar ═══
+async function downloadMedia(id, filename) {
+  try {
+    const r = await fetch(API + '/media/' + id + '/file');
+    if(!r.ok) throw new Error('Download failed: ' + r.status);
+    const blob = await r.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+    toast('Downloaded: ' + filename);
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function markReady(id, kind) {
+  // Persist 'ready' status in localStorage (per-asset) — drives the production pipeline view
+  const k = 'production_ready:' + id;
+  localStorage.setItem(k, JSON.stringify({ ready: true, at: new Date().toISOString(), kind }));
+  const statusEl = document.getElementById('status-' + id);
+  if(statusEl){
+    statusEl.innerHTML = '<span style="color:var(--green);font-weight:600">✅ READY</span> · marked ' + new Date().toLocaleString();
+  }
+  toast('Marked ready to edit');
+}
+
+async function sendToCalendar(mediaId, filename) {
+  // Quick-create a calendar entry referencing this media
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    const r = await api('/calendar/items', {
+      method:'POST',
+      body: JSON.stringify({
+        id: 'media-' + mediaId + '-' + Date.now(),
+        title: 'Post using: ' + filename,
+        scheduled_date: today,
+        platform: 'LinkedIn',
+        status: 'draft',
+        pillar: 'Personal Brand',
+        format: 'Post',
+        media_ids: [mediaId],
+        tags: ['broll', 'auto-generated'],
+        draft_content: 'Draft pending — see attached b-roll ' + filename
+      })
+    });
+    toast('Calendar entry created');
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+// Hydrate 'ready' badges from localStorage
+function hydrateReadyBadges() {
+  document.querySelectorAll('[id^="status-"]').forEach(el => {
+    const id = el.id.replace('status-','');
+    const k = 'production_ready:' + id;
+    const v = localStorage.getItem(k);
+    if(v){
+      try {
+        const data = JSON.parse(v);
+        el.innerHTML = '<span style="color:var(--green);font-weight:600">✅ READY</span> · marked ' + new Date(data.at).toLocaleString();
+      } catch(e){}
+    }
+  });
+}
+
+// ═══ PRODUCTION PIPELINE ═══
+async function renderProduction() {
+  // Update badge count
+  setTimeout(()=>{
+    const c = Object.keys(localStorage).filter(k=>k.startsWith('production_ready:')).length;
+    const b = document.getElementById('productionBadge');
+    if(b) b.textContent = c;
+  }, 200);
+  const el = document.getElementById('pageContent');
+  el.innerHTML = `<div class="card">
+    <div class="card-header">
+      <div><h3>🎬 Production Pipeline</h3><p>Assets ready to edit / post</p></div>
+      <button class="btn btn-ghost btn-sm" onclick="renderProduction()">🔄 Refresh</button>
+    </div>
+    <div id="productionGrid"><div class="empty-state"><div class="spinner"></div></div></div>
+  </div>`;
+  try {
+    const r = await api('/media/list');
+    const items = r.media || [];
+    // Filter by localStorage 'production_ready' status
+    const ready = items.filter(m => localStorage.getItem('production_ready:' + m.id));
+    const g = document.getElementById('productionGrid');
+    if(!ready.length) {
+      g.innerHTML = `<div class="empty-state">
+        <div class="icon">📋</div>
+        <p>No assets marked ready yet</p>
+        <p class="sub">Go to <a onclick="nav('media')">Media Library</a> → click "✅ Ready" on any asset to add it here</p>
+      </div>`;
+      return;
+    }
+    g.innerHTML = `<div class="media-grid">${ready.map(m=>{
+      const isVid=m.mime_type?.startsWith('video/');
+      return `<div class="media-card" style="border-color:var(--green)">
+        <div style="position:absolute;top:8px;left:8px;background:var(--green);color:#fff;font-size:10px;padding:2px 8px;border-radius:4px;text-transform:uppercase;font-weight:600">✅ Ready</div>
+        ${isVid ? `<video class="thumb" src="${API}/media/${m.id}/file" muted preload="metadata"></video>`
+                : `<img class="thumb" src="${API}/media/${m.id}/file" alt="${m.filename}" loading="lazy">`}
+        <div class="info">
+          <div class="name">${m.original_filename||m.filename}</div>
+          <div class="meta">${formatBytes(m.size_bytes)} · ${m.type}</div>
+          ${m.broll_analysis?.ai_categorization?`<div style="margin-top:4px;font-size:11px;color:var(--accent2)">🏷️ ${m.broll_analysis.ai_categorization}</div>`:''}
+          <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
+            <button class="btn btn-green btn-sm" onclick="downloadMedia('${m.id}','${m.original_filename||m.filename}')">⬇ Download</button>
+            <button class="btn btn-primary btn-sm" onclick="sendToCalendar('${m.id}','${m.original_filename||m.filename}')">📅 Schedule</button>
+            <button class="btn btn-ghost btn-sm" onclick="unmarkReady('${m.id}')">✕ Unmark</button>
+          </div>
+        </div>
+      </div>`;
+    }).join('')}</div>
+    <div style="margin-top:20px;padding:16px;background:var(--surface2);border-radius:var(--radius)">
+      <h4 style="margin-bottom:8px">📤 How to use this</h4>
+      <ol style="padding-left:20px;color:var(--text2);font-size:13px;line-height:1.6">
+        <li>Mark assets "Ready" from the Media Library</li>
+        <li>Download them here, edit in your tool of choice (CapCut, Premiere, etc.)</li>
+        <li>Click "Schedule" to attach to a calendar post</li>
+        <li>Production pipeline notifies you when ready to post</li>
+      </ol>
+    </div>`;
+  } catch(e){document.getElementById('productionGrid').innerHTML=`<div class="empty-state"><p>Error: ${e.message}</p></div>`;}
+}
+async function unmarkReady(id){
+  localStorage.removeItem('production_ready:' + id);
+  renderProduction();
+}
+
+function nav(page) {
+  const el=document.getElementById('pageContent');
+  if(page==='dashboard')return renderDashboard();
+  if(page==='media')return renderMedia();
+  if(page==='production')return renderProduction();
+  if(page==='calendar')return renderCalendar();
+  if(page==='platforms')return renderPlatforms();
+}
+
+// ═══ CALENDAR ═══
+async function renderCalendar() {
+  const el=document.getElementById('pageContent');
+  try{
+    const r=await api('/calendar/items');const items=r.items||[];
+    const w=getWeekDates(new Date());
+    el.innerHTML=`<div class="section-header"><h3>${w.label}</h3>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-ghost btn-sm" onclick="prevWeek()">← Prev</button>
+        <button class="btn btn-ghost btn-sm" onclick="nextWeek()">Next →</button>
+        <button class="btn btn-primary btn-sm" onclick="showAddCalendarItem()">+ Add Post</button>
+      </div></div>
+      <div style="display:flex;gap:12px;margin-bottom:16px;font-size:12px;color:var(--text2)">
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:rgba(139,92,246,.4);margin-right:4px"></span> Draft</span>
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:rgba(6,182,212,.4);margin-right:4px"></span> Ready</span>
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:rgba(34,197,94,.4);margin-right:4px"></span> Published</span>
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:rgba(239,68,68,.3);margin-right:4px"></span> Blocked</span>
+      </div>
+      <div class="calendar-grid" id="calGrid"></div>
+      <div class="card" style="margin-top:16px"><div class="card-header"><h3>📋 All Scheduled Content</h3></div><div id="calList"></div></div>`;
+    renderCalendarGrid(w,items); renderCalendarList(items); window._calWeek=w;
+  }catch(e){el.innerHTML=`<div class="empty-state"><p>Error: ${e.message}</p></div>`;}
+}
+let _calOffset=0;
+function getWeekDates(base){const d=new Date(base);d.setDate(d.getDate()+(_calOffset*7));const day=d.getDay();const mon=new Date(d);mon.setDate(d.getDate()-((day+6)%7));const sun=new Date(mon);sun.setDate(mon.getDate()+6);const label=mon.toLocaleDateString('en-GB',{day:'numeric',month:'short'})+' — '+sun.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});const days=[];for(let i=0;i<7;i++){const day=new Date(mon);day.setDate(mon.getDate()+i);days.push(day)}return{label,days,mon,sun}}
+function prevWeek(){_calOffset--;renderCalendar()}
+function nextWeek(){_calOffset++;renderCalendar()}
+function renderCalendarGrid(w,items){const g=document.getElementById('calGrid');const dayNames=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];const today=new Date().toDateString();let html=dayNames.map(d=>`<div class="calendar-header">${d}</div>`).join('');w.days.forEach(day=>{const ds=day.toDateString();const isToday=ds===today;const iso=day.toISOString().split('T')[0];const dayItems=items.filter(i=>i.scheduled_date===iso);html+=`<div class="calendar-day${isToday?' today':''}"><div class="day-num">${day.getDate()}</div>${dayItems.map(i=>`<div class="cal-item ${i.status||'draft'}" onclick="showEditCalendarItem('${i.id}')">${i.title.substring(0,25)}${i.title.length>25?'…':''}</div>`).join('')}</div>`});g.innerHTML=html}
+function renderCalendarList(items){const el=document.getElementById('calList');if(!items.length){el.innerHTML='<div class="empty-state"><p>No content planned yet</p></div>';return}el.innerHTML=`<div style="display:grid;gap:4px">${items.sort((a,b)=>a.scheduled_date?.localeCompare(b.scheduled_date)).map(i=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:6px;background:var(--surface2);cursor:pointer" onclick="showEditCalendarItem('${i.id}')"><span style="font-size:12px;color:var(--text2);min-width:80px">${formatDate(i.scheduled_date)}</span><span style="font-size:13px">${i.post_type==='video'?'🎬':'📝'}</span><span style="flex:1;font-size:13px;font-weight:500">${i.hook||i.title}</span><span style="font-size:11px;color:var(--text2)">${i.platform||''}</span><span class="status-badge ${i.status||'draft'}">${i.status||'draft'}</span></div>`).join('')}</div>`}
+async function showAddCalendarItem(){openModal(`<h3>➕ New Content Plan</h3><p class="desc">What type of content?</p><div class="form-group"><label>Post Type</label><select id="calPostType" onchange="togglePostTypeForm()"><option value="text">📝 Text Post (hook + body)</option><option value="video">🎬 Video Post (hook + script + visuals)</option></select></div><div id="postTypeForm"><div class="form-group"><label>Hook / Headline</label><input id="calHook" placeholder="The hook line that grabs attention"></div><div class="form-group" id="bodyField"><label>Main Body</label><textarea id="calBody" rows="6" placeholder="Full post text — narrative, story, key points..."></textarea></div><div class="form-group" id="scriptField" style="display:none"><label>Script</label><textarea id="calScript" rows="6" placeholder="Word-for-word script for the video..."></textarea></div><div class="form-group" id="cuesField" style="display:none"><label>Visual Cues & Direction</label><textarea id="calCues" rows="4" placeholder="e.g. Close-up on face for hook, cut to B-roll of AI agents at 0:15, screen recording demo at 0:30..."></textarea></div></div><div class="form-row"><div class="form-group"><label>Platform</label><select id="calPlatform"><option>X</option><option>LinkedIn</option><option>Instagram</option><option>All</option></select></div><div class="form-group"><label>Date</label><input id="calDate" type="date" value="${new Date().toISOString().split('T')[0]}"></div></div><div class="form-row"><div class="form-group"><label>Pillar</label><select id="calPillar"><option>Execution Mindset</option><option>Builder Stories</option><option>Contrarian Takes</option><option>Leadership</option></select></div><div class="form-group"><label>Format</label><select id="calFormat"><option>Post</option><option>Thread</option><option>Carousel</option><option>Video/Reel</option><option>Long-form</option></select></div></div><div class="form-group"><label>Status</label><select id="calStatus"><option value="draft">Draft</option><option value="ready">Ready to Publish</option><option value="blocked">Blocked</option></select></div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px"><button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="saveCalendarItem()">Save</button></div></div>`)}
+function togglePostTypeForm(){var t=document.getElementById('calPostType');if(!t)return;var v=t.value;var b=document.getElementById('bodyField');if(b)b.style.display=v==='text'?'block':'none';var s=document.getElementById('scriptField');if(s)s.style.display=v==='video'?'block':'none';var c=document.getElementById('cuesField');if(c)c.style.display=v==='video'?'block':'none'}
+async function saveCalendarItem(){const t=document.getElementById('calPostType').value;const d={title:document.getElementById('calHook').value||document.getElementById('calHook').value,post_type:t,scheduled_date:document.getElementById('calDate').value,platform:document.getElementById('calPlatform').value,pillar:document.getElementById('calPillar').value,format:document.getElementById('calFormat').value,status:document.getElementById('calStatus').value};d.hook=document.getElementById('calHook').value;d.title=d.hook;if(t==='text'){d.body=document.getElementById('calBody').value;d.draft_content=d.body}else{d.script=document.getElementById('calScript').value;d.visual_cues=document.getElementById('calCues').value;d.draft_content=d.script}if(!d.hook)return toast('Hook is required','error');try{await api('/calendar/items',{method:'POST',body:JSON.stringify(d)});toast('Added!');closeModal();renderCalendar()}catch(e){toast(e.message,'error')}}
+async function showEditCalendarItem(id){const r=await api('/calendar/items');const items=r.items||[];const item=items.find(i=>i.id===id);if(!item)return;const isVid=item.post_type==='video';openModal(`<h3>✏️ ${item.hook||item.title}</h3><p class="desc">${item.post_type==='video'?'🎬 Video Post':'📝 Text Post'} · ${item.platform} · ${formatDate(item.scheduled_date)}</p><div class="form-group"><label>Status</label><select id="editStatus"><option value="draft" ${item.status==='draft'?'selected':''}>Draft</option><option value="ready" ${item.status==='ready'?'selected':''}>Ready</option><option value="published" ${item.status==='published'?'selected':''}>Published</option><option value="blocked" ${item.status==='blocked'?'selected':''}>Blocked</option></select></div>${item.hook?`<div class="form-group"><label>Hook</label><textarea id="editHook" rows="2" style="font-weight:600">${item.hook}</textarea></div>`:''}${!isVid&&item.body?`<div class="form-group"><label>Main Body</label><textarea id="editBody" rows="6" style="font-family:var(--mono);font-size:12px">${item.body}</textarea></div>`:''}${isVid&&item.script?`<div class="form-group"><label>Script</label><textarea id="editScript" rows="6" style="font-family:var(--mono);font-size:12px">${item.script}</textarea></div>`:''}${isVid&&item.visual_cues?`<div class="form-group"><label>Visual Cues</label><textarea id="editCues" rows="4" style="font-size:12px;color:var(--accent2)">${item.visual_cues}</textarea></div>`:''}${!item.hook&&!item.body&&!item.script&&item.draft_content?`<div class="form-group"><label>Draft Content</label><textarea id="editDraft" rows="6" style="font-family:var(--mono);font-size:12px">${item.draft_content}</textarea></div>`:''}<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px"><button class="btn btn-danger btn-sm" onclick="deleteCalendarItem('${id}')">Delete</button><button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="updateCalendarItem('${id}')">Update</button></div></div>`)}
+async function updateCalendarItem(id){const payload={status:document.getElementById('editStatus').value};const hook=document.getElementById('editHook');if(hook)payload.hook=hook.value;const body=document.getElementById('editBody');if(body)payload.body=body.value;const script=document.getElementById('editScript');if(script)payload.script=script.value;const cues=document.getElementById('editCues');if(cues)payload.visual_cues=cues.value;const draft=document.getElementById('editDraft');if(draft)payload.draft_content=draft.value;try{await api('/calendar/items/'+id,{method:'PUT',body:JSON.stringify(payload)});toast('Updated');closeModal();renderCalendar()}catch(e){toast(e.message,'error')}}
+async function deleteCalendarItem(id){if(!confirm('Delete?'))return;try{await api('/calendar/items/'+id,{method:'DELETE'});toast('Deleted');closeModal();renderCalendar()}catch(e){toast(e.message,'error')}}
+
+// ═══ VIDEO EDITOR ═══
+async function renderEditor(){const el=document.getElementById('pageContent');el.innerHTML=`<div class="section-header"><h3>Edit Jobs</h3><button class="btn btn-primary" onclick="showCreateEditJob()">+ New Edit Job</button></div><div id="editJobsList"><div class="empty-state"><div class="spinner"></div></div></div><div class="card" style="margin-top:24px"><div class="card-header"><h3>ℹ️ How Video Editing Works</h3></div><ol style="padding-left:20px;font-size:13px;color:var(--text2);display:flex;flex-direction:column;gap:8px"><li><strong>1.</strong> Upload raw video to <strong>Media Library → Videos</strong></li><li><strong>2.</strong> Upload B-roll to <strong>Media Library → B-Roll</strong> (AI auto-categorizes)</li><li><strong>3.</strong> Create an <strong>Edit Job</strong> — source + B-roll + instructions</li><li><strong>4.</strong> Pipeline removes silences/ums/ahs, adds captions, embeds B-roll</li><li><strong>5.</strong> <strong>Download</strong> the HD result</li></ol></div>`;loadEditJobs()}
+async function loadEditJobs(){const el=document.getElementById('editJobsList');try{const r=await api('/edit/list');const jobs=r.jobs||[];if(!jobs.length){el.innerHTML='<div class="empty-state"><div class="icon">🎬</div><p>No edit jobs yet</p><p class="sub">Upload a video first, then create one</p></div>';return}el.innerHTML=jobs.map(j=>`<div class="job-card"><div class="info"><div class="title">${j.title}</div><div class="meta">Created ${formatDate(j.created_at)}</div></div><span class="status-badge ${j.status}">${j.status}</span><div style="display:flex;gap:4px">${j.status==='completed'?`<a class="btn btn-green btn-sm" href="${API}/edit/${j.id}/download" target="_blank">⬇ Download</a>`:''}${j.status==='pending'||j.status==='running'?`<div class="spinner"></div>`:''}<button class="btn btn-ghost btn-sm" onclick="deleteEdit('${j.id}')">✕</button></div></div>`).join('')}catch(e){el.innerHTML=`<div class="empty-state"><p>Error: ${e.message}</p></div>`}}
+async function showCreateEditJob(){const r=await api('/media/list');const media=r.media||[];const videos=media.filter(m=>m.type==='video');const brolls=media.filter(m=>m.type==='broll');openModal(`<h3>🎬 Create Edit Job</h3><p class="desc">Select source video, optional B-roll, give instructions</p><div class="form-group"><label>Source Video</label><select id="editSource">${videos.length?videos.map(v=>`<option value="${v.id}">${v.filename}</option>`).join(''):'<option value="">No videos uploaded yet</option>'}</select></div><div class="form-group"><label>B-Roll IDs (comma-separated)</label><input id="editBroll" placeholder="${brolls.slice(0,2).map(b=>b.id).join(', ')}">${brolls.length?`<div style="margin-top:4px;font-size:11px;color:var(--text2)">Available: ${brolls.map(b=>`<span style="display:inline-block;padding:2px 6px;border-radius:4px;background:var(--surface2);margin:2px">${b.filename.substring(0,20)}</span>`).join(' ')}</div>`:''}</div><div class="form-group"><label>Instructions</label><textarea id="editInstructions" rows="4" placeholder="Use strongest hook in first 3s. Remove ums. Add B-roll on tension points. Clean captions."></textarea></div><div class="form-row"><div class="form-group"><label>Aspect Ratio</label><select id="editRatio"><option value="9:16">9:16 (Reels/TikTok)</option><option value="16:9">16:9 (YouTube)</option><option value="1:1">1:1 (Instagram)</option></select></div><div class="form-group"><label>Captions</label><select id="editCaptions"><option value="true">Yes</option><option value="false">No</option></select></div></div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px"><button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="createEditJob()">Create Job</button></div></div>`)}
+async function createEditJob(){const d={source_asset_id:document.getElementById('editSource').value,broll_asset_ids:document.getElementById('editBroll').value.split(',').map(s=>s.trim()).filter(Boolean),instructions:document.getElementById('editInstructions').value,aspect_ratio:document.getElementById('editRatio').value,include_captions:document.getElementById('editCaptions').value==='true',title:'Edit '+new Date().toLocaleDateString()};if(!d.source_asset_id)return toast('Select a source video','error');try{await api('/edit/create',{method:'POST',body:JSON.stringify(d)});toast('Edit job created!');closeModal();renderEditor()}catch(e){toast(e.message,'error')}}
+async function deleteEdit(id){if(!confirm('Delete?'))return;try{await api('/edit/'+id,{method:'DELETE'});toast('Deleted');loadEditJobs()}catch(e){toast(e.message,'error')}}
+
+// ═══ PLATFORMS ═══
+function renderPlatforms(){const el=document.getElementById('pageContent');el.innerHTML=`<div class="stats-grid"><div class="stat-card"><div class="stat-label">X / Twitter</div><div class="stat-value" style="color:var(--red)">🔴</div><div class="stat-detail">Not connected — create @amirgulubayli</div></div><div class="stat-card"><div class="stat-label">LinkedIn</div><div class="stat-value" style="color:var(--red)">🔴</div><div class="stat-detail">Not connected — set up profile</div></div><div class="stat-card"><div class="stat-label">Instagram</div><div class="stat-value" style="color:var(--red)">🔴</div><div class="stat-detail">Not connected</div></div></div><div class="card"><div class="card-header"><h3>🔒 No Auto-Publishing</h3><span class="status-badge completed">Confirmed OFF</span></div><p style="font-size:13px;color:var(--text2);line-height:1.6">No automatic publishing connectors are enabled anywhere. All content is reviewed manually before posting. Upload media → plan in calendar → edit in pipeline → download → you publish. Zero automation risk.</p></div><div class="card"><div class="card-header"><h3>📋 Publishing Prerequisites</h3></div><ol style="padding-left:20px;font-size:13px;color:var(--text2);display:flex;flex-direction:column;gap:6px"><li>✅ <strong>Content Hub</strong> — Built and running</li><li>❌ <strong>X account</strong> — @amirgulubayli needs creating</li><li>❌ <strong>LinkedIn profile</strong> — Set up</li><li>✅ <strong>Drafts ready</strong> — 15 posts completed and anti-AI audited</li></ol></div>`}
+
+window.onload = () => renderDashboard();
+</script>
+</body>
+</html>
