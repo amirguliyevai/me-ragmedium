@@ -6,6 +6,54 @@ const path = require('path');
 const fs = require('fs');
 const { Pool } = require('pg');
 
+// ─── Web Push (optional) ───
+let webpush;
+try {
+  webpush = require('web-push');
+} catch(e) { webpush = null; }
+
+// ─── Push notification subscriptions (PG-backed for persistence across restarts) ───
+let _pushSubscriptions = [];
+async function loadPushSubs() {
+  try {
+    const r = await q('SELECT endpoint, keys FROM team.push_subscriptions WHERE user_id = $1 ORDER BY created_at DESC', ['amir']);
+    _pushSubscriptions = r.map(row => ({
+      endpoint: row.endpoint,
+      keys: row.keys || {}
+    }));
+    return _pushSubscriptions.length;
+  } catch (e) {
+    console.error('loadPushSubs error:', e.message);
+    return 0;
+  }
+}
+async function savePushSub(sub) {
+  try {
+    await q(
+      'INSERT INTO team.push_subscriptions (user_id, endpoint, keys, user_agent, last_active) VALUES ($1, $2, $3, $4, NOW()) ON CONFLICT (endpoint) DO UPDATE SET last_active = NOW()',
+      ['amir', sub.endpoint, JSON.stringify(sub.keys || {}), sub.userAgent || 'unknown']
+    );
+  } catch (e) {
+    console.error('savePushSub error:', e.message);
+  }
+}
+async function removePushSub(endpoint) {
+  try {
+    await q('DELETE FROM team.push_subscriptions WHERE endpoint = $1', [endpoint]);
+  } catch (e) { console.error('removePushSub error:', e.message); }
+}
+
+// ─── VAPID Keys for Web Push ───
+const VAPID_PUBLIC_KEY = 'BLy9SgseEX5gH1W3wrAoQgVdVP9BYVZdCSZwMdaXQLRH2sfv-ZQeWnspz8lzeXsI_qgAcSJCt2qNCDQ9AO5yD6A';
+const VAPID_PRIVATE_KEY = 'a-mH7WTF2x9N2j2aAiLbIWHrQv_y2QEUrhlxiF6cKGA';
+
+if (webpush) {
+  webpush.setVapidDetails('mailto:amirg@ragmedium.com', VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+  console.log('Web Push notifications enabled');
+} else {
+  console.warn('web-push not installed — push notifications disabled');
+}
+
 const PORT = 1707;
 const pool = new Pool({ host: 'localhost', port: 5432, user: 'postgres', password: '61b73daf4c51b1b5c22cfac30476f067bce943a177e819c42fca9a1545339dc8', database: 'postgres', max: 10 });
 
@@ -104,7 +152,103 @@ async function handleAPI(req, res, parts, body) {
     return json(res, result);
   }
 
-  // GET /api/health - Health check (alias for /api/status)
+  // POST /api/notify - Receive and store notification, with push for @Amir mentions
+  if (resource === 'notify' && req.method === 'POST') {
+    try {
+      const n = body || {};
+      if (!fs.existsSync(path.join(__dirname, 'public'))) fs.mkdirSync(path.join(__dirname, 'public'), { recursive: true });
+      const log = path.join(__dirname, 'public', 'notifications.json');
+      let notes = [];
+      try { notes = JSON.parse(fs.readFileSync(log, 'utf8')); } catch(e) {}
+      const priority = n.priority || 'normal';
+      notes.push({ id: Date.now(), ts: new Date().toISOString(), title: n.title || 'Notification', message: n.message, source: n.source || 'agent', priority, read: false });
+      if (notes.length > 100) notes = notes.slice(-100);
+      fs.writeFileSync(log, JSON.stringify(notes));
+
+      // 2026-06-30: trigger push for ANY high-priority notification,
+      // @Amir mentions, OR deliverable (✅) from agents. Caveman format.
+      const title = n.title || '';
+      const message = n.message || '';
+      const searchText = title + ' ' + message;
+      const isHighPriority = n.priority === 'high' || n.priority === 'urgent';
+      const isAmirMention = /@Amir|AM-00/i.test(searchText);
+      const isDeliverable = /✅|🔥|done|completed|deliverable|launched|sent|posted|shipped/i.test(searchText) && n.source && n.source !== 'test';
+      if (isHighPriority || isAmirMention || isDeliverable) {
+        const reason = isAmirMention ? '@Amir' : (isDeliverable ? 'deliverable' : 'high-priority');
+        console.log(`PUSH [${reason}]: ${_pushSubscriptions.length} subscribers`);
+        if (webpush && _pushSubscriptions.length > 0) {
+          const payload = JSON.stringify({
+            title: title.substring(0, 100) || '🤖 Agent Update',
+            body: message.substring(0, 250) || (title),
+            icon: '/icon.png',
+            badge: '/badge.png',
+            data: { url: n.url || '/', tag: reason },
+            tag: `agent-${reason}-${Date.now()}`
+          });
+          for (const sub of _pushSubscriptions) {
+            try { webpush.sendNotification(sub, payload); }
+            catch(e) {
+              if (e.statusCode === 410 || e.statusCode === 404) {
+                const idx = _pushSubscriptions.indexOf(sub);
+                if (idx >= 0) _pushSubscriptions.splice(idx, 1);
+              }
+            }
+          }
+        }
+      }
+
+      return json(res, { ok: true, count: notes.length });
+    } catch(e) { return error(res, 'Invalid request', 400); }
+  }
+
+  // POST /api/push/register-device - Register an FCM/APNS token for native push
+  // Used by the AgentCMD Android app (FcmService) to register its FCM token
+  // with the backend so future messages can route via FCM once Firebase is
+  // configured. Tokens are stored in team.push_devices (auto-created).
+  if (resource === 'push' && id === 'register-device' && req.method === 'POST') {
+    try {
+      const b = body || {};
+      const platform = (b.platform || 'unknown').toString().substring(0, 32);
+      const token = (b.token || '').toString().substring(0, 4096);
+      const deviceId = (b.deviceId || '').toString().substring(0, 256);
+      if (!token) return error(res, 'token required', 400);
+
+      // Auto-create the table once at startup (idempotent) and on demand
+      await q(`CREATE TABLE IF NOT EXISTS team.push_devices (
+        id SERIAL PRIMARY KEY,
+        platform TEXT,
+        token TEXT UNIQUE,
+        device_id TEXT,
+        created_at TIMESTAMP DEFAULT NOW(),
+        last_seen TIMESTAMP DEFAULT NOW()
+      )`);
+
+      const r = await q(
+        `INSERT INTO team.push_devices (platform, token, device_id, last_seen)
+         VALUES ($1, $2, $3, NOW())
+         ON CONFLICT (token) DO UPDATE
+           SET platform = EXCLUDED.platform,
+               device_id = EXCLUDED.device_id,
+               last_seen = NOW()
+         RETURNING id`,
+        [platform, token, deviceId]
+      );
+      console.log(`[push/register-device] platform=${platform} device=${deviceId.substring(0,8)} id=${r[0]?.id}`);
+      return json(res, { ok: true, id: r[0]?.id, platform, deviceId });
+    } catch (e) {
+      console.error('register-device error:', e.message);
+      return error(res, 'register-device failed: ' + e.message, 500);
+    }
+  }
+  // VAPID key must come before generic notifications GET
+  if (resource === 'notifications' && id === 'vapid-key' && req.method === 'GET') {
+    return json(res, { vapidKey: 'BLy9SgseEX5gH1W3wrAoQgVdVP9BYVZdCSZwMdaXQLRH2sfv-ZQeWnspz8lzeXsI_qgAcSJCt2qNCDQ9AO5yD6A' });
+  }
+  if (resource === 'notifications' && req.method === 'GET') {
+    const log = path.join(__dirname, 'public', 'notifications.json');
+    try { json(res, JSON.parse(fs.readFileSync(log, 'utf8'))); } catch(e) { json(res, []); }
+    return true;
+  }
   if (resource === 'health' && req.method === 'GET') {
     try {
       await q('SELECT 1');
@@ -207,16 +351,39 @@ async function handleAPI(req, res, parts, body) {
         "SELECT * FROM team.tasks WHERE assigned_agent_id = $1 AND status = 'in_progress' ORDER BY created_at DESC LIMIT 1", [agentId]);
       const recentRuns = await q(
         `SELECT * FROM team.agent_runs WHERE agent_id = $1 ORDER BY started_at DESC LIMIT 10`, [agentId]);
-      return json(res, { ...agent[0], currentTask: currentTask[0] || null, recentRuns });
+      // Get assigned projects
+      const projects = await q(`
+        SELECT p.*, ap.role FROM team.projects p
+        JOIN team.agent_projects ap ON p.id = ap.project_id
+        WHERE ap.agent_id = $1 ORDER BY p.priority`, [agentId]);
+      // Get connections (other agents on same projects/tasks)
+      const connections = await q(`
+        SELECT DISTINCT a.id, a.name, a.division, a.status, a.title
+        FROM team.agents a
+        WHERE a.id != $1 AND (
+          a.id IN (SELECT ap2.agent_id FROM team.agent_projects ap2 WHERE ap2.project_id IN
+            (SELECT project_id FROM team.agent_projects WHERE agent_id = $1))
+        )
+        ORDER BY a.name LIMIT 20`, [agentId]);
+      // Get recent tasks
+      const recentTasks = await q(
+        "SELECT * FROM team.tasks WHERE assigned_agent_id = $1 AND status = 'done' ORDER BY completed_at DESC LIMIT 5", [agentId]);
+      return json(res, { ...agent[0], currentTask: currentTask[0] || null, recentRuns, projects, connections, recentTasks });
     }
     const agents = await q('SELECT * FROM team.agents ORDER BY level, name');
     return json(res, agents);
   }
 
   // GET /api/tasks - Task board
+  // ─── RUNNING TASKS (side tab: currently executing) ───
+  if (resource === 'tasks' && id === 'running' && req.method === 'GET') {
+    const tasks = await q(`SELECT * FROM team.tasks WHERE status='in_progress' ORDER BY started_at ASC NULLS LAST LIMIT 100`);
+    return json(res, { tasks, count: tasks.length });
+  }
+
   if (resource === 'tasks' && req.method === 'GET') {
     const query = body?.query || {};
-    const { status, agent, limit = '50', offset = '0' } = query;
+    const { status, agent, limit = '500', offset = '0' } = query;
     let where = '1=1';
     const params = [];
     if (status) { params.push(status); where += ` AND t.status = $${params.length}`; }
@@ -226,7 +393,18 @@ async function handleAPI(req, res, parts, body) {
     const tasks = await q(`
       SELECT t.*, a.name as agent_name, a.division as agent_division
       FROM team.tasks t LEFT JOIN team.agents a ON t.assigned_agent_id = a.id
-      WHERE ${where} ORDER BY t.priority ASC, t.created_at DESC LIMIT $${params.length-1} OFFSET $${params.length}`, params);
+      WHERE ${where} 
+      -- 2026-06-30: failed first, then in_progress, done, pending (so what's broken is at the top)
+      ORDER BY 
+        CASE t.status 
+          WHEN 'failed' THEN 0
+          WHEN 'in_progress' THEN 1
+          WHEN 'done' THEN 2
+          WHEN 'pending' THEN 3
+          ELSE 4
+        END,
+        t.priority ASC, t.created_at DESC 
+      LIMIT $${params.length-1} OFFSET $${params.length}`, params);
 
     const total = await q(`SELECT COUNT(*)::int as count FROM team.tasks t WHERE ${where}`,
       params.slice(0, -2));
@@ -234,7 +412,157 @@ async function handleAPI(req, res, parts, body) {
     return json(res, { tasks, total: total[0]?.count || 0 });
   }
 
-  // POST /api/tasks/retry - Retry failed tasks (must be before POST /api/tasks)
+  // ─── INITIATIVES (campaigns / goals / cron-jobs within a project) ───
+  // 2026-06-30: RAG Empire hierarchy — Project > Initiative > Task
+  if (resource === 'initiatives' && req.method === 'GET') {
+    if (id) {
+      const init = await q('SELECT * FROM team.initiatives WHERE id = $1', [id]);
+      if (!init.length) return error(res, 'Initiative not found', 404);
+      const tasks = await q('SELECT * FROM team.tasks WHERE initiative_id = $1 ORDER BY priority ASC, created_at DESC', [id]);
+      const chat = await q('SELECT * FROM team.initiative_chat WHERE initiative_id = $1 ORDER BY created_at ASC', [id]).catch(() => []);
+      return json(res, { ...init[0], tasks, chat });
+    }
+    const { project, status } = body?.query || {};
+    let where = '1=1'; const params = [];
+    if (project) { params.push(project); where += ` AND project = $${params.length}`; }
+    if (status) { params.push(status); where += ` AND status = $${params.length}`; }
+    const initiatives = await q(`
+      SELECT i.*,
+        COUNT(t.id)::int as task_count,
+        COUNT(t.id) FILTER (WHERE t.status = 'in_progress')::int as in_progress_tasks,
+        COUNT(t.id) FILTER (WHERE t.status = 'done')::int as done_tasks,
+        COUNT(t.id) FILTER (WHERE t.status = 'failed')::int as failed_tasks
+      FROM team.initiatives i
+      LEFT JOIN team.tasks t ON t.initiative_id = i.id
+      WHERE ${where}
+      GROUP BY i.id ORDER BY i.created_at DESC
+    `, params);
+    return json(res, initiatives);
+  }
+  if (resource === 'initiatives' && req.method === 'POST') {
+    const { project, name, description, status, goal_metric, lead_agent_id } = body;
+    if (!project || !name) return error(res, 'project and name required');
+    const r = await q(
+      `INSERT INTO team.initiatives (project, name, description, status, goal_metric, lead_agent_id, started_at)
+       VALUES ($1,$2,$3,$4,$5,$6,NOW()) RETURNING *`,
+      [project, name, description||null, status||'active', goal_metric||null, lead_agent_id||null]
+    );
+    return json(res, r[0], 201);
+  }
+  if (resource === 'initiatives' && id && req.method === 'PATCH') {
+    const updates = []; const params = []; let idx = 0;
+    for (const [k, v] of Object.entries(body)) {
+      if (['name','description','status','goal_metric','lead_agent_id','completed_at'].includes(k)) {
+        idx++; updates.push(`${k} = $${idx}`); params.push(v);
+      }
+    }
+    if (!updates.length) return error(res, 'No valid fields');
+    params.push(id);
+    const r = await q(`UPDATE team.initiatives SET ${updates.join(', ')} WHERE id = $${params.length} RETURNING *`, params);
+    if (!r.length) return error(res, 'Not found', 404);
+    return json(res, r[0]);
+  }
+
+  // ─── INITIATIVE CHAT (per-initiative thread) ───
+  if (resource === 'initiative_chat' && req.method === 'GET') {
+    const { initiative_id, limit = 50 } = body?.query || {};
+    if (!initiative_id) return error(res, 'initiative_id required');
+    const msgs = await q('SELECT * FROM team.initiative_chat WHERE initiative_id = $1 ORDER BY created_at ASC LIMIT $2', [initiative_id, Math.min(parseInt(limit), 200)]);
+    return json(res, msgs);
+  }
+  if (resource === 'initiative_chat' && req.method === 'POST') {
+    const { initiative_id, from_agent, message, agent_name, attachments } = body;
+    if (!initiative_id || !from_agent || !message) return error(res, 'initiative_id, from_agent, message required');
+    const r = await q(
+      `INSERT INTO team.initiative_chat (initiative_id, from_agent, agent_name, message, attachments)
+       VALUES ($1,$2,$3,$4,$5) RETURNING *`,
+      [initiative_id, from_agent, agent_name || from_agent, message, attachments ? JSON.stringify(attachments) : null]
+    );
+    return json(res, r[0], 201);
+  }
+
+  // ─── PROJECTS ───
+  if (resource === 'projects' && req.method === 'GET') {
+  if (id) {
+    const project = await q('SELECT * FROM team.projects WHERE id = $1', [id]);
+    if (!project.length) return error(res, 'Project not found', 404);
+    const tasks = await q('SELECT t.*, a.name as agent_name FROM team.tasks t LEFT JOIN team.agents a ON a.id = ANY(t.assigned_agents) WHERE t.project_id = $1 ORDER BY t.created_at DESC', [id]);
+    const agentsInProject = await q(`
+      SELECT a.*, ap.role FROM team.agents a 
+      JOIN team.agent_projects ap ON a.id = ap.agent_id 
+      WHERE ap.project_id = $1 ORDER BY a.name`, [id]);
+    return json(res, { ...project[0], tasks, agents: agentsInProject });
+  }
+  const projects = await q(`
+    SELECT p.*, COUNT(t.id)::int as task_count, 
+      COUNT(t.id) FILTER (WHERE t.status = 'in_progress')::int as active_tasks,
+      COUNT(a.id)::int as agent_count
+    FROM team.projects p
+    LEFT JOIN team.tasks t ON t.project_id = p.id
+    LEFT JOIN team.agent_projects ap ON ap.project_id = p.id
+    LEFT JOIN team.agents a ON a.id = ap.agent_id
+    GROUP BY p.id ORDER BY p.priority, p.name`);
+  return json(res, projects);
+  }
+  if (resource === 'projects' && req.method === 'POST') {
+  const { name, description, squad, priority = 2 } = body;
+  if (!name) return error(res, 'name required');
+  const project = await q('INSERT INTO team.projects (name, description, squad, priority) VALUES ($1,$2,$3,$4) RETURNING *', [name, description, squad, priority]);
+  return json(res, project[0], 201);
+  }
+  if (resource === 'projects' && id && req.method === 'PATCH') {
+  const updates = []; const params = []; let idx = 0;
+  for (const [key, val] of Object.entries(body)) {
+    if (['name','description','status','squad','priority'].includes(key)) {
+      idx++; updates.push(`${key} = $${idx}`); params.push(val);
+    }
+  }
+  if (!updates.length) return error(res, 'No valid fields');
+  idx++; updates.push(`updated_at = $${idx}`); params.push(new Date());
+  params.push(id);
+  const r = await q(`UPDATE team.projects SET ${updates.join(', ')} WHERE id = $${params.length} RETURNING *`, params);
+  if (!r.length) return error(res, 'Project not found', 404);
+  _cache.delete('stats');
+  return json(res, r[0]);
+  }
+  if (resource === 'projects' && id && req.method === 'DELETE') {
+  await q('DELETE FROM team.agent_projects WHERE project_id = $1', [id]);
+  await q('UPDATE team.tasks SET project_id = NULL WHERE project_id = $1', [id]);
+  const r = await q('DELETE FROM team.projects WHERE id = $1 RETURNING id', [id]);
+  if (!r.length) return error(res, 'Project not found', 404);
+  return json(res, { ok: true });
+  }
+
+  // ─── AGENT CONNECTIONS ───
+  if (resource === 'agents' && id && action === 'connections' && req.method === 'GET') {
+  // Find all agents that share a project or task with this agent
+  const agentId = parseInt(id, 10);
+  const connections = await q(`
+    SELECT DISTINCT a.id, a.name, a.division, a.status, a.title
+    FROM team.agents a
+    WHERE a.id != $1 AND (
+      a.id IN (SELECT ap.agent_id FROM team.agent_projects ap WHERE ap.project_id IN 
+        (SELECT project_id FROM team.agent_projects WHERE agent_id = $1))
+      OR
+      a.id IN (SELECT unnest(t.assigned_agents) FROM team.tasks t WHERE $1 = ANY(t.assigned_agents))
+    )
+    ORDER BY a.name
+  `, [agentId]);
+  return json(res, connections);
+  }
+
+  // ─── AGENT PROJECTS ───
+  if (resource === 'agents' && id && action === 'projects' && req.method === 'GET') {
+  const agentId = parseInt(id, 10);
+  const projects = await q(`
+    SELECT p.*, ap.role FROM team.projects p
+    JOIN team.agent_projects ap ON p.id = ap.project_id
+    WHERE ap.agent_id = $1 ORDER BY p.priority, p.name
+  `, [agentId]);
+  return json(res, projects);
+  }
+
+  // ─── POST /api/tasks/retry - Retry failed tasks (must be before POST /api/tasks)
   if (resource === 'tasks' && id === 'retry' && req.method === 'POST') {
     const { task_id, all_failed = false } = body || {};
     if (task_id) {
@@ -256,13 +584,14 @@ async function handleAPI(req, res, parts, body) {
   }
 
   // POST /api/tasks - Create task
+  // 2026-06-30: added 'project' (venture name string) for dashboard grouping
   if (resource === 'tasks' && req.method === 'POST') {
-    const { title, description, agent_type, priority = 3, depends_on = [], source = 'manual', tags = [] } = body;
+    const { title, description, agent_type, priority = 3, depends_on = [], source = 'manual', tags = [], assigned_agents = [], project_id = null, project = null } = body;
     if (!title || !agent_type) return error(res, 'title and agent_type required');
 
-    const task = await q(`INSERT INTO team.tasks (title, description, agent_type, priority, depends_on, source, tags)
-      VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
-      [title, description, agent_type, priority, depends_on, source, tags]);
+    const task = await q(`INSERT INTO team.tasks (title, description, agent_type, priority, depends_on, source, tags, assigned_agents, project_id, project)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *`,
+      [title, description, agent_type, priority, depends_on, source, tags, assigned_agents, project_id, project]);
     _cache.delete('stats');
     return json(res, task[0], 201);
   }
@@ -273,10 +602,10 @@ async function handleAPI(req, res, parts, body) {
     const params = [];
     let idx = 0;
     for (const [key, val] of Object.entries(body)) {
-      if (['title','description','status','priority','assigned_agent_id','output_data','error','retry_count'].includes(key)) {
+      if (['title','description','status','priority','assigned_agent_id','assigned_agents','project_id','project','output_data','error','retry_count','initiative_id','initiative_name','is_recurring','cron_schedule','deliverable','ai_summary','chat_thread_id','last_heartbeat'].includes(key)) {
         idx++;
         updates.push(`${key} = $${idx}`);
-        params.push(key === 'output_data' ? JSON.stringify(val) : val);
+        params.push(key === 'output_data' ? JSON.stringify(val) : key === 'assigned_agents' ? JSON.stringify(val) : val);
       }
     }
     if (body.status === 'in_progress') { idx++; updates.push(`started_at = $${idx}`); params.push(new Date()); }
@@ -421,11 +750,61 @@ async function handleAPI(req, res, parts, body) {
     } else {
       await q('UPDATE team.agents SET last_active_at = NOW() WHERE name = $1', [id]);
     }
+    // Emit SSE event for status change
+    _emitSSE('agent:heartbeat', { agentId: id, ts: Date.now() });
     return json(res, { ok: true });
   }
 
+  // POST /api/heartbeat - top-level agent heartbeat (for status pings)
+  if (resource === 'heartbeat' && req.method === 'POST') {
+    const { agent_id, status, name } = body || {};
+    if (agent_id) {
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(agent_id);
+      const isInt = /^\d+$/.test(agent_id);
+      if (isUuid || isInt) {
+        await q('UPDATE team.agents SET last_active_at = NOW(), status = COALESCE($1, status) WHERE id = $2', [status || 'active', isInt ? parseInt(agent_id) : agent_id]);
+      } else {
+        await q('UPDATE team.agents SET last_active_at = NOW(), status = COALESCE($1, status) WHERE name = $2', [status || 'active', agent_id]);
+      }
+    } else if (name) {
+      await q('UPDATE team.agents SET last_active_at = NOW(), status = COALESCE($1, status) WHERE name = $2', [status || 'active', name]);
+    }
+    _emitSSE('agent:heartbeat', { agentId: agent_id || name, status: status || 'active', ts: Date.now() });
+    return json(res, { ok: true });
+  }
 
-  // ─── DASHBOARD STATE (aggregated) ───
+  // POST /api/messages - Send inter-agent message
+  if (resource === 'messages' && req.method === 'POST' && !id) {
+    const { from_agent, to_agent, subject, text, priority = 'normal', thread_id } = body;
+    if (!from_agent || !to_agent) return error(res, 'from_agent and to_agent required');
+    const msg = await q(
+      `INSERT INTO team.notifications (type, title, message, is_read)
+       VALUES ('agent_message', $1, $2, false) RETURNING *`,
+      [subject || `Message from ${from_agent}`,
+       JSON.stringify({ from_agent, to_agent, text, priority, thread_id, sent_at: new Date().toISOString() })]
+    );
+    _cache.delete('stats');
+    _emitSSE('agent:message', { id: msg[0].id, from: from_agent, to: to_agent, subject, ts: Date.now() });
+    return json(res, msg[0], 201);
+  }
+
+  // GET /api/messages/:agent_id - Read inbox for an agent
+  if (resource === 'messages' && id && req.method === 'GET') {
+    const _u = new URL(req.url, 'http://localhost'); const limit = Math.min(200, Math.max(5, parseInt(_u.searchParams.get('limit') || '30')));
+    const rows = await q(
+      `SELECT * FROM team.notifications
+       WHERE type = 'agent_message'
+       AND (message::jsonb->>'to_agent' = $1 OR message::jsonb->>'from_agent' = $1)
+       ORDER BY created_at DESC LIMIT $2`,
+      [id, limit]
+    );
+    // Parse message field
+    const inbox = rows.map(r => ({
+      ...r,
+      message: typeof r.message === 'string' ? JSON.parse(r.message) : r.message
+    }));
+    return json(res, inbox);
+  }
   if (resource === 'state' && req.method === 'GET') {
     const [agents, tasksByStatus, goals, recentThreads, divisions] = await Promise.all([
       q('SELECT COUNT(*)::int as total, COUNT(*) FILTER (WHERE is_active)::int as active FROM team.agents'),
@@ -641,9 +1020,33 @@ async function handleAPI(req, res, parts, body) {
     return json(res, results);
   }
 
-  // ─── NOTIFICATIONS ───
-  if (resource === 'notifications' && id === 'vapid-key' && req.method === 'GET') {
-    return json(res, { vapidKey: 'BAUK7hBjvWTKYquv-rOOM07SIeew7YBjsNBaE5rrnTbqIakacOBgOiT9JDqbLzgRv4jkT4WWgeQSRT_dXJSiBM8' });
+  // POST /api/notifications/subscribe - Register for push notifications
+  if (resource === 'notifications' && id === 'subscribe' && req.method === 'POST') {
+    if (!body || !body.endpoint) return error(res, 'subscription object with endpoint required');
+    const sub = { endpoint: body.endpoint, keys: body.keys || {}, userAgent: req.headers['user-agent'] || '' };
+    await savePushSub(sub);
+    // Also keep in-memory mirror for fast access in notify loop
+    const existing = _pushSubscriptions.findIndex(s => s.endpoint === sub.endpoint);
+    if (existing >= 0) _pushSubscriptions[existing] = sub;
+    else _pushSubscriptions.push(sub);
+    console.log(`Push subscription persisted + cached (${_pushSubscriptions.length} total)`);
+    return json(res, { ok: true, count: _pushSubscriptions.length });
+  }
+  // 2026-06-30: inspect subs (returns count for sanity check)
+  if (resource === 'notifications' && id === 'list' && req.method === 'GET') {
+    return json(res, { ok: true, count: _pushSubscriptions.length, subs: _pushSubscriptions.map(s => s.endpoint.slice(0,80)) });
+  }
+
+  // POST /api/notifications/unsubscribe - Unregister from push notifications
+  if (resource === 'notifications' && id === 'unsubscribe' && req.method === 'POST') {
+    const endpoint = body?.endpoint;
+    if (!endpoint) return error(res, 'endpoint required');
+    const existing = _pushSubscriptions.findIndex(s => s.endpoint === endpoint);
+    if (existing >= 0) {
+      _pushSubscriptions.splice(existing, 1);
+    }
+    console.log(`Push subscription removed (${_pushSubscriptions.length} remaining)`);
+    return json(res, { ok: true, count: _pushSubscriptions.length });
   }
 
   // ─── OPENCODE STATUS ───
@@ -691,9 +1094,15 @@ async function handleAPI(req, res, parts, body) {
       'Access-Control-Allow-Origin': '*'
     });
     res.write('retry: 3000\n\n');
+    res.write('event: connected\n');
     res.write('data: ' + JSON.stringify({ type: 'connected', ts: Date.now() }) + '\n\n');
+    // Register client for real-time events
+    _sseClients.add(res);
     const interval = setInterval(() => { res.write(': keepalive\n\n'); }, 15000);
-    req.on('close', () => clearInterval(interval));
+    req.on('close', () => {
+      clearInterval(interval);
+      _sseClients.delete(res);
+    });
     return;
   }
 
@@ -809,6 +1218,16 @@ async function runDispatcher() {
   return results;
 }
 
+// ─── SSE Event Emitter ───
+const _sseClients = new Set();
+
+function _emitSSE(event, data) {
+  const payload = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
+  for (const client of _sseClients) {
+    try { client.write(payload); } catch (e) { _sseClients.delete(client); }
+  }
+}
+
 // ─── HTTP Server ───
 const server = http.createServer(async (req, res) => {
   try {
@@ -866,8 +1285,15 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-server.listen(PORT, '0.0.0.0', () => {
+server.listen(PORT, '0.0.0.0', async () => {
   console.log(`Agent Team System running on http://0.0.0.0:${PORT}`);
   console.log(`Dashboard: http://localhost:${PORT}/`);
   console.log(`API: http://localhost:${PORT}/api/stats`);
+  // 2026-06-30: persist push subscriptions in PG so they survive restarts
+  try {
+    const n = await loadPushSubs();
+    console.log(`[push] loaded ${n} persisted push subscriptions from PG`);
+  } catch (e) {
+    console.error('[push-load] err:', e.message);
+  }
 });
