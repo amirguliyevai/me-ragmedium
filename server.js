@@ -1879,6 +1879,36 @@ async function route(req,res){
   if(u.pathname==='/api/calendar/gateway-sync'&&req.method==='POST'){ const s=readState(), b=await body(req); try{ const items=b.items||b.events||(b.value?b.value:[]); const mapped=items.map(e=>({ id:'gcal_'+(e.id||e.iCalUID||slug(e.summary||e.title||e.start||Date.now())), source:'google', providerId:e.id, title:e.summary||e.title||'(No title)', start:e.start?.dateTime||e.start?.date||e.start||'', end:e.end?.dateTime||e.end?.date||e.end||'', location:e.location||'', description:e.description||'', attendees:e.attendees||[], type:'event', tags:['google-calendar'] })); const local=s.brain.calendar.filter(e=>e.source!=='google'); s.brain.calendar=[...mapped,...local].sort((a,b)=>String(a.start||'').localeCompare(String(b.start||''))).slice(0,1000); s.brain.sync.sources['google-calendar']={status:'ok',lastSync:nowISO(),summary:'Gateway sync: pulled '+mapped.length+' events.'}; s.brain.sync.lastCalendarSync=nowISO(); writeState(s); return send(res,200,{ok:true,count:mapped.length,state:s}); }catch(e){ s.brain.sync.sources['google-calendar']={status:'error',lastSync:nowISO(),summary:e.message}; writeState(s); return send(res,502,{ok:false,error:'gateway_sync_failed',detail:e.message,state:s}); } }
   if(u.pathname==='/api/calendar/sync'&&req.method==='POST'){ const s=readState(), b=await body(req); try{ const events=await syncGoogleCalendar(s,b); activity(s,'calendar-sync',`Pulled ${events.length} Google Calendar events`,{}); writeState(s); return send(res,200,{ok:true,events,state:s}); }catch(e){ s.brain.sync.sources['google-calendar']={status:'error',lastSync:nowISO(),summary:e.message}; writeState(s); return send(res,502,{ok:false,error:'calendar_sync_failed',detail:e.message,state:s}); } }
   if(u.pathname==='/api/calendar'&&req.method==='POST'){ const s=readState(), b=await body(req); const item=upsertById(s.brain.calendar,{type:'event',source:'local',tags:[],...b,title:String(b.title||'').trim()},'cal'); if(!item.title)return send(res,400,{error:'title_required'}); activity(s,'calendar',`Calendar: ${item.title}`,{start:item.start}); writeState(s); return send(res,200,{ok:true,item,state:s}); }
+
+  // Content Hub proxy — exposes content calendar/media/platforms to the dashboard
+  if(u.pathname.startsWith('/api/content-calendar/') || u.pathname.startsWith('/api/content-media/') || u.pathname === '/api/content-platforms' || u.pathname.startsWith('/api/content-platforms/')){
+    try{
+      let upstream;
+      if(u.pathname === '/api/content-platforms' || u.pathname.startsWith('/api/content-platforms/')){
+        upstream = 'http://127.0.0.1:8110/api/platforms' + (u.pathname.replace('/api/content-platforms','')||'');
+      } else {
+        const subpath = u.pathname.replace(/^\/api\/content-(calendar|media)/, '');
+        upstream = 'http://127.0.0.1:8110/api/' + (u.pathname.match(/^\/api\/content-calendar/)?'calendar':'media') + subpath;
+      }
+      const fetchOpts = {
+        method: req.method,
+        headers: { 'Content-Type': req.headers['content-type'] || 'application/json' },
+      };
+      if(req.method !== 'GET' && req.method !== 'HEAD'){
+        const b = await body(req);
+        fetchOpts.body = JSON.stringify(b);
+      }
+      const upstreamRes = await fetch(upstream, fetchOpts);
+      const bodyText = await upstreamRes.text();
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Content-Type', upstreamRes.headers.get('content-type') || 'application/json');
+      res.statusCode = upstreamRes.status;
+      res.end(bodyText);
+      return;
+    } catch(e){
+      return send(res, 502, { ok:false, error:'content_hub_unreachable', detail: e.message });
+    }
+  }
   const calPatch=u.pathname.match(/^\/api\/calendar\/([^/]+)$/); if(calPatch&&req.method==='PATCH'){ const s=readState(), b=await body(req); const item=s.brain.calendar.find(x=>x.id===calPatch[1]); if(!item)return send(res,404,{error:'not_found'}); Object.assign(item,b,{updatedAt:nowISO()}); writeState(s); return send(res,200,{ok:true,item,state:s}); }
   if(u.pathname==='/api/content'&&req.method==='GET'){ const s=readState(); s.brain.content.metrics=contentMetrics(s.brain.content); writeState(s); return send(res,200,{ok:true,content:s.brain.content}); }
   if(u.pathname==='/api/content/accounts'&&req.method==='POST'){ const s=readState(), b=await body(req); const item=upsertById(s.brain.content.accounts,{status:'planned',...b},'acct'); s.brain.content.metrics=contentMetrics(s.brain.content); activity(s,'content-account',`Updated content account: ${item.platform||''} ${item.handle||item.id}`,{id:item.id}); writeState(s); return send(res,200,{ok:true,item,state:s}); }

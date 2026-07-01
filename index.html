@@ -1817,14 +1817,98 @@ function renderTodo(){
   `;
 }
 
+// Content calendar state (loaded from content-hub on first visit)
+let CONTENT_CALENDAR = [];
+let CONTENT_CALENDAR_VIEW = 'all'; // 'all' | 'google' | 'content' | 'deadlines'
+let CONTENT_MEDIA = [];
+
+async function loadContentCalendar(){
+  if(CONTENT_CALENDAR.length) return CONTENT_CALENDAR;
+  try {
+    const r = await fetch('/api/content-calendar/items');
+    if(r.ok) {
+      const data = await r.json();
+      CONTENT_CALENDAR = data.items || [];
+    }
+  } catch(e){ console.warn('content cal load', e); }
+  return CONTENT_CALENDAR;
+}
+
 function renderCalendar(){
   const body = document.getElementById('calendarBody');
+  // Load content calendar in background (don't block)
+  loadContentCalendar();
+
+  const toggleBar = `
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;padding:6px;background:rgba(255,255,255,.02);border-radius:6px;border:1px solid rgba(255,255,255,.06)">
+      <button class="cal-toggle ${CONTENT_CALENDAR_VIEW==='all'?'on':''}" onclick="CONTENT_CALENDAR_VIEW='all';renderCalendar()">All</button>
+      <button class="cal-toggle ${CONTENT_CALENDAR_VIEW==='google'?'on':''}" onclick="CONTENT_CALENDAR_VIEW='google';renderCalendar()">📅 Google events</button>
+      <button class="cal-toggle ${CONTENT_CALENDAR_VIEW==='content'?'on':''}" onclick="CONTENT_CALENDAR_VIEW='content';renderCalendar()">📣 Content (${CONTENT_CALENDAR.length})</button>
+      <button class="cal-toggle ${CONTENT_CALENDAR_VIEW==='deadlines'?'on':''}" onclick="CONTENT_CALENDAR_VIEW='deadlines';renderCalendar()">⚡ Deadlines</button>
+    </div>
+  `;
+
+  // Render content calendar items grouped by date
+  const contentByDate = {};
+  CONTENT_CALENDAR.forEach(c => {
+    const d = (c.scheduled_date || '').substring(0,10);
+    if(!d) return;
+    if(!contentByDate[d]) contentByDate[d] = [];
+    contentByDate[d].push(c);
+  });
+  const contentDates = Object.keys(contentByDate).sort();
+
+  const renderContentItem = (c) => {
+    const platform = c.platform || 'Unknown';
+    const platformColors = {
+      'X': '#000', 'Twitter': '#000', 'LinkedIn': '#0a66c2', 'Instagram': '#e1306c',
+      'TikTok': '#ff0050', 'YouTube': '#ff0000', 'Facebook': '#1877f2',
+      'Pinterest': '#e60023', 'Bluesky': '#1185fe', 'Medium': '#000',
+      'Substack': '#ff6719', 'Reddit': '#ff4500', 'Quora': '#b92b27'
+    };
+    const pc = platformColors[platform] || 'var(--cyan)';
+    const status = c.status || 'draft';
+    const statusColors = { draft: 'var(--muted)', ready: 'var(--green)', scheduled: 'var(--cyan)', published: 'var(--purple)', posted: 'var(--green)' };
+    const sc = statusColors[status] || 'var(--muted)';
+    return `
+      <div class="inbox-row" style="--accent:${pc};margin-bottom:6px;padding:10px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span style="font-size:9px;padding:2px 6px;background:${pc};color:#fff;border-radius:3px;text-transform:uppercase;letter-spacing:.05em">${esc(platform)}</span>
+          <span style="font-size:9px;padding:2px 6px;background:${sc};color:#000;border-radius:3px;text-transform:uppercase">${esc(status)}</span>
+          ${c.pillar?`<span style="font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.05em">${esc(c.pillar)}</span>`:''}
+        </div>
+        <div class="ib-from">${esc(c.title || '(untitled)')}</div>
+        ${c.draft_content?`<div style="font-size:11px;color:var(--text3);margin-top:4px;line-height:1.4;max-height:60px;overflow:hidden">${esc(c.draft_content.substring(0,200))}${c.draft_content.length>200?'…':''}</div>`:''}
+        ${c.tags && c.tags.length?`<div style="margin-top:6px">${c.tags.slice(0,4).map(t=>`<span style="font-size:9px;padding:2px 5px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:3px;color:var(--muted);margin-right:4px">${esc(t)}</span>`).join('')}</div>`:''}
+      </div>
+    `;
+  };
+
+  const contentSection = (CONTENT_CALENDAR_VIEW==='all' || CONTENT_CALENDAR_VIEW==='content') && contentDates.length ? `
+    <div style="margin-bottom:20px">
+      <div style="font-family:'Audiowide';font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--cyan);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
+        <span>📣 CONTENT CALENDAR · ${CONTENT_CALENDAR.length} pieces</span>
+        <a href="http://localhost:8110" target="_blank" style="font-size:9px;color:var(--muted);text-transform:none;letter-spacing:0">Open Content Hub →</a>
+      </div>
+      ${contentDates.slice(0,14).map(d => `
+        <div style="margin-bottom:10px">
+          <div style="font-size:10px;color:var(--amber);font-family:'Audiowide';letter-spacing:.05em;margin-bottom:4px">${esc(d)}</div>
+          ${contentByDate[d].slice(0,4).map(renderContentItem).join('')}
+        </div>
+      `).join('')}
+      ${contentDates.length>14?`<div style="font-size:10px;color:var(--dim);text-align:center;padding:8px">+ ${contentDates.length-14} more days — <a href="http://localhost:8110" target="_blank" style="color:var(--cyan)">view all in Content Hub</a></div>`:''}
+    </div>
+  ` : '';
+
+  // Render Google events
   if(!CALENDAR_EVENTS.length){
     const calErr = (window._stateBrain && window._stateBrain.calendar_error) || '';
     body.innerHTML = `
       <div style="font-family:'Audiowide';font-size:18px;letter-spacing:.08em;text-transform:uppercase;color:var(--text);margin-bottom:14px">
         <span style="color:var(--amber)">C</span> CALENDAR
       </div>
+      ${toggleBar}
+      ${contentSection}
       <div class="empty">
         <div class="ico">📅</div>
         <div style="font-size:14px;color:var(--text);margin-bottom:6px;font-weight:600">Google Calendar API not enabled</div>
@@ -1833,25 +1917,27 @@ function renderCalendar(){
         </div>
         <br>
         <a href="https://console.developers.google.com/apis/api/calendar-json.googleapis.com/overview?project=737696784465" target="_blank" class="btn" style="text-decoration:none;display:inline-block">🔓 Enable Calendar API</a>
-        <br><br>
-        <div style="font-size:11px;color:var(--dim)">Once enabled, the cron job (every 15 min) will pull events automatically. Gmail sync is already running.</div>
-        ${calErr?`<div style="font-size:10px;color:var(--red);margin-top:10px;font-family:'Audiowide'">${esc(calErr)}</div>`:''}
       </div>
     `;
     return;
   }
   body.innerHTML = `
     <div style="font-family:'Audiowide';font-size:18px;letter-spacing:.08em;text-transform:uppercase;color:var(--text);margin-bottom:14px">
-      <span style="color:var(--amber)">C</span> CALENDAR · ${CALENDAR_EVENTS.length} events
+      <span style="color:var(--amber)">C</span> CALENDAR · ${CALENDAR_EVENTS.length} Google events
     </div>
-    ${CALENDAR_EVENTS.map(e => `
-      <div class="inbox-row" style="--accent:var(--cyan);margin-bottom:8px">
-        <div class="ib-from">${esc(e.title||e.summary||'Event')}</div>
-        <div class="ib-subj">${esc((e.start||e.date||'').substring(0,16))} → ${esc((e.end||'').substring(0,16))}</div>
-        ${e.location?`<div class="ib-meta"><span>📍 ${esc(e.location)}</span></div>`:''}
-        ${e.description?`<div style="font-size:10px;color:var(--text3);margin-top:4px;line-height:1.4">${esc(e.description.substring(0,200))}</div>`:''}
-      </div>
-    `).join('')}
+    ${toggleBar}
+    ${contentSection}
+    ${(CONTENT_CALENDAR_VIEW==='all' || CONTENT_CALENDAR_VIEW==='google') ? `
+      <div style="font-family:'Audiowide';font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--cyan);margin:14px 0 8px">📅 GOOGLE EVENTS · ${CALENDAR_EVENTS.length}</div>
+      ${CALENDAR_EVENTS.map(e => `
+        <div class="inbox-row" style="--accent:var(--cyan);margin-bottom:8px">
+          <div class="ib-from">${esc(e.title||e.summary||'Event')}</div>
+          <div class="ib-subj">${esc((e.start||e.date||'').substring(0,16))} → ${esc((e.end||'').substring(0,16))}</div>
+          ${e.location?`<div class="ib-meta"><span>📍 ${esc(e.location)}</span></div>`:''}
+          ${e.description?`<div style="font-size:10px;color:var(--text3);margin-top:4px;line-height:1.4">${esc(e.description.substring(0,200))}</div>`:''}
+        </div>
+      `).join('')}
+    ` : ''}
   `;
 }
 
